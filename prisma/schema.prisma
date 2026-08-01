@@ -1,0 +1,336 @@
+// Opportunity OS — schema do MVP
+// Decisão de arquitetura central: Company e Signal são entidades GLOBAIS,
+// compartilhadas entre todos os tenants. Um sinal público sobre uma empresa
+// é um fato objetivo, não pertence a um cliente específico. Isso cria um
+// efeito de rede de dados: quanto mais organizações usam a plataforma, mais
+// rico fica o grafo de sinais para todos — sem duplicar custo de coleta.
+//
+// O que É por-tenant: o Opportunity Score (relevância de uma Company para
+// o ICP de uma Organization específica) e o Feedback (resultado real do
+// contato) — esse é o ativo proprietário que cria o moat de verdade.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// TENANT (o cliente do SaaS: a empresa que está prospectando)
+// ============================================================
+
+model Organization {
+  id            String    @id @default(cuid())
+  name          String
+  site          String?
+  city          String?
+  state         String?
+  country       String    @default("BR")
+  segment       String?
+  employeeRange String?
+  revenueRange  String?
+  lastSearchAt  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  users             Membership[]
+  icps              ICP[]
+  opportunityScores OpportunityScore[]
+  feedbacks         Feedback[]
+  chatConversations ChatConversation[]
+  crmExports        CrmExport[]
+
+  @@map("organizations")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+
+  memberships Membership[]
+
+  @@map("users")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Membership {
+  id             String   @id @default(cuid())
+  userId         String
+  organizationId String
+  role           Role     @default(MEMBER)
+  createdAt      DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@map("memberships")
+}
+
+// ============================================================
+// ICP — critério de cliente ideal, define contra o que pontuamos
+// ============================================================
+
+model ICP {
+  id                  String   @id @default(cuid())
+  organizationId      String
+  name                String   @default("ICP Principal")
+  segments            String[]
+  employeeMin         Int?
+  employeeMax         Int?
+  revenueMin          Float?
+  revenueMax          Float?
+  states              String[]
+  cities              String[]
+  decisionMakerTitles String[]
+  technologies        String[]
+  keywords            String[]
+  productsSold        String[]
+  servicesSold        String[]
+  radiusKm            Int?
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  opportunityScores OpportunityScore[]
+
+  @@map("icps")
+}
+
+// ============================================================
+// COMPANY — entidade global compartilhada (o "prospect")
+// ============================================================
+
+model Company {
+  id            String   @id @default(cuid())
+  name          String
+  cnpj          String?  @unique
+  site          String?
+  city          String?
+  state         String?
+  country       String   @default("BR")
+  segment       String?
+  employeeRange String?
+  revenueRange  String?
+  foundedYear   Int?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  signals           Signal[]
+  opportunityScores OpportunityScore[]
+  feedbacks         Feedback[]
+
+  @@index([state, city])
+  @@index([segment])
+  @@map("companies")
+}
+
+// ============================================================
+// SIGNAL — evento público detectado sobre uma Company (global)
+// ============================================================
+
+enum SignalCategory {
+  HIRING
+  EXPANSION
+  FUNDING
+  TECHNOLOGY
+  MARKETING
+  LEADERSHIP_CHANGE
+  PROCUREMENT
+  REGULATORY
+  PARTNERSHIP
+  AWARD
+  EVENT
+  ICP_MATCH
+  OTHER
+}
+
+model Signal {
+  id          String         @id @default(cuid())
+  companyId   String
+  category    SignalCategory
+  sourceType  String
+  sourceUrl   String?
+  title       String
+  description String?
+  detectedAt  DateTime
+  rawData     Json?
+  confidence  Float          @default(1.0)
+  createdAt   DateTime       @default(now())
+
+  company                 Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  opportunityScoreSignals OpportunityScoreSignal[]
+
+  @@index([companyId, detectedAt])
+  @@index([category])
+  @@map("signals")
+}
+
+// ============================================================
+// OPPORTUNITY SCORE — por tenant + company + ICP (o produto)
+// ============================================================
+
+enum OpportunityStatus {
+  NEW
+  REVIEWED
+  CONTACTED
+  DISMISSED
+}
+
+enum Urgency {
+  ALTA
+  MEDIA
+  BAIXA
+}
+
+// Etapas do funil comercial no Kanban. Null = ainda não entrou no funil
+// (está só na lista de oportunidades). O clique em "Iniciar contato"
+// move para CONTATO_FEITO, a primeira coluna do quadro.
+enum PipelineStage {
+  CONTATO_FEITO
+  VISITA_AGENDADA
+  PROPOSTA_ENVIADA
+  VENDIDO
+  PERDIDO
+}
+
+model OpportunityScore {
+  id                  String            @id @default(cuid())
+  organizationId      String
+  companyId           String
+  icpId               String
+  score               Int
+  urgency             Urgency
+  headline            String
+  execSummary         String
+  reasoning           String
+  buyerArea           String?
+  decisionMaker       String?
+  suggestedApproach   String
+  commercialArguments String[]
+  objections          String[]
+  status              OpportunityStatus @default(NEW)
+  stage               PipelineStage?
+  stageUpdatedAt      DateTime?
+  contactName         String?
+  contactPhone        String?
+  contactEmail        String?
+  recommendedOffering String?
+  computedAt          DateTime          @default(now())
+
+  organization Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  company      Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  icp          ICP                      @relation(fields: [icpId], references: [id], onDelete: Cascade)
+  signalsUsed  OpportunityScoreSignal[]
+  feedback     Feedback?
+  crmExports   CrmExport[]
+
+  @@unique([organizationId, companyId, icpId])
+  @@index([organizationId, score])
+  @@map("opportunity_scores")
+}
+
+model OpportunityScoreSignal {
+  id                 String @id @default(cuid())
+  opportunityScoreId String
+  signalId           String
+
+  opportunityScore OpportunityScore @relation(fields: [opportunityScoreId], references: [id], onDelete: Cascade)
+  signal           Signal           @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@unique([opportunityScoreId, signalId])
+  @@map("opportunity_score_signals")
+}
+
+// ============================================================
+// FEEDBACK — o loop proprietário que vira moat de verdade
+// ============================================================
+
+enum FeedbackOutcome {
+  CONTACTED
+  MEETING_BOOKED
+  PROPOSAL_SENT
+  CONVERTED
+  NOT_INTERESTED
+  WRONG_FIT
+  NO_RESPONSE
+}
+
+model Feedback {
+  id                 String          @id @default(cuid())
+  organizationId     String
+  companyId          String
+  opportunityScoreId String          @unique
+  outcome            FeedbackOutcome
+  notes              String?
+  createdAt          DateTime        @default(now())
+
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  company          Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  opportunityScore OpportunityScore @relation(fields: [opportunityScoreId], references: [id], onDelete: Cascade)
+
+  @@map("feedbacks")
+}
+
+// ============================================================
+// CHAT IA
+// ============================================================
+
+model ChatConversation {
+  id             String   @id @default(cuid())
+  organizationId String
+  title          String?
+  createdAt      DateTime @default(now())
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  messages     ChatMessage[]
+
+  @@map("chat_conversations")
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+model ChatMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           ChatRole
+  content        String
+  createdAt      DateTime @default(now())
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+// ============================================================
+// EXPORTAÇÃO PARA CRM
+// ============================================================
+
+model CrmExport {
+  id                 String   @id @default(cuid())
+  organizationId     String
+  opportunityScoreId String
+  crmProvider        String
+  exportedAt         DateTime @default(now())
+  status             String   @default("success")
+
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  opportunityScore OpportunityScore @relation(fields: [opportunityScoreId], references: [id], onDelete: Cascade)
+
+  @@map("crm_exports")
+}

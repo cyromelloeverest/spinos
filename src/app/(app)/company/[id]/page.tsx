@@ -1,0 +1,329 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { getCurrentOrganizationId } from "@/lib/auth/current-org";
+import { moveToPipeline, dismissOpportunity } from "@/lib/actions/pipeline";
+import { updateContactInfo } from "@/lib/actions/contact";
+import { faviconUrl } from "@/lib/favicon";
+
+const STAGE_LABEL: Record<string, string> = {
+  CONTATO_FEITO: "Contato feito",
+  VISITA_AGENDADA: "Visita agendada",
+  PROPOSTA_ENVIADA: "Proposta enviada",
+  VENDIDO: "Vendido",
+  PERDIDO: "Perdido",
+};
+
+export default async function CompanyPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const organizationId = await getCurrentOrganizationId();
+
+  const opp = await prisma.opportunityScore.findUnique({
+    where: { id },
+    include: { company: true, signalsUsed: { include: { signal: true }, orderBy: { signal: { detectedAt: "desc" } } } },
+  });
+
+  if (!opp || opp.organizationId !== organizationId) notFound();
+
+  const icp = await prisma.iCP.findFirst({
+    where: { organizationId: opp.organizationId, isActive: true },
+    orderBy: { createdAt: "desc" },
+  });
+  const offeringOptions = [...new Set([...(icp?.servicesSold ?? []), ...(icp?.productsSold ?? [])])];
+  const updateContactWithId = updateContactInfo.bind(null, opp.id);
+
+  return (
+    <div className="pt-6 px-10 pb-16 max-w-[760px]">
+      <Link
+        href="/"
+        className="text-[12.5px] mb-4.5 inline-block no-underline"
+        style={{ color: "var(--fg-muted)" }}
+      >
+        ← Oportunidades
+      </Link>
+
+      <div
+        className="flex justify-between items-start gap-6 pb-5.5 border-b mb-6.5"
+        style={{ borderColor: "var(--border)" }}
+      >
+        <div>
+          <h1
+            className="text-[27px] font-medium m-0 mb-1.5"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            {opp.company.name}
+          </h1>
+          <div className="text-[13px]" style={{ fontFamily: "var(--font-mono)", color: "var(--fg-muted)" }}>
+            {opp.company.city}, {opp.company.state}
+          </div>
+        </div>
+        <div className="text-right flex-shrink-0">
+          <div
+            className="text-[40px] font-semibold leading-none"
+            style={{ fontFamily: "var(--font-mono)", color: "var(--copper)", fontVariantNumeric: "tabular-nums" }}
+          >
+            {opp.score}
+          </div>
+          <div
+            className="text-[11px] uppercase mt-1"
+            style={{ color: "var(--fg-faint)", letterSpacing: "0.07em" }}
+          >
+            Opportunity Score
+          </div>
+        </div>
+      </div>
+
+      <Section title="Resumo executivo">
+        <p
+          className="text-[15px] leading-[1.65] m-0"
+          style={{ fontFamily: "var(--font-display)", textWrap: "balance" }}
+        >
+          {opp.execSummary}
+        </p>
+      </Section>
+
+      <Section title="Sinais que embasam esta análise">
+        <div className="flex flex-col">
+          {opp.signalsUsed.map(({ signal }, i) => (
+            <div key={signal.id} className="grid gap-0" style={{ gridTemplateColumns: "90px 20px 1fr" }}>
+              <div className="text-[11.5px] pt-0.5" style={{ fontFamily: "var(--font-mono)", color: "var(--fg-faint)" }}>
+                {signal.detectedAt.toISOString().slice(0, 10)}
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="w-[7px] h-[7px] rounded-full mt-1.5 flex-shrink-0" style={{ background: "var(--copper)" }} />
+                {i < opp.signalsUsed.length - 1 && (
+                  <div className="w-px flex-1 mt-1" style={{ background: "var(--border)" }} />
+                )}
+              </div>
+              <div className="pb-5">
+                <div className="text-[10.5px] uppercase mb-0.5" style={{ color: "var(--copper)", letterSpacing: "0.06em" }}>
+                  {signal.title}
+                </div>
+                <div className="text-[13.5px] leading-[1.5] mb-1">{signal.description}</div>
+                {signal.sourceUrl && (
+                  <a
+                    href={signal.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11.5px] no-underline inline-flex items-center gap-1.5"
+                    style={{ color: "var(--fg-faint)" }}
+                  >
+                    {faviconUrl(signal.sourceUrl) && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={faviconUrl(signal.sourceUrl)!}
+                        alt=""
+                        width={14}
+                        height={14}
+                        className="rounded-[3px]"
+                      />
+                    )}
+                    Fonte ↗
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title={`Por que o score é ${opp.score}`}>
+        <div
+          className="rounded-[10px] border px-5 py-4.5 text-[13.5px] leading-[1.65]"
+          style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg-muted)" }}
+        >
+          {opp.reasoning}
+        </div>
+      </Section>
+
+      <div className="grid gap-6 mb-7.5" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        <Field label="Área provável comprando" value={opp.buyerArea ?? "—"} />
+        <Field label="Decisor provável" value={opp.decisionMaker ?? "—"} />
+      </div>
+
+      <Section title="Como abordar">
+        <p className="text-[14px] leading-[1.6] m-0" style={{ color: "var(--fg)" }}>
+          {opp.suggestedApproach}
+        </p>
+      </Section>
+
+      <Section title="Argumentos comerciais">
+        <List items={opp.commercialArguments} markerColor="var(--good)" />
+      </Section>
+
+      <Section title="Possíveis objeções">
+        <List items={opp.objections} markerColor="var(--warn)" />
+      </Section>
+
+      <Section title="Dados de contato">
+        <form action={updateContactWithId} className="flex flex-col gap-3">
+          <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <ContactField label="Nome do contato" name="contactName" defaultValue={opp.contactName ?? ""} placeholder="Ex: Maria Silva" />
+            <ContactField label="Telefone" name="contactPhone" defaultValue={opp.contactPhone ?? ""} placeholder="Ex: (19) 99999-0000" />
+          </div>
+          <ContactField label="E-mail" name="contactEmail" defaultValue={opp.contactEmail ?? ""} placeholder="Ex: maria@empresa.com.br" />
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12.5px] font-medium" style={{ color: "var(--fg)" }}>
+              Produto/serviço a oferecer
+            </span>
+            <select
+              name="recommendedOffering"
+              defaultValue={opp.recommendedOffering ?? ""}
+              className="rounded-[8px] border px-3 py-2.5 text-[13.5px] outline-none"
+              style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)" }}
+            >
+              <option value="">Selecione...</option>
+              {offeringOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="submit"
+            className="self-start text-[12.5px] font-semibold px-4 py-2 rounded-lg border cursor-pointer"
+            style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}
+          >
+            Salvar contato
+          </button>
+        </form>
+      </Section>
+
+      <div className="flex items-center gap-2.5 mt-1.5">
+        {opp.stage ? (
+          <>
+            <div
+              className="text-[12.5px] font-semibold rounded-full px-3.5 py-2"
+              style={{ background: "var(--copper-soft)", color: "var(--copper)" }}
+            >
+              No pipeline: {STAGE_LABEL[opp.stage]}
+            </div>
+            <Link href="/pipeline" className="text-[13px] no-underline" style={{ color: "var(--fg-muted)" }}>
+              Ver no pipeline →
+            </Link>
+          </>
+        ) : (
+          <>
+            <form action={moveToPipeline.bind(null, opp.id)}>
+              <button
+                type="submit"
+                className="text-[13px] font-medium px-4 py-2.5 rounded-lg border cursor-pointer"
+                style={{ background: "var(--copper)", borderColor: "var(--copper)", color: "#1a0f06" }}
+              >
+                Iniciar contato
+              </button>
+            </form>
+            <form action={dismissOpportunity.bind(null, opp.id)}>
+              <button
+                type="submit"
+                className="text-[13px] font-medium px-4 py-2.5 rounded-lg border cursor-pointer"
+                style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}
+              >
+                Descartar
+              </button>
+            </form>
+          </>
+        )}
+        <Button disabled>Exportar para CRM (em breve)</Button>
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-7.5">
+      <h2
+        className="text-[11.5px] uppercase font-semibold m-0 mb-3.5"
+        style={{ color: "var(--fg-faint)", letterSpacing: "0.08em" }}
+      >
+        {title}
+      </h2>
+      {children}
+    </div>
+  );
+}
+
+function ContactField({
+  label,
+  name,
+  defaultValue,
+  placeholder,
+}: {
+  label: string;
+  name: string;
+  defaultValue: string;
+  placeholder: string;
+}) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-[12.5px] font-medium" style={{ color: "var(--fg)" }}>
+        {label}
+      </span>
+      <input
+        name={name}
+        defaultValue={defaultValue}
+        placeholder={placeholder}
+        className="rounded-[8px] border px-3 py-2.5 text-[13.5px] outline-none"
+        style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)" }}
+      />
+    </label>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-[11px] uppercase mb-1" style={{ color: "var(--fg-faint)", letterSpacing: "0.06em" }}>
+        {label}
+      </div>
+      <div className="text-[14px]">{value}</div>
+    </div>
+  );
+}
+
+function List({ items, markerColor }: { items: string[]; markerColor: string }) {
+  return (
+    <div className="flex flex-col gap-2.5">
+      {items.map((item, i) => (
+        <div key={i} className="text-[13.5px] leading-[1.55] pl-4 relative" style={{ color: "var(--fg-muted)" }}>
+          <span className="absolute left-0" style={{ color: markerColor }}>
+            —
+          </span>
+          {item}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Button({
+  children,
+  primary,
+  disabled,
+}: {
+  children: React.ReactNode;
+  primary?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      disabled={disabled}
+      className="text-[13px] font-medium px-4 py-2.5 rounded-lg border"
+      style={{
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.5 : 1,
+        ...(primary
+          ? { background: "var(--copper)", borderColor: "var(--copper)", color: "#1a0f06" }
+          : { background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }),
+      }}
+    >
+      {children}
+    </button>
+  );
+}

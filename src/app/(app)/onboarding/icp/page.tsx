@@ -1,0 +1,89 @@
+import { createICP } from "@/lib/actions/onboarding";
+import { FormField } from "@/components/FormField";
+import { DbSetupNotice } from "@/components/DbSetupNotice";
+
+export default async function OnboardingICPPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ dbError?: string }>;
+}) {
+  const params = await searchParams;
+  if (params.dbError) return <DbSetupNotice />;
+
+  return (
+    <div className="pt-10 px-10 pb-16 max-w-[560px]">
+      <div
+        className="text-[11px] uppercase mb-2"
+        style={{ color: "var(--fg-faint)", letterSpacing: "0.08em" }}
+      >
+        Passo 2 de 2
+      </div>
+      <h1
+        className="text-[25px] font-medium m-0 mb-2"
+        style={{ fontFamily: "var(--font-display)" }}
+      >
+        Qual é o seu cliente ideal?
+      </h1>
+      <p className="m-0 mb-8 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
+        Não precisa cadastrar concorrentes ou empresas específicas — a IA descobre automaticamente.
+        Você só define o perfil.
+      </p>
+
+      <form action={createICP} className="flex flex-col gap-4">
+        <FormField
+          label="Segmentos-alvo"
+          name="segments"
+          placeholder="Ex: Metalúrgica, Fabricante de equipamentos"
+          hint="separados por vírgula"
+        />
+        <div className="grid grid-cols-2 gap-4">
+          <FormField label="Funcionários — mínimo" name="employeeMin" placeholder="Ex: 50" />
+          <FormField label="Funcionários — máximo" name="employeeMax" placeholder="Ex: 500" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <FormField label="Estados" name="states" placeholder="Ex: SP, MG" hint="separados por vírgula" />
+          <FormField label="Cidades prioritárias" name="cities" placeholder="Ex: Campinas, Piracicaba" hint="separadas por vírgula" />
+        </div>
+        <FormField label="Raio de atuação (km)" name="radiusKm" placeholder="Ex: 70" />
+        <FormField
+          label="Cargo do decisor"
+          name="decisionMakerTitles"
+          placeholder="Ex: Diretor Industrial, Gerente de Compras"
+          hint="separados por vírgula"
+        />
+        <FormField
+          label="Tecnologias utilizadas pelo cliente ideal"
+          name="technologies"
+          placeholder="Ex: SAP, ERP TOTVS"
+          hint="separadas por vírgula, opcional"
+        />
+        <FormField
+          label="Palavras-chave"
+          name="keywords"
+          placeholder="Ex: estruturas metálicas, corte sob medida"
+          hint="separadas por vírgula"
+        />
+        <FormField
+          label="Produtos que você vende"
+          name="productsSold"
+          placeholder="Ex: peças usinadas, chapas cortadas a laser"
+          hint="separados por vírgula"
+        />
+        <FormField
+          label="Serviços que você vende"
+          name="servicesSold"
+          placeholder="Ex: usinagem, metalização, caldeiraria, corte a laser"
+          hint="separados por vírgula"
+        />
+
+        <button
+          type="submit"
+          className="mt-2 self-start text-[13px] font-semibold px-5 py-2.5 rounded-lg border cursor-pointer"
+          style={{ background: "var(--copper)", borderColor: "var(--copper)", color: "#1a0f06" }}
+        >
+          Concluir cadastro →
+        </button>
+      </form>
+    </div>
+  );
+}
