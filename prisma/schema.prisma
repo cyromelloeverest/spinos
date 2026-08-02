@@ -32,6 +32,8 @@ model Organization {
   segment       String?
   employeeRange String?
   revenueRange  String?
+  cnpj          String?
+  phone         String?
   lastSearchAt  DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -50,6 +52,8 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
+  role      String?
+  phone     String?
   createdAt DateTime @default(now())
 
   memberships Membership[]
@@ -82,25 +86,28 @@ model Membership {
 // ============================================================
 
 model ICP {
-  id                  String   @id @default(cuid())
-  organizationId      String
-  name                String   @default("ICP Principal")
-  segments            String[]
-  employeeMin         Int?
-  employeeMax         Int?
-  revenueMin          Float?
-  revenueMax          Float?
-  states              String[]
-  cities              String[]
-  decisionMakerTitles String[]
-  technologies        String[]
-  keywords            String[]
-  productsSold        String[]
-  servicesSold        String[]
-  radiusKm            Int?
-  isActive            Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                        String           @id @default(cuid())
+  organizationId            String
+  name                      String           @default("ICP Principal")
+  segments                  String[]
+  employeeMin               Int?
+  employeeMax               Int?
+  revenueMin                Float?
+  revenueMax                Float?
+  states                    String[]
+  cities                    String[]
+  decisionMakerTitles       String[]
+  technologies              String[]
+  keywords                  String[]
+  productsSold              String[]
+  servicesSold              String[]
+  radiusKm                  Int?
+  idealCustomerDescription  String?
+  preferredSignalCategories SignalCategory[]
+  companiesToAvoid          String[]
+  isActive                  Boolean          @default(true)
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
 
   organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   opportunityScores OpportunityScore[]

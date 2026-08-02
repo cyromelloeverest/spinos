@@ -3,7 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { updateICP } from "@/lib/actions/settings";
 import { FormField } from "@/components/FormField";
+import { TextAreaField } from "@/components/TextAreaField";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
+import { SIGNAL_CATEGORY_LABEL, SIGNAL_CATEGORIES } from "@/lib/signal-categories";
+import type { SignalCategory } from "@/generated/prisma/enums";
 
 export default async function IcpSettingsPage({
   searchParams,
@@ -97,6 +100,47 @@ export default async function IcpSettingsPage({
           placeholder="Ex: usinagem, metalização, caldeiraria, corte a laser"
           hint="separados por vírgula"
           defaultValue={icp.servicesSold.join(", ")}
+        />
+
+        <TextAreaField
+          label="Descreva seu cliente ideal com suas palavras"
+          name="idealCustomerDescription"
+          placeholder="Ex: Empresas industriais em expansão física, que provavelmente vão precisar de estruturas metálicas customizadas nos próximos meses — não olhamos bem pra quem já tem fornecedor fixo há mais de 5 anos."
+          hint="Opcional, mas ajuda bastante — texto livre capta nuance que os campos acima não pegam."
+          defaultValue={icp.idealCustomerDescription ?? ""}
+          rows={4}
+        />
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[12.5px] font-medium" style={{ color: "var(--fg)" }}>
+            Quais tipos de sinal importam mais pra você?
+          </span>
+          <span className="text-[11.5px] mb-1" style={{ color: "var(--fg-faint)" }}>
+            A busca vai priorizar esses tipos de sinal. Nenhum marcado = considera todos igualmente.
+          </span>
+          <div className="grid grid-cols-2 gap-2">
+            {SIGNAL_CATEGORIES.map((cat) => (
+              <label key={cat} className="flex items-center gap-2 text-[13px] cursor-pointer" style={{ color: "var(--fg)" }}>
+                <input
+                  type="checkbox"
+                  name="preferredSignalCategories"
+                  value={cat}
+                  defaultChecked={icp.preferredSignalCategories.includes(cat as SignalCategory)}
+                  className="w-4 h-4"
+                  style={{ accentColor: "var(--primary)" }}
+                />
+                {SIGNAL_CATEGORY_LABEL[cat]}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <FormField
+          label="Empresas a evitar"
+          name="companiesToAvoid"
+          placeholder="Ex: Empresa X (já é cliente), Empresa Y (concorrente)"
+          hint="separadas por vírgula — não serão sugeridas em novas buscas"
+          defaultValue={icp.companiesToAvoid.join(", ")}
         />
 
         <button

@@ -59,6 +59,10 @@ export default async function EmpresaSettingsPage({
             <FormField label="Nº de funcionários" name="employeeRange" placeholder="Ex: 11-50" defaultValue={organization.employeeRange ?? ""} />
             <FormField label="Faturamento" name="revenueRange" placeholder="Ex: R$ 1M-5M/ano" defaultValue={organization.revenueRange ?? ""} />
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="CNPJ" name="cnpj" placeholder="Ex: 12.345.678/0001-90" defaultValue={organization.cnpj ?? ""} />
+            <FormField label="Telefone comercial" name="phone" placeholder="Ex: (11) 4000-0000" defaultValue={organization.phone ?? ""} />
+          </div>
           <button
             type="submit"
             className="mt-2 self-start text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer"
@@ -72,12 +76,16 @@ export default async function EmpresaSettingsPage({
       <Section title="Sua conta">
         <form action={updateUserProfile} className="flex flex-col gap-4">
           <FormField label="Seu nome" name="name" placeholder="Ex: Cyro Mello" defaultValue={user.name ?? ""} />
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Cargo" name="role" placeholder="Ex: Diretor Comercial" defaultValue={user.role ?? ""} />
+            <FormField label="Telefone" name="phone" placeholder="Ex: (11) 99999-0000" defaultValue={user.phone ?? ""} />
+          </div>
           <button
             type="submit"
             className="self-start text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer"
             style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}
           >
-            Salvar nome
+            Salvar conta
           </button>
         </form>
       </Section>

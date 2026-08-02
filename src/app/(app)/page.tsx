@@ -1,9 +1,24 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentOrganizationId } from "@/lib/auth/current-org";
+import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { Target, Kanban, Trophy, Sparkles, TrendingUp, ArrowRight } from "lucide-react";
+
+function getGreeting(): string {
+  const hour = Number(
+    new Intl.DateTimeFormat("pt-BR", { hour: "numeric", hour12: false, timeZone: "America/Sao_Paulo" }).format(new Date()),
+  );
+  if (hour >= 5 && hour < 12) return "Bom dia";
+  if (hour >= 12 && hour < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
+function greetingName(userName: string | null | undefined, orgName: string | null | undefined): string {
+  if (userName?.trim()) return userName.trim().split(" ")[0];
+  if (orgName?.trim()) return orgName.trim();
+  return "";
+}
 
 const FUNNEL_STAGES: { stage: string; label: string }[] = [
   { stage: "CONTATO_FEITO", label: "Contato feito" },
@@ -68,23 +83,34 @@ export default async function DashboardPage({
   searchParams: Promise<{ senhaAtualizada?: string }>;
 }) {
   const params = await searchParams;
-  const organizationId = await getCurrentOrganizationId();
+  const [organizationId, userId] = await Promise.all([getCurrentOrganizationId(), getCurrentUserId()]);
   if (!organizationId) redirect("/onboarding");
 
   let data: Awaited<ReturnType<typeof fetchDashboardData>>;
+  let user: { name: string | null } | null = null;
+  let organization: { name: string } | null = null;
   try {
-    data = await fetchDashboardData(organizationId);
+    [data, user, organization] = await Promise.all([
+      fetchDashboardData(organizationId),
+      userId ? prisma.user.findUnique({ where: { id: userId }, select: { name: true } }) : Promise.resolve(null),
+      prisma.organization.findUnique({ where: { id: organizationId }, select: { name: true } }),
+    ]);
   } catch {
     return <DbSetupNotice />;
   }
 
   const maxFunnel = Math.max(1, ...data.funnel.map((f) => f.count));
+  const name = greetingName(user?.name, organization?.name);
 
   return (
     <div>
       <div className="pt-6 px-10">
-        <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>
+        <div className="text-[11px] uppercase font-semibold mb-1" style={{ color: "var(--fg-faint)", letterSpacing: "0.08em" }}>
           Dashboard
+        </div>
+        <h1 className="text-[25px] font-bold m-0 mb-1">
+          {getGreeting()}
+          {name ? `, ${name}` : ""}!
         </h1>
         <p className="m-0 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
           Visão geral do seu funil comercial.

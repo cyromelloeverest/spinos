@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { splitList } from "@/lib/form-utils";
 import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-org";
+import type { SignalCategory } from "@/generated/prisma/enums";
 
 export async function updateICP(icpId: string, formData: FormData) {
   const organizationId = await getCurrentOrganizationId();
@@ -28,6 +29,9 @@ export async function updateICP(icpId: string, formData: FormData) {
       productsSold: splitList(formData.get("productsSold")),
       servicesSold: splitList(formData.get("servicesSold")),
       radiusKm: radiusRaw ? Number(radiusRaw) : null,
+      idealCustomerDescription: String(formData.get("idealCustomerDescription") ?? "").trim() || null,
+      preferredSignalCategories: formData.getAll("preferredSignalCategories").map(String) as SignalCategory[],
+      companiesToAvoid: splitList(formData.get("companiesToAvoid")),
     },
   });
 
@@ -52,6 +56,8 @@ export async function updateOrganizationProfile(formData: FormData) {
       segment: String(formData.get("segment") ?? "").trim() || null,
       employeeRange: String(formData.get("employeeRange") ?? "").trim() || null,
       revenueRange: String(formData.get("revenueRange") ?? "").trim() || null,
+      cnpj: String(formData.get("cnpj") ?? "").trim() || null,
+      phone: String(formData.get("phone") ?? "").trim() || null,
     },
   });
 
@@ -64,10 +70,12 @@ export async function updateUserProfile(formData: FormData) {
   if (!userId) redirect("/login");
 
   const name = String(formData.get("name") ?? "").trim();
+  const role = String(formData.get("role") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
 
   await prisma.user.update({
     where: { id: userId },
-    data: { name: name || null },
+    data: { name: name || null, role: role || null, phone: phone || null },
   });
 
   revalidatePath("/settings/empresa");

@@ -6,22 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { OpportunitySearchResultSchema } from "./schema";
 import { findBestMatch } from "./company-matching";
 import { SEARCH_COOLDOWN_MS } from "./constants";
-
-const SIGNAL_CATEGORY_LABEL: Record<string, string> = {
-  HIRING: "Contratação",
-  EXPANSION: "Expansão",
-  FUNDING: "Investimento",
-  TECHNOLOGY: "Tecnologia",
-  MARKETING: "Marketing",
-  LEADERSHIP_CHANGE: "Mudança de liderança",
-  PROCUREMENT: "Licitação/Edital",
-  REGULATORY: "Regulatório",
-  PARTNERSHIP: "Parceria",
-  AWARD: "Premiação",
-  EVENT: "Evento",
-  ICP_MATCH: "Fit de ICP",
-  OTHER: "Outro",
-};
+import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
 
 export type SearchOutcome =
   | { status: "not_configured" }
@@ -44,7 +29,12 @@ function buildPrompt(org: {
   keywords: string[];
   productsSold: string[];
   servicesSold: string[];
+  idealCustomerDescription: string | null;
+  preferredSignalCategories: string[];
+  companiesToAvoid: string[];
 }) {
+  const preferredSignalLabels = icp.preferredSignalCategories.map((c) => SIGNAL_CATEGORY_LABEL[c] ?? c);
+
   return `Você é um Diretor de Inteligência Comercial. Sua tarefa é encontrar, usando busca na web, empresas reais com sinais públicos recentes de que estão iniciando um ciclo de compra que combina com o ICP abaixo.
 
 EMPRESA CONTRATANTE (quem vai abordar os prospects):
@@ -62,7 +52,7 @@ ICP (perfil de cliente ideal):
 - Palavras-chave: ${icp.keywords.join(", ") || "não informado"}
 - Produtos vendidos pela contratante: ${icp.productsSold.join(", ") || "não informado"}
 - Serviços vendidos pela contratante: ${icp.servicesSold.join(", ") || "não informado"}
-
+${icp.idealCustomerDescription ? `- Descrição livre do cliente ideal (siga isso de perto, é a fonte mais confiável de nuance): ${icp.idealCustomerDescription}\n` : ""}${preferredSignalLabels.length > 0 ? `- Tipos de sinal mais relevantes pra essa empresa, priorize-os: ${preferredSignalLabels.join(", ")}\n` : ""}${icp.companiesToAvoid.length > 0 ? `- NÃO sugira estas empresas de jeito nenhum (já são clientes, concorrentes, ou já foram descartadas): ${icp.companiesToAvoid.join(", ")}\n` : ""}
 Busque sinais públicos reais (notícias, vagas de emprego, editais, investimentos, expansões, mudanças de liderança) publicados recentemente. Para cada empresa candidata encontrada, preencha o schema com pelo menos uma fonte real (URL verificável) por sinal citado. Não invente sinais nem URLs. Priorize 3 a 6 oportunidades de alta qualidade em vez de uma lista longa e genérica.`;
 }
 
