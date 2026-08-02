@@ -38,7 +38,7 @@ function isInFuture(date: Date): boolean {
 export default async function OpportunitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; count?: string; message?: string; nextAt?: string }>;
+  searchParams: Promise<{ search?: string; count?: string; message?: string; nextAt?: string; senhaAtualizada?: string }>;
 }) {
   const params = await searchParams;
   const organizationId = await getCurrentOrganizationId();
@@ -121,6 +121,11 @@ export default async function OpportunitiesPage({
       {params.search === "ok" && (
         <div className="mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--good)", color: "var(--good)" }}>
           {params.count} oportunidade(s) encontrada(s) e adicionada(s).
+        </div>
+      )}
+      {params.senhaAtualizada && (
+        <div className="mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--good)", color: "var(--good)" }}>
+          Senha atualizada com sucesso.
         </div>
       )}
 

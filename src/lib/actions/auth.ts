@@ -3,8 +3,15 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/auth/current-org";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+// Em produção na Vercel, essa variável já vem preenchida sozinha com o
+// domínio de produção atual — mesmo depois de trocar pra um domínio próprio.
+// NEXT_PUBLIC_SITE_URL só é necessária se quisermos forçar outra coisa.
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null) ??
+  "http://localhost:3000";
 
 export async function signUp(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
@@ -65,4 +72,44 @@ export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+export async function requestPasswordReset(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim();
+
+  if (!email) {
+    redirect("/login/esqueci-senha?error=Informe seu e-mail.");
+  }
+
+  const supabase = await createClient();
+  // Sempre redireciona pra "enviamos o link" mesmo se o e-mail não existir —
+  // isso evita que alguém descubra quais e-mails têm conta só testando aqui.
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${SITE_URL}/auth/confirm?next=/redefinir-senha`,
+  });
+
+  redirect("/login/esqueci-senha?sent=1");
+}
+
+export async function updatePassword(formData: FormData) {
+  const userId = await getCurrentUserId();
+  if (!userId) redirect("/login");
+
+  const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+  if (password.length < 8) {
+    redirect("/redefinir-senha?error=A senha precisa ter pelo menos 8 caracteres.");
+  }
+  if (password !== confirmPassword) {
+    redirect("/redefinir-senha?error=As senhas não são iguais.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    redirect(`/redefinir-senha?error=${encodeURIComponent(error.message)}`);
+  }
+
+  redirect("/?senhaAtualizada=1");
 }

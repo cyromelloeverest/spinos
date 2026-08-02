@@ -1,12 +1,16 @@
-import Link from "next/link";
-import { signIn } from "@/lib/actions/auth";
+import { redirect } from "next/navigation";
+import { getCurrentUserId } from "@/lib/auth/current-org";
+import { updatePassword } from "@/lib/actions/auth";
 import { FormField } from "@/components/FormField";
 
-export default async function LoginPage({
+export default async function RedefinirSenhaPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  const userId = await getCurrentUserId();
+  if (!userId) redirect("/login");
+
   const params = await searchParams;
 
   return (
@@ -26,7 +30,7 @@ export default async function LoginPage({
           className="text-[22px] font-medium m-0 mb-6 text-center"
           style={{ fontFamily: "var(--font-display)", color: "var(--fg)" }}
         >
-          Entrar
+          Criar nova senha
         </h1>
 
         {params.error && (
@@ -38,21 +42,29 @@ export default async function LoginPage({
           </div>
         )}
 
-        <form action={signIn} className="flex flex-col gap-4">
-          <FormField label="E-mail" name="email" placeholder="voce@empresa.com.br" required />
+        <form action={updatePassword} className="flex flex-col gap-4">
           <label className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[12.5px] font-medium" style={{ color: "var(--fg)" }}>
-                Senha
-              </span>
-              <Link href="/login/esqueci-senha" className="text-[11.5px]" style={{ color: "var(--copper)" }}>
-                Esqueci minha senha
-              </Link>
-            </div>
+            <span className="text-[12.5px] font-medium" style={{ color: "var(--fg)" }}>
+              Nova senha
+            </span>
             <input
               type="password"
               name="password"
               required
+              minLength={8}
+              className="rounded-[8px] border px-3 py-2.5 text-[13.5px] outline-none"
+              style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)" }}
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12.5px] font-medium" style={{ color: "var(--fg)" }}>
+              Confirmar nova senha
+            </span>
+            <input
+              type="password"
+              name="confirmPassword"
+              required
+              minLength={8}
               className="rounded-[8px] border px-3 py-2.5 text-[13.5px] outline-none"
               style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)" }}
             />
@@ -63,16 +75,9 @@ export default async function LoginPage({
             className="mt-2 text-[13px] font-semibold px-5 py-2.5 rounded-lg border cursor-pointer"
             style={{ background: "var(--copper)", borderColor: "var(--copper)", color: "#1a0f06" }}
           >
-            Entrar
+            Salvar nova senha
           </button>
         </form>
-
-        <p className="text-[12.5px] text-center mt-6" style={{ color: "var(--fg-muted)" }}>
-          Ainda não tem conta?{" "}
-          <Link href="/signup" style={{ color: "var(--copper)" }}>
-            Criar conta
-          </Link>
-        </p>
       </div>
     </div>
   );
