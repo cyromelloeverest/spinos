@@ -1,7 +1,7 @@
 import { type OrgProfile } from "@/components/Rail";
 import { AppShell } from "@/components/AppShell";
 import { prisma } from "@/lib/prisma";
-import { getCurrentOrganizationId } from "@/lib/auth/current-org";
+import { getCurrentOrganizationId, isCurrentUserSuperAdmin } from "@/lib/auth/current-org";
 import { signOut } from "@/lib/actions/auth";
 
 async function getCurrentOrganization(): Promise<OrgProfile> {
@@ -19,10 +19,10 @@ async function getCurrentOrganization(): Promise<OrgProfile> {
 }
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const organization = await getCurrentOrganization();
+  const [organization, isSuperAdmin] = await Promise.all([getCurrentOrganization(), isCurrentUserSuperAdmin().catch(() => false)]);
 
   return (
-    <AppShell organization={organization} signOutAction={signOut}>
+    <AppShell organization={organization} signOutAction={signOut} isSuperAdmin={isSuperAdmin}>
       {children}
     </AppShell>
   );

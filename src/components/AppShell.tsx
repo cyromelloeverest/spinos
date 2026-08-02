@@ -7,17 +7,25 @@ import { TopBar } from "./TopBar";
 export function AppShell({
   organization,
   signOutAction,
+  isSuperAdmin = false,
   children,
 }: {
   organization: OrgProfile;
   signOutAction: () => Promise<void>;
+  isSuperAdmin?: boolean;
   children: React.ReactNode;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
     <div className="min-h-screen md:grid" style={{ gridTemplateColumns: "240px 1fr" }}>
-      <Rail organization={organization} signOutAction={signOutAction} open={mobileNavOpen} onNavigate={() => setMobileNavOpen(false)} />
+      <Rail
+        organization={organization}
+        signOutAction={signOutAction}
+        isSuperAdmin={isSuperAdmin}
+        open={mobileNavOpen}
+        onNavigate={() => setMobileNavOpen(false)}
+      />
       {mobileNavOpen && (
         <div
           className="fixed inset-0 z-30 md:hidden"

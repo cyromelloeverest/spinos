@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Plug, LogOut, X } from "lucide-react";
+import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Plug, LogOut, X, ShieldCheck } from "lucide-react";
 
 export type OrgProfile = {
   name: string;
@@ -37,11 +37,13 @@ const roadmapItems = [
 export function Rail({
   organization,
   signOutAction,
+  isSuperAdmin = false,
   open = false,
   onNavigate,
 }: {
   organization: OrgProfile;
   signOutAction: () => Promise<void>;
+  isSuperAdmin?: boolean;
   open?: boolean;
   onNavigate?: () => void;
 }) {
@@ -166,6 +168,29 @@ export function Rail({
           })}
         </nav>
       </div>
+
+      {isSuperAdmin && (
+        <div>
+          <div
+            className="text-[10.5px] uppercase px-2.5 mb-1.5 font-medium"
+            style={{ color: "var(--dark-fg-muted)", letterSpacing: "0.06em" }}
+          >
+            Admin
+          </div>
+          <Link
+            href="/admin"
+            onClick={onNavigate}
+            className="flex items-center gap-2.5 px-2.5 py-[7px] rounded-[7px] text-[13.5px] no-underline"
+            style={{
+              color: pathname === "/admin" ? "#ffffff" : "var(--dark-fg-muted)",
+              background: pathname === "/admin" ? "var(--dark-hover)" : "transparent",
+            }}
+          >
+            <ShieldCheck size={16} strokeWidth={1.75} className="flex-shrink-0" />
+            Painel administrador
+          </Link>
+        </div>
+      )}
 
       <div className="mt-auto flex flex-col gap-3">
         <div

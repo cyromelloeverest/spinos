@@ -18,3 +18,11 @@ export async function getCurrentOrganizationId(): Promise<string | null> {
 
   return membership?.organizationId ?? null;
 }
+
+export async function isCurrentUserSuperAdmin(): Promise<boolean> {
+  const userId = await getCurrentUserId();
+  if (!userId) return false;
+
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { isSuperAdmin: true } });
+  return user?.isSuperAdmin ?? false;
+}
