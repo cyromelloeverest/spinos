@@ -22,7 +22,7 @@ export default async function RedefinirSenhaPage({
             style={{ background: "linear-gradient(155deg, var(--copper), #a85a2a)" }}
           />
           <div className="text-[16px]" style={{ fontFamily: "var(--font-display)", color: "var(--fg)" }}>
-            Opportunity OS
+            Spinos
           </div>
         </div>
 

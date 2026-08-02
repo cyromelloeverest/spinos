@@ -33,7 +33,7 @@ export default async function EmpresaSettingsPage({
         Perfil da empresa
       </h1>
       <p className="m-0 mb-8 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
-        Dados da sua empresa e da sua conta dentro do Opportunity OS.
+        Dados da sua empresa e da sua conta dentro do Spinos.
       </p>
 
       {params.saved && (

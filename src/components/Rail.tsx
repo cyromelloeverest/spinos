@@ -71,7 +71,7 @@ export function Rail({
           }}
         />
         <div className="text-[16px]" style={{ fontFamily: "var(--font-display)" }}>
-          Opportunity OS
+          Spinos
         </div>
       </Link>
 

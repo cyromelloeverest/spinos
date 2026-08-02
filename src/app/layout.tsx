@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Opportunity OS",
-  description: "Diretor de Inteligência Comercial alimentado por IA.",
+  title: "Spinos — Find the next.",
+  description: "Sales Performance Intelligence & Opportunity System — inteligência comercial alimentada por IA.",
 };
 
 export default function RootLayout({
