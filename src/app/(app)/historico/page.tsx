@@ -70,8 +70,8 @@ export default async function HistoricoPage() {
             <Link
               key={opp.id}
               href={`/company/${opp.id}`}
-              className="flex items-center gap-4 rounded-xl border px-4 py-3 no-underline"
-              style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)" }}
+              className="flex items-center gap-4 rounded-[16px] border px-4 py-3 no-underline"
+              style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)", boxShadow: "var(--shadow-card)" }}
             >
               <div
                 className="w-11 h-11 rounded-[9px] flex items-center justify-center border font-semibold text-[16px] flex-shrink-0"

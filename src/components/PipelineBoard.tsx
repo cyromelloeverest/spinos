@@ -59,7 +59,11 @@ export function PipelineBoard({ initialCards }: { initialCards: PipelineCard[] }
             <div className="flex items-center justify-between px-1">
               <div
                 className="text-[12px] font-semibold uppercase"
-                style={{ color: "var(--fg-muted)", letterSpacing: "0.04em" }}
+                style={{
+                  color:
+                    col.stage === "VENDIDO" ? "var(--good)" : col.stage === "PERDIDO" ? "var(--critical)" : "var(--fg-muted)",
+                  letterSpacing: "0.04em",
+                }}
               >
                 {col.label}
               </div>
@@ -87,8 +91,8 @@ export function PipelineBoard({ initialCards }: { initialCards: PipelineCard[] }
                     e.dataTransfer.setData("text/plain", card.id);
                     e.dataTransfer.effectAllowed = "move";
                   }}
-                  className="rounded-[10px] border p-3.5 flex flex-col gap-2.5"
-                  style={{ background: "var(--card)", borderColor: "var(--border)", cursor: "grab" }}
+                  className="rounded-[12px] border p-3.5 flex flex-col gap-2.5"
+                  style={{ background: "var(--card)", borderColor: "var(--border)", cursor: "grab", boxShadow: "var(--shadow-card)" }}
                 >
                   <Link href={`/company/${card.id}`} className="no-underline" style={{ color: "var(--fg)" }}>
                     <div className="text-[13.5px] font-semibold mb-0.5">{card.companyName}</div>
