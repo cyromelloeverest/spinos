@@ -21,6 +21,9 @@ export async function runSearchAction() {
   if (result.status === "rate_limited") {
     redirect(`/oportunidades?search=rate_limited&nextAt=${encodeURIComponent(result.nextAvailableAt)}`);
   }
+  if (result.status === "plan_limit") {
+    redirect(`/oportunidades?search=plan_limit&limit=${result.limit}`);
+  }
   if (result.status === "error") {
     redirect(`/oportunidades?search=error&message=${encodeURIComponent(result.message)}`);
   }

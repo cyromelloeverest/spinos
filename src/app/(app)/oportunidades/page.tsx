@@ -9,6 +9,7 @@ import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { SearchButton } from "@/components/SearchButton";
 import { ArrowRight, X, Check, Flame, TrendingUp, Minus, Target, Download } from "lucide-react";
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
+import { getPlan } from "@/lib/plans";
 
 const URGENCY_CONFIG: Record<string, { label: string; icon: typeof Flame; color: string }> = {
   ALTA: { label: "Alta", icon: Flame, color: "var(--primary)" },
@@ -41,7 +42,7 @@ function isInFuture(date: Date): boolean {
 export default async function OpportunitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; count?: string; message?: string; nextAt?: string }>;
+  searchParams: Promise<{ search?: string; count?: string; message?: string; nextAt?: string; limit?: string }>;
 }) {
   const params = await searchParams;
   const organizationId = await getCurrentOrganizationId();
@@ -68,12 +69,16 @@ export default async function OpportunitiesPage({
   const lastSearchAt = organization?.lastSearchAt ?? null;
   const nextAvailableAt = lastSearchAt ? new Date(lastSearchAt.getTime() + SEARCH_COOLDOWN_MS) : null;
   const onCooldown = Boolean(nextAvailableAt && isInFuture(nextAvailableAt));
-  const searchDisabled = !anthropicConfigured || onCooldown;
+  const plan = getPlan(organization?.plan ?? "STARTER");
+  const atPlanLimit = plan.maxActiveOpportunities !== null && opportunities.length >= plan.maxActiveOpportunities;
+  const searchDisabled = !anthropicConfigured || onCooldown || atPlanLimit;
   const disabledTitle = !anthropicConfigured
     ? "Configure ANTHROPIC_API_KEY no .env para ativar"
-    : onCooldown && nextAvailableAt
-      ? `Próxima busca disponível em ${formatDateTime(nextAvailableAt)}`
-      : undefined;
+    : atPlanLimit
+      ? `Limite de ${plan.maxActiveOpportunities} oportunidades ativas do plano ${plan.name} atingido`
+      : onCooldown && nextAvailableAt
+        ? `Próxima busca disponível em ${formatDateTime(nextAvailableAt)}`
+        : undefined;
 
   return (
     <div>
@@ -96,6 +101,12 @@ export default async function OpportunitiesPage({
               {opportunities.length === 0
                 ? "Nenhuma oportunidade ainda — rode uma busca pra encontrar sinais reais pro seu ICP."
                 : `${opportunities.length} oportunidades calculadas a partir do seu ICP.`}
+              {plan.maxActiveOpportunities !== null && (
+                <span style={{ color: atPlanLimit ? "var(--warn)" : "var(--fg-faint)" }}>
+                  {" "}
+                  ({opportunities.length}/{plan.maxActiveOpportunities} do plano {plan.name})
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -124,6 +135,11 @@ export default async function OpportunitiesPage({
         <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
           Já rodamos uma busca recentemente (limite de 1 a cada 2 dias, pra não gastar à toa). Próxima disponível em{" "}
           {params.nextAt ? formatDateTime(new Date(params.nextAt)) : "breve"}.
+        </div>
+      )}
+      {params.search === "plan_limit" && (
+        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
+          Seu plano permite até {params.limit ?? plan.maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no pipeline para liberar espaço, ou fale com a gente para evoluir de plano.
         </div>
       )}
       {params.search === "error" && (

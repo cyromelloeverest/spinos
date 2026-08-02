@@ -7,11 +7,13 @@ import { OpportunitySearchResultSchema } from "./schema";
 import { findBestMatch } from "./company-matching";
 import { SEARCH_COOLDOWN_MS } from "./constants";
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
+import { getPlan } from "@/lib/plans";
 
 export type SearchOutcome =
   | { status: "not_configured" }
   | { status: "error"; message: string }
   | { status: "rate_limited"; nextAvailableAt: string }
+  | { status: "plan_limit"; limit: number }
   | { status: "ok"; count: number };
 
 function buildPrompt(org: {
@@ -80,6 +82,16 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
   });
   if (!icp) {
     return { status: "error", message: "Cadastre um ICP antes de buscar oportunidades." };
+  }
+
+  const plan = getPlan(organization.plan);
+  if (plan.maxActiveOpportunities !== null) {
+    const activeCount = await prisma.opportunityScore.count({
+      where: { organizationId, stage: null, status: { not: "DISMISSED" } },
+    });
+    if (activeCount >= plan.maxActiveOpportunities) {
+      return { status: "plan_limit", limit: plan.maxActiveOpportunities };
+    }
   }
 
   const runTimestamp = new Date();
