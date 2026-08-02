@@ -2,6 +2,19 @@ import { type EmailOtpType } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
+
+// Mantém public.users.email sincronizado com auth.users.email — importante
+// depois de uma troca de e-mail confirmada, senão o app mostra o e-mail antigo.
+async function syncUserEmail(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data } = await supabase.auth.getUser();
+  if (data.user?.id && data.user.email) {
+    await prisma.user.update({
+      where: { id: data.user.id },
+      data: { email: data.user.email },
+    }).catch(() => {});
+  }
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -25,13 +38,19 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) redirect(next);
+    if (!error) {
+      await syncUserEmail(supabase);
+      redirect(next);
+    }
     redirect(`/auth/auth-code-error?reason=${encodeURIComponent(error.message)}`);
   }
 
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({ type, token_hash });
-    if (!error) redirect(next);
+    if (!error) {
+      await syncUserEmail(supabase);
+      redirect(next);
+    }
     redirect(`/auth/auth-code-error?reason=${encodeURIComponent(error.message)}`);
   }
 

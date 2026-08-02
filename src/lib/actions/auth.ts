@@ -91,6 +91,28 @@ export async function requestPasswordReset(formData: FormData) {
   redirect("/login/esqueci-senha?sent=1");
 }
 
+export async function requestEmailChange(formData: FormData) {
+  const userId = await getCurrentUserId();
+  if (!userId) redirect("/login");
+
+  const newEmail = String(formData.get("email") ?? "").trim();
+  if (!newEmail) {
+    redirect("/settings/empresa?emailError=Informe o novo e-mail.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser(
+    { email: newEmail },
+    { emailRedirectTo: `${SITE_URL}/auth/confirm?next=${encodeURIComponent("/settings/empresa?emailAtualizado=1")}` },
+  );
+
+  if (error) {
+    redirect(`/settings/empresa?emailError=${encodeURIComponent(error.message)}`);
+  }
+
+  redirect("/settings/empresa?emailPendente=1");
+}
+
 export async function updatePassword(formData: FormData) {
   const userId = await getCurrentUserId();
   if (!userId) redirect("/login");

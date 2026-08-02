@@ -2,13 +2,14 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-org";
 import { updateOrganizationProfile, updateUserProfile } from "@/lib/actions/settings";
+import { requestEmailChange } from "@/lib/actions/auth";
 import { FormField } from "@/components/FormField";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 
 export default async function EmpresaSettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; emailPendente?: string; emailAtualizado?: string; emailError?: string }>;
 }) {
   const params = await searchParams;
   const [organizationId, userId] = await Promise.all([getCurrentOrganizationId(), getCurrentUserId()]);
@@ -71,26 +72,54 @@ export default async function EmpresaSettingsPage({
       <Section title="Sua conta">
         <form action={updateUserProfile} className="flex flex-col gap-4">
           <FormField label="Seu nome" name="name" placeholder="Ex: Cyro Mello" defaultValue={user.name ?? ""} />
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[12.5px] font-medium" style={{ color: "var(--fg)" }}>
-              E-mail de login
-            </span>
-            <div
-              className="rounded-[10px] border px-3.5 h-[44px] text-[13.5px]"
-              style={{ background: "var(--card-hover)", borderColor: "var(--border)", color: "var(--fg-muted)" }}
-            >
-              {user.email}
-            </div>
-            <span className="text-[11.5px]" style={{ color: "var(--fg-faint)" }}>
-              Pra trocar o e-mail de login, fale com o suporte.
-            </span>
-          </div>
           <button
             type="submit"
-            className="mt-2 self-start text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer"
+            className="self-start text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer"
             style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}
           >
-            Salvar conta
+            Salvar nome
+          </button>
+        </form>
+      </Section>
+
+      <Section title="E-mail de login">
+        {params.emailPendente && (
+          <div
+            className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px] leading-[1.6]"
+            style={{ borderColor: "var(--warn)", color: "var(--warn)" }}
+          >
+            Enviamos um link de confirmação. O e-mail só muda depois que você clicar nele — confira sua caixa de entrada (e o spam).
+          </div>
+        )}
+        {params.emailAtualizado && (
+          <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--good)", color: "var(--good)" }}>
+            E-mail atualizado com sucesso.
+          </div>
+        )}
+        {params.emailError && (
+          <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }}>
+            {params.emailError}
+          </div>
+        )}
+        <div className="flex flex-col gap-1.5 mb-1">
+          <span className="text-[12.5px] font-medium" style={{ color: "var(--fg)" }}>
+            E-mail atual
+          </span>
+          <div
+            className="rounded-[10px] border px-3.5 h-[44px] flex items-center text-[13.5px]"
+            style={{ background: "var(--card-hover)", borderColor: "var(--border)", color: "var(--fg-muted)" }}
+          >
+            {user.email}
+          </div>
+        </div>
+        <form action={requestEmailChange} className="flex flex-col gap-3">
+          <FormField label="Novo e-mail" name="email" placeholder="voce@empresa.com.br" required />
+          <button
+            type="submit"
+            className="self-start text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer"
+            style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}
+          >
+            Trocar e-mail
           </button>
         </form>
       </Section>
