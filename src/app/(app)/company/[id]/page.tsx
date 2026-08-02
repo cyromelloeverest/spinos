@@ -39,7 +39,7 @@ export default async function CompanyPage({
   return (
     <div className="pt-6 px-10 pb-16 max-w-[760px]">
       <Link
-        href="/"
+        href="/oportunidades"
         className="text-[12.5px] mb-4.5 inline-block no-underline"
         style={{ color: "var(--fg-muted)" }}
       >

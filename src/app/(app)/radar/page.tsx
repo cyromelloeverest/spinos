@@ -80,7 +80,7 @@ export default async function NewsPage() {
     <div>
       <div className="pt-6 px-10">
         <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>
-          Portal de notícias
+          Radar
         </h1>
         <p className="m-0 text-[13.5px] max-w-[60ch]" style={{ color: "var(--fg-muted)" }}>
           Todos os sinais e novidades encontrados sobre as empresas que você está de olho, em ordem cronológica.

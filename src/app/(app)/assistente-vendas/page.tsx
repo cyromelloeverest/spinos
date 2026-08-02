@@ -40,7 +40,7 @@ export default async function ScriptsPage() {
     <div>
       <div className="pt-6 px-10">
         <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>
-          Scripts de vendas
+          Assistente de Vendas
         </h1>
         <p className="m-0 text-[13.5px] max-w-[60ch]" style={{ color: "var(--fg-muted)" }}>
           Um roteiro pronto pra cada oportunidade — o que falar, pra quem, e como responder às objeções mais prováveis.

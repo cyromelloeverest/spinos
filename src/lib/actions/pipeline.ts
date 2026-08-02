@@ -18,6 +18,7 @@ export async function moveToPipeline(opportunityScoreId: string) {
     data: { stage: "CONTATO_FEITO", stageUpdatedAt: new Date() },
   });
   revalidatePath("/");
+  revalidatePath("/oportunidades");
   revalidatePath("/pipeline");
   redirect("/pipeline");
 }
@@ -31,6 +32,7 @@ export async function setStage(opportunityScoreId: string, stage: string) {
       stageUpdatedAt: new Date(),
     },
   });
+  revalidatePath("/");
   revalidatePath("/pipeline");
 }
 
@@ -41,5 +43,6 @@ export async function dismissOpportunity(opportunityScoreId: string) {
     data: { status: "DISMISSED" },
   });
   revalidatePath("/");
-  redirect("/");
+  revalidatePath("/oportunidades");
+  redirect("/oportunidades");
 }

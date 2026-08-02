@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Target, Newspaper, Kanban, FileText, History, Building2, Plug, LogOut } from "lucide-react";
+import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Plug, LogOut } from "lucide-react";
 
 export type OrgProfile = {
   name: string;
@@ -12,11 +12,13 @@ export type OrgProfile = {
 } | null;
 
 const navItems = [
-  { href: "/", label: "Oportunidades", icon: Target },
-  { href: "/news", label: "Portal de notícias", icon: Newspaper },
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/oportunidades", label: "Oportunidades", icon: Target },
+  { href: "/radar", label: "Radar", icon: Radar },
   { href: "/pipeline", label: "Pipeline", icon: Kanban },
-  { href: "/scripts", label: "Scripts de vendas", icon: FileText },
+  { href: "/assistente-vendas", label: "Assistente de Vendas", icon: Bot },
   { href: "/historico", label: "Histórico", icon: History },
+  { href: "/playbooks", label: "Playbooks", icon: BookOpen },
 ];
 
 const configItems = [

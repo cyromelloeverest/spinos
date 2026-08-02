@@ -13,15 +13,16 @@ export async function runSearchAction() {
 
   const result = await searchOpportunities(organizationId);
   revalidatePath("/");
+  revalidatePath("/oportunidades");
 
   if (result.status === "not_configured") {
-    redirect("/?search=not_configured");
+    redirect("/oportunidades?search=not_configured");
   }
   if (result.status === "rate_limited") {
-    redirect(`/?search=rate_limited&nextAt=${encodeURIComponent(result.nextAvailableAt)}`);
+    redirect(`/oportunidades?search=rate_limited&nextAt=${encodeURIComponent(result.nextAvailableAt)}`);
   }
   if (result.status === "error") {
-    redirect(`/?search=error&message=${encodeURIComponent(result.message)}`);
+    redirect(`/oportunidades?search=error&message=${encodeURIComponent(result.message)}`);
   }
-  redirect(`/?search=ok&count=${result.count}`);
+  redirect(`/oportunidades?search=ok&count=${result.count}`);
 }

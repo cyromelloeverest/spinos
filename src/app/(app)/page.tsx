@@ -2,233 +2,232 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
-import { runSearchAction } from "@/lib/actions/search";
-import { SEARCH_COOLDOWN_MS } from "@/lib/opportunity-engine/constants";
-import { moveToPipeline, dismissOpportunity } from "@/lib/actions/pipeline";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
-import { SearchButton } from "@/components/SearchButton";
-import { ArrowRight, X, Check } from "lucide-react";
+import { Target, Kanban, Trophy, Sparkles, TrendingUp, ArrowRight } from "lucide-react";
 
-const urgencyStyle: Record<string, { bg: string; color: string; border?: string }> = {
-  ALTA: { bg: "var(--primary-soft)", color: "var(--primary)" },
-  MEDIA: { bg: "var(--warn-soft)", color: "var(--warn)" },
-  BAIXA: { bg: "var(--card-hover)", color: "var(--fg-faint)", border: "var(--border)" },
-};
+const FUNNEL_STAGES: { stage: string; label: string }[] = [
+  { stage: "CONTATO_FEITO", label: "Contato feito" },
+  { stage: "VISITA_AGENDADA", label: "Visita agendada" },
+  { stage: "PROPOSTA_ENVIADA", label: "Proposta enviada" },
+  { stage: "VENDIDO", label: "Vendido" },
+  { stage: "PERDIDO", label: "Perdido" },
+];
 
-function scoreStyle(score: number) {
-  if (score >= 85) return { bg: "var(--primary-soft)", color: "var(--primary)", border: "var(--primary-line)" };
-  return { bg: "var(--warn-soft)", color: "var(--warn)", border: "rgba(245,158,11,0.35)" };
+const RECENT_WINDOW_MS = 10 * 24 * 60 * 60 * 1000;
+
+async function fetchDashboardData(organizationId: string) {
+  const since = new Date(Date.now() - RECENT_WINDOW_MS);
+
+  const [active, staged, won, lost, recentSignals, best, avgScoreResult] = await Promise.all([
+    prisma.opportunityScore.count({ where: { organizationId, stage: null, status: { not: "DISMISSED" } } }),
+    prisma.opportunityScore.count({
+      where: { organizationId, stage: { notIn: ["VENDIDO", "PERDIDO"] } },
+    }),
+    prisma.opportunityScore.count({ where: { organizationId, stage: "VENDIDO" } }),
+    prisma.opportunityScore.count({ where: { organizationId, stage: "PERDIDO" } }),
+    prisma.opportunityScoreSignal.count({
+      where: {
+        opportunityScore: { organizationId, status: { not: "DISMISSED" } },
+        signal: { detectedAt: { gte: since } },
+      },
+    }),
+    prisma.opportunityScore.findMany({
+      where: { organizationId, stage: null, status: { not: "DISMISSED" } },
+      include: { company: true },
+      orderBy: { score: "desc" },
+      take: 5,
+    }),
+    prisma.opportunityScore.aggregate({
+      where: { organizationId, stage: null, status: { not: "DISMISSED" } },
+      _avg: { score: true },
+    }),
+  ]);
+
+  const funnelCounts = await Promise.all(
+    FUNNEL_STAGES.map(({ stage }) => prisma.opportunityScore.count({ where: { organizationId, stage: stage as never } })),
+  );
+
+  const closedTotal = won + lost;
+  const conversionRate = closedTotal > 0 ? Math.round((won / closedTotal) * 100) : null;
+
+  return {
+    active,
+    staged,
+    won,
+    recentSignals,
+    best,
+    avgScore: avgScoreResult._avg.score,
+    conversionRate,
+    funnel: FUNNEL_STAGES.map((s, i) => ({ ...s, count: funnelCounts[i] })),
+  };
 }
 
-function fetchOpportunities(organizationId: string) {
-  return prisma.opportunityScore.findMany({
-    where: { organizationId, stage: null, status: { not: "DISMISSED" } },
-    include: { company: true, signalsUsed: { include: { signal: true } } },
-    orderBy: { score: "desc" },
-  });
-}
-
-function formatDateTime(date: Date): string {
-  return date.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-}
-
-function isInFuture(date: Date): boolean {
-  return date.getTime() > Date.now();
-}
-
-export default async function OpportunitiesPage({
+export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; count?: string; message?: string; nextAt?: string; senhaAtualizada?: string }>;
+  searchParams: Promise<{ senhaAtualizada?: string }>;
 }) {
   const params = await searchParams;
   const organizationId = await getCurrentOrganizationId();
+  if (!organizationId) redirect("/onboarding");
 
-  if (!organizationId) {
-    redirect("/onboarding");
-  }
-
-  let opportunities: Awaited<ReturnType<typeof fetchOpportunities>> = [];
-  let organization: Awaited<ReturnType<typeof prisma.organization.findUnique>> = null;
-  let dbError = false;
+  let data: Awaited<ReturnType<typeof fetchDashboardData>>;
   try {
-    [opportunities, organization] = await Promise.all([
-      fetchOpportunities(organizationId),
-      prisma.organization.findUnique({ where: { id: organizationId } }),
-    ]);
+    data = await fetchDashboardData(organizationId);
   } catch {
-    dbError = true;
+    return <DbSetupNotice />;
   }
 
-  if (dbError) return <DbSetupNotice />;
-
-  const anthropicConfigured = Boolean(process.env.ANTHROPIC_API_KEY);
-  const lastSearchAt = organization?.lastSearchAt ?? null;
-  const nextAvailableAt = lastSearchAt ? new Date(lastSearchAt.getTime() + SEARCH_COOLDOWN_MS) : null;
-  const onCooldown = Boolean(nextAvailableAt && isInFuture(nextAvailableAt));
-  const searchDisabled = !anthropicConfigured || onCooldown;
-  const disabledTitle = !anthropicConfigured
-    ? "Configure ANTHROPIC_API_KEY no .env para ativar"
-    : onCooldown && nextAvailableAt
-      ? `Próxima busca disponível em ${formatDateTime(nextAvailableAt)}`
-      : undefined;
+  const maxFunnel = Math.max(1, ...data.funnel.map((f) => f.count));
 
   return (
     <div>
-      <div className="pt-6 px-10 flex items-baseline justify-between gap-6 flex-wrap">
-        <div>
-          <h1
-            className="text-[25px] font-medium m-0 mb-1"
-            style={{ fontFamily: "var(--font-display)", textWrap: "balance" }}
-          >
-            Empresas que você deveria abordar esta semana
-          </h1>
-          <p className="m-0 text-[13.5px] max-w-[60ch]" style={{ color: "var(--fg-muted)" }}>
-            {opportunities.length === 0
-              ? "Nenhuma oportunidade ainda — rode uma busca para a IA encontrar sinais reais para o seu ICP."
-              : `${opportunities.length} oportunidades calculadas a partir do seu ICP.`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <a
-            href="/export"
-            className="text-[12.5px] font-semibold rounded-full border px-4 py-2 whitespace-nowrap no-underline"
-            style={{ color: "var(--fg-muted)", borderColor: "var(--border)" }}
-          >
-            Exportar CSV
-          </a>
-          <form action={runSearchAction}>
-            <SearchButton disabled={searchDisabled} disabledTitle={disabledTitle} />
-          </form>
-        </div>
+      <div className="pt-6 px-10">
+        <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>
+          Dashboard
+        </h1>
+        <p className="m-0 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
+          Visão geral do seu funil comercial.
+        </p>
       </div>
 
-      {params.search === "not_configured" && (
-        <div className="mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
-          Configure a chave ANTHROPIC_API_KEY no arquivo .env para ativar a busca automática.
-        </div>
-      )}
-      {params.search === "rate_limited" && (
-        <div className="mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
-          Já rodamos uma busca recentemente (limite de 1 a cada 2 dias, pra não gastar à toa). Próxima disponível em{" "}
-          {params.nextAt ? formatDateTime(new Date(params.nextAt)) : "breve"}.
-        </div>
-      )}
-      {params.search === "error" && (
-        <div className="mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }}>
-          {params.message ?? "Erro ao buscar oportunidades."}
-        </div>
-      )}
-      {params.search === "ok" && (
-        <div className="mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--good)", color: "var(--good)" }}>
-          {params.count} oportunidade(s) encontrada(s) e adicionada(s).
-        </div>
-      )}
       {params.senhaAtualizada && (
         <div className="mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--good)", color: "var(--good)" }}>
           Senha atualizada com sucesso.
         </div>
       )}
 
-      <div className="px-10 pt-6 pb-16 flex flex-col gap-2.5 max-w-[880px]">
-        {opportunities.map((opp) => {
-          const uStyle = urgencyStyle[opp.urgency];
-          const sStyle = scoreStyle(opp.score);
-          const isNew = Boolean(lastSearchAt && opp.computedAt.getTime() === lastSearchAt.getTime());
-          return (
-            <div
-              key={opp.id}
-              className="flex items-center gap-5 rounded-[16px] border p-5"
-              style={{
-                background: "var(--card)",
-                borderColor: "var(--border)",
-                color: "var(--fg)",
-                boxShadow: "var(--shadow-card)",
-              }}
-            >
-              <Link href={`/company/${opp.id}`} className="flex items-center gap-5 flex-1 min-w-0 no-underline" style={{ color: "var(--fg)" }}>
+      <div className="px-10 pt-6 grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+        <KpiCard icon={Target} label="Oportunidades ativas" value={data.active} />
+        <KpiCard icon={Kanban} label="No pipeline" value={data.staged} />
+        <KpiCard icon={Trophy} label="Vendidas" value={data.won} />
+        <KpiCard
+          icon={TrendingUp}
+          label="Taxa de conversão"
+          value={data.conversionRate !== null ? `${data.conversionRate}%` : "—"}
+        />
+        <KpiCard icon={Sparkles} label="Novidades (10 dias)" value={data.recentSignals} />
+      </div>
+
+      <div className="px-10 pt-8 pb-16 grid gap-6" style={{ gridTemplateColumns: "1.3fr 1fr" }}>
+        <div>
+          <h2 className="text-[11.5px] uppercase font-semibold m-0 mb-3.5" style={{ color: "var(--fg-faint)", letterSpacing: "0.08em" }}>
+            Melhores oportunidades
+          </h2>
+          <div className="flex flex-col gap-2.5">
+            {data.best.length === 0 && (
+              <div className="rounded-[10px] border border-dashed p-5 text-[12.5px] text-center" style={{ borderColor: "var(--border)", color: "var(--fg-faint)" }}>
+                Nenhuma oportunidade ativa ainda.
+              </div>
+            )}
+            {data.best.map((opp) => (
+              <Link
+                key={opp.id}
+                href={`/company/${opp.id}`}
+                className="flex items-center gap-4 rounded-[14px] border px-4 py-3 no-underline"
+                style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)", boxShadow: "var(--shadow-card)" }}
+              >
                 <div
-                  className="w-16 h-16 rounded-[10px] flex items-center justify-center border font-semibold text-[26px] flex-shrink-0"
+                  className="w-10 h-10 rounded-[9px] flex items-center justify-center font-semibold text-[15px] flex-shrink-0"
                   style={{
                     fontFamily: "var(--font-mono)",
-                    fontVariantNumeric: "tabular-nums",
-                    background: sStyle.bg,
-                    color: sStyle.color,
-                    borderColor: sStyle.border,
+                    background: opp.score >= 85 ? "var(--primary)" : "var(--primary-soft)",
+                    color: opp.score >= 85 ? "#ffffff" : "var(--primary)",
                   }}
                 >
                   {opp.score}
                 </div>
-
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2.5 mb-1.5">
-                    <div className="text-[15.5px] font-semibold">{opp.company.name}</div>
-                    <div className="text-[12px]" style={{ fontFamily: "var(--font-mono)", color: "var(--fg-faint)" }}>
-                      {opp.company.city}, {opp.company.state}
-                    </div>
-                  </div>
-                  <div className="text-[13px] mb-2.5 leading-[1.5]" style={{ color: "var(--fg-muted)" }}>
-                    {opp.headline}
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {opp.signalsUsed.slice(0, 4).map(({ signal }) => (
-                      <div
-                        key={signal.id}
-                        className="text-[11.5px] rounded-[6px] border px-2 py-[3px] flex items-center gap-1 whitespace-nowrap"
-                        style={{ color: "var(--fg-muted)", borderColor: "var(--border)" }}
-                      >
-                        <Check size={11} strokeWidth={2.25} style={{ color: "var(--good)" }} />
-                        {signal.title}
-                      </div>
-                    ))}
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13.5px] font-semibold truncate">{opp.company.name}</div>
+                  <div className="text-[11.5px] truncate" style={{ color: "var(--fg-faint)" }}>
+                    {opp.company.city}, {opp.company.state}
                   </div>
                 </div>
+                <ArrowRight size={15} strokeWidth={1.75} style={{ color: "var(--fg-faint)" }} className="flex-shrink-0" />
               </Link>
+            ))}
+          </div>
+          <Link
+            href="/oportunidades"
+            className="inline-flex items-center gap-1 mt-3 text-[12.5px] font-medium no-underline"
+            style={{ color: "var(--primary)" }}
+          >
+            Ver todas as oportunidades
+            <ArrowRight size={13} strokeWidth={2} />
+          </Link>
+        </div>
 
-              <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                <div className="flex items-center gap-1.5">
-                  {isNew && (
-                    <div
-                      className="text-[10px] font-semibold rounded-full px-2 py-1"
-                      style={{ background: "var(--good-soft)", color: "var(--good)" }}
-                    >
-                      NOVO
-                    </div>
-                  )}
-                  <div
-                    className="text-[11px] font-semibold rounded-full px-2.5 py-1 border"
-                    style={{ background: uStyle.bg, color: uStyle.color, borderColor: uStyle.border ?? "transparent" }}
-                  >
-                    {opp.urgency}
-                  </div>
+        <div>
+          <h2 className="text-[11.5px] uppercase font-semibold m-0 mb-3.5" style={{ color: "var(--fg-faint)", letterSpacing: "0.08em" }}>
+            Funil comercial
+          </h2>
+          <div
+            className="rounded-[16px] border p-5 flex flex-col gap-3.5"
+            style={{ background: "var(--card)", borderColor: "var(--border)", boxShadow: "var(--shadow-card)" }}
+          >
+            {data.funnel.map((f) => (
+              <div key={f.stage}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[12.5px]" style={{ color: "var(--fg-muted)" }}>
+                    {f.label}
+                  </span>
+                  <span className="text-[12.5px] font-semibold" style={{ fontFamily: "var(--font-mono)" }}>
+                    {f.count}
+                  </span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <form action={moveToPipeline.bind(null, opp.id)}>
-                    <button
-                      type="submit"
-                      title="Mover para o pipeline"
-                      className="flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1 border cursor-pointer"
-                      style={{ background: "var(--primary-soft)", color: "var(--primary)", borderColor: "transparent" }}
-                    >
-                      Pipeline
-                      <ArrowRight size={12} strokeWidth={2} />
-                    </button>
-                  </form>
-                  <form action={dismissOpportunity.bind(null, opp.id)}>
-                    <button
-                      type="submit"
-                      title="Descartar"
-                      className="rounded-full w-[26px] h-[26px] border cursor-pointer flex items-center justify-center"
-                      style={{ color: "var(--fg-faint)", borderColor: "var(--border)" }}
-                    >
-                      <X size={13} strokeWidth={1.75} />
-                    </button>
-                  </form>
+                <div className="h-[6px] rounded-full" style={{ background: "var(--card-hover)" }}>
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${(f.count / maxFunnel) * 100}%`,
+                      background: f.stage === "VENDIDO" ? "var(--good)" : f.stage === "PERDIDO" ? "var(--critical)" : "var(--primary)",
+                    }}
+                  />
                 </div>
               </div>
-            </div>
-          );
-        })}
+            ))}
+            <Link
+              href="/pipeline"
+              className="inline-flex items-center gap-1 mt-1 text-[12.5px] font-medium no-underline"
+              style={{ color: "var(--primary)" }}
+            >
+              Ver pipeline completo
+              <ArrowRight size={13} strokeWidth={2} />
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KpiCard({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Target;
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div
+      className="rounded-[16px] border p-4 flex flex-col gap-2.5"
+      style={{ background: "var(--card)", borderColor: "var(--border)", boxShadow: "var(--shadow-card)" }}
+    >
+      <div
+        className="w-8 h-8 rounded-[8px] flex items-center justify-center"
+        style={{ background: "var(--primary-soft)", color: "var(--primary)" }}
+      >
+        <Icon size={16} strokeWidth={1.75} />
+      </div>
+      <div>
+        <div className="text-[22px] font-bold leading-none" style={{ fontFamily: "var(--font-mono)" }}>
+          {value}
+        </div>
+        <div className="text-[11.5px] mt-1" style={{ color: "var(--fg-muted)" }}>
+          {label}
+        </div>
       </div>
     </div>
   );
