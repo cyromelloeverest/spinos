@@ -11,7 +11,7 @@ export default async function OnboardingCompanyPage({
   if (params.dbError) return <DbSetupNotice />;
 
   return (
-    <div className="pt-10 px-10 pb-16 max-w-[560px]">
+    <div className="pt-10 px-4 md:px-10 pb-16 max-w-[560px]">
       <div
         className="text-[11px] uppercase mb-2"
         style={{ color: "var(--fg-faint)", letterSpacing: "0.08em" }}
@@ -31,7 +31,7 @@ export default async function OnboardingCompanyPage({
       <form action={createOrganization} className="flex flex-col gap-4">
         <FormField label="Nome da empresa" name="name" placeholder="Ex: Sakatec" required />
         <FormField label="Site" name="site" placeholder="https://" />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField label="Cidade" name="city" placeholder="Ex: Sumaré" />
           <FormField label="Estado" name="state" placeholder="Ex: SP" />
         </div>
@@ -40,7 +40,7 @@ export default async function OnboardingCompanyPage({
           name="segment"
           placeholder="Ex: Usinagem, metalização e caldeiraria"
         />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField label="Número de funcionários" name="employeeRange" placeholder="Ex: 11-50" />
           <FormField label="Faturamento aproximado" name="revenueRange" placeholder="Ex: R$1M-5M" />
         </div>

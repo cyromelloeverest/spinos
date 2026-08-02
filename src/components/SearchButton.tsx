@@ -18,7 +18,7 @@ export function SearchButton({
       type="submit"
       disabled={isDisabled}
       title={disabled ? disabledTitle : undefined}
-      className="flex items-center gap-2.5 text-[14px] font-semibold rounded-full pl-5 pr-6 py-3.5 border-0 whitespace-nowrap transition-transform"
+      className="flex items-center justify-center gap-2.5 text-[14px] font-semibold rounded-full pl-5 pr-6 py-3.5 border-0 whitespace-nowrap transition-transform w-full sm:w-auto"
       style={{
         background: isDisabled ? "var(--card-hover)" : "var(--primary)",
         color: isDisabled ? "var(--fg-faint)" : "#ffffff",

@@ -38,7 +38,7 @@ export default async function CompanyPage({
   const updateContactWithId = updateContactInfo.bind(null, opp.id);
 
   return (
-    <div className="pt-6 px-10 pb-16 max-w-[760px]">
+    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[760px]">
       <Link
         href="/oportunidades"
         className="text-[12.5px] mb-4.5 inline-block no-underline"
@@ -141,7 +141,7 @@ export default async function CompanyPage({
         </div>
       </Section>
 
-      <div className="grid gap-6 mb-7.5" style={{ gridTemplateColumns: "1fr 1fr" }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-7.5">
         <Field label="Área provável comprando" value={opp.buyerArea ?? "—"} />
         <Field label="Decisor provável" value={opp.decisionMaker ?? "—"} />
       </div>
@@ -162,7 +162,7 @@ export default async function CompanyPage({
 
       <Section title="Dados de contato">
         <form action={updateContactWithId} className="flex flex-col gap-3">
-          <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <ContactField label="Nome do contato" name="contactName" defaultValue={opp.contactName ?? ""} placeholder="Ex: Maria Silva" />
             <ContactField label="Telefone" name="contactPhone" defaultValue={opp.contactPhone ?? ""} placeholder="Ex: (19) 99999-0000" />
           </div>

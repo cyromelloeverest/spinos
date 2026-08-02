@@ -78,7 +78,7 @@ export default async function NewsPage() {
 
   return (
     <div>
-      <div className="pt-6 px-10">
+      <div className="pt-6 px-4 md:px-10">
         <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>
           Radar
         </h1>
@@ -87,7 +87,7 @@ export default async function NewsPage() {
         </p>
       </div>
 
-      <div className="px-10 pt-6 pb-16 max-w-[1080px]">
+      <div className="px-4 md:px-10 pt-6 pb-16 max-w-[1080px]">
         {stories.length === 0 && (
           <div className="rounded-[10px] border border-dashed p-6 text-[13px] text-center" style={{ borderColor: "var(--border)", color: "var(--fg-faint)" }}>
             Nenhuma notícia ainda — rode uma busca de oportunidades pra começar a coletar sinais.
@@ -119,8 +119,8 @@ function HeroCard({ link }: { link: StoryLink }) {
   return (
     <a
       href={`/company/${opportunityScore.id}`}
-      className="grid gap-0 rounded-[16px] border overflow-hidden no-underline"
-      style={{ gridTemplateColumns: "220px 1fr", borderColor: "var(--border)", color: "var(--fg)", boxShadow: "var(--shadow-card)" }}
+      className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-0 rounded-[16px] border overflow-hidden no-underline"
+      style={{ borderColor: "var(--border)", color: "var(--fg)", boxShadow: "var(--shadow-card)" }}
     >
       <div
         className="flex items-center justify-center relative p-8"

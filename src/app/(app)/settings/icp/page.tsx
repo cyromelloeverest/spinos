@@ -32,7 +32,7 @@ export default async function IcpSettingsPage({
   const updateWithId = updateICP.bind(null, icp.id);
 
   return (
-    <div className="pt-10 px-10 pb-16 max-w-[560px]">
+    <div className="pt-10 px-4 md:px-10 pb-16 max-w-[560px]">
       <h1 className="text-[25px] font-medium m-0 mb-2" style={{ fontFamily: "var(--font-display)" }}>
         Meu ICP
       </h1>
@@ -57,11 +57,11 @@ export default async function IcpSettingsPage({
           hint="separados por vírgula"
           defaultValue={icp.segments.join(", ")}
         />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField label="Funcionários — mínimo" name="employeeMin" placeholder="Ex: 50" defaultValue={icp.employeeMin?.toString() ?? ""} />
           <FormField label="Funcionários — máximo" name="employeeMax" placeholder="Ex: 500" defaultValue={icp.employeeMax?.toString() ?? ""} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField label="Estados" name="states" placeholder="Ex: SP, MG" hint="separados por vírgula" defaultValue={icp.states.join(", ")} />
           <FormField label="Cidades prioritárias" name="cities" placeholder="Ex: Campinas, Piracicaba" hint="separadas por vírgula" defaultValue={icp.cities.join(", ")} />
         </div>
@@ -118,7 +118,7 @@ export default async function IcpSettingsPage({
           <span className="text-[11.5px] mb-1" style={{ color: "var(--fg-faint)" }}>
             A busca vai priorizar esses tipos de sinal. Nenhum marcado = considera todos igualmente.
           </span>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {SIGNAL_CATEGORIES.map((cat) => (
               <label key={cat} className="flex items-center gap-2 text-[13px] cursor-pointer" style={{ color: "var(--fg)" }}>
                 <input

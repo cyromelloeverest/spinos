@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Plug, LogOut } from "lucide-react";
+import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Plug, LogOut, X } from "lucide-react";
 
 export type OrgProfile = {
   name: string;
@@ -37,9 +37,13 @@ const roadmapItems = [
 export function Rail({
   organization,
   signOutAction,
+  open = false,
+  onNavigate,
 }: {
   organization: OrgProfile;
   signOutAction: () => Promise<void>;
+  open?: boolean;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
 
@@ -55,13 +59,24 @@ export function Rail({
 
   return (
     <aside
-      className="flex flex-col gap-6 p-4 overflow-y-auto border-r"
+      className={`fixed inset-y-0 left-0 z-40 w-[240px] flex flex-col gap-6 p-4 overflow-y-auto border-r transform transition-transform duration-200 md:static md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
       style={{ background: "var(--dark)", color: "var(--dark-fg)", borderColor: "var(--dark-border)" }}
     >
-      <Link href="/" className="flex items-center px-1.5 no-underline" style={{ color: "var(--dark-fg)" }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-branco.svg" alt="Spinos" height={20} style={{ height: "20px", width: "auto" }} />
-      </Link>
+      <div className="flex items-center justify-between px-1.5">
+        <Link href="/" onClick={onNavigate} className="flex items-center no-underline" style={{ color: "var(--dark-fg)" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-branco.svg" alt="Spinos" height={20} style={{ height: "20px", width: "auto" }} />
+        </Link>
+        <button
+          type="button"
+          onClick={onNavigate}
+          className="md:hidden flex items-center justify-center w-7 h-7 rounded-[6px]"
+          style={{ color: "var(--dark-fg-muted)", background: "transparent", border: "none" }}
+          aria-label="Fechar menu"
+        >
+          <X size={18} strokeWidth={1.75} />
+        </button>
+      </div>
 
       <nav className="flex flex-col gap-0.5">
         {navItems.map((item) => {
@@ -71,6 +86,7 @@ export function Rail({
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className="flex items-center gap-2.5 px-2.5 py-[8px] rounded-[8px] text-[13.5px] no-underline"
               style={{
                 color: active ? "#ffffff" : "var(--dark-fg-muted)",
@@ -136,6 +152,7 @@ export function Rail({
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={onNavigate}
                 className="flex items-center gap-2.5 px-2.5 py-[7px] rounded-[7px] text-[13.5px] no-underline"
                 style={{
                   color: active ? "#ffffff" : "var(--dark-fg-muted)",

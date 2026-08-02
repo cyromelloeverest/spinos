@@ -11,7 +11,7 @@ export default async function OnboardingICPPage({
   if (params.dbError) return <DbSetupNotice />;
 
   return (
-    <div className="pt-10 px-10 pb-16 max-w-[560px]">
+    <div className="pt-10 px-4 md:px-10 pb-16 max-w-[560px]">
       <div
         className="text-[11px] uppercase mb-2"
         style={{ color: "var(--fg-faint)", letterSpacing: "0.08em" }}
@@ -36,11 +36,11 @@ export default async function OnboardingICPPage({
           placeholder="Ex: Metalúrgica, Fabricante de equipamentos"
           hint="separados por vírgula"
         />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField label="Funcionários — mínimo" name="employeeMin" placeholder="Ex: 50" />
           <FormField label="Funcionários — máximo" name="employeeMax" placeholder="Ex: 500" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField label="Estados" name="states" placeholder="Ex: SP, MG" hint="separados por vírgula" />
           <FormField label="Cidades prioritárias" name="cities" placeholder="Ex: Campinas, Piracicaba" hint="separadas por vírgula" />
         </div>

@@ -45,7 +45,7 @@ export default async function PipelinePage() {
 
   return (
     <div>
-      <div className="pt-6 px-10">
+      <div className="pt-6 px-4 md:px-10">
         <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>
           Pipeline comercial
         </h1>

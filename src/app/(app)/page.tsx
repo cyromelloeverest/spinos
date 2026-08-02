@@ -104,7 +104,7 @@ export default async function DashboardPage({
 
   return (
     <div>
-      <div className="pt-6 px-10">
+      <div className="pt-6 px-4 md:px-10">
         <div className="text-[11px] uppercase font-semibold mb-1" style={{ color: "var(--fg-faint)", letterSpacing: "0.08em" }}>
           Dashboard
         </div>
@@ -118,12 +118,12 @@ export default async function DashboardPage({
       </div>
 
       {params.senhaAtualizada && (
-        <div className="mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--good)", color: "var(--good)" }}>
+        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--good)", color: "var(--good)" }}>
           Senha atualizada com sucesso.
         </div>
       )}
 
-      <div className="px-10 pt-6 grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+      <div className="px-4 md:px-10 pt-6 grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
         <KpiCard icon={Target} label="Oportunidades ativas" value={data.active} />
         <KpiCard icon={Kanban} label="No pipeline" value={data.staged} />
         <KpiCard icon={Trophy} label="Vendidas" value={data.won} />
@@ -135,7 +135,7 @@ export default async function DashboardPage({
         <KpiCard icon={Sparkles} label="Novidades (10 dias)" value={data.recentSignals} />
       </div>
 
-      <div className="px-10 pt-8 pb-16 grid gap-6" style={{ gridTemplateColumns: "1.3fr 1fr" }}>
+      <div className="px-4 md:px-10 pt-8 pb-16 grid grid-cols-1 md:grid-cols-[1.3fr_1fr] gap-6">
         <div>
           <h2 className="text-[11.5px] uppercase font-semibold m-0 mb-3.5" style={{ color: "var(--fg-faint)", letterSpacing: "0.08em" }}>
             Melhores oportunidades

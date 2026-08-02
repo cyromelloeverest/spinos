@@ -47,7 +47,7 @@ export default async function HistoricoPage() {
 
   return (
     <div>
-      <div className="pt-6 px-10">
+      <div className="pt-6 px-4 md:px-10">
         <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>
           Histórico de oportunidades
         </h1>
@@ -56,7 +56,7 @@ export default async function HistoricoPage() {
         </p>
       </div>
 
-      <div className="px-10 pt-6 pb-16 flex flex-col gap-2 max-w-[880px]">
+      <div className="px-4 md:px-10 pt-6 pb-16 flex flex-col gap-2 max-w-[880px]">
         {opportunities.length === 0 && (
           <div className="rounded-[10px] border border-dashed p-6 text-[13px] text-center" style={{ borderColor: "var(--border)", color: "var(--fg-faint)" }}>
             Nenhuma oportunidade encontrada ainda.

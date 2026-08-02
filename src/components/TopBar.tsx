@@ -1,6 +1,9 @@
-import Link from "next/link";
+"use client";
 
-export function TopBar({ organizationName }: { organizationName: string }) {
+import Link from "next/link";
+import { Menu } from "lucide-react";
+
+export function TopBar({ organizationName, onMenuClick }: { organizationName: string; onMenuClick?: () => void }) {
   const initials = organizationName
     .split(" ")
     .filter((w) => w.length > 1)
@@ -11,9 +14,18 @@ export function TopBar({ organizationName }: { organizationName: string }) {
 
   return (
     <div
-      className="flex items-center justify-end px-6 py-2.5 border-b flex-shrink-0"
+      className="flex items-center justify-between md:justify-end px-4 md:px-6 py-2.5 border-b flex-shrink-0"
       style={{ borderColor: "var(--border)", background: "var(--surface)" }}
     >
+      <button
+        type="button"
+        onClick={onMenuClick}
+        className="md:hidden flex items-center justify-center w-9 h-9 rounded-[8px] border"
+        style={{ borderColor: "var(--border)", background: "var(--card)", color: "var(--fg)" }}
+        aria-label="Abrir menu"
+      >
+        <Menu size={18} strokeWidth={1.75} />
+      </button>
       <Link
         href="/settings/empresa"
         className="flex items-center gap-2 rounded-full pl-1.5 pr-3.5 py-1.5 border no-underline"
@@ -25,7 +37,7 @@ export function TopBar({ organizationName }: { organizationName: string }) {
         >
           {initials}
         </span>
-        <span className="text-[12.5px] font-medium">{organizationName}</span>
+        <span className="text-[12.5px] font-medium hidden sm:inline">{organizationName}</span>
       </Link>
     </div>
   );

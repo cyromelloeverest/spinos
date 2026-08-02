@@ -10,7 +10,7 @@ export default async function PlaybooksPage() {
 
   return (
     <div>
-      <div className="pt-6 px-10">
+      <div className="pt-6 px-4 md:px-10">
         <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>
           Playbooks
         </h1>
@@ -20,7 +20,7 @@ export default async function PlaybooksPage() {
       </div>
 
       <div
-        className="px-10 pt-6 pb-16 grid gap-4"
+        className="px-4 md:px-10 pt-6 pb-16 grid gap-4"
         style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}
       >
         {PLAYBOOKS.map((p) => (

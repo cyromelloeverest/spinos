@@ -17,7 +17,7 @@ export default async function PlaybookDetailPage({
   if (!playbook) notFound();
 
   return (
-    <div className="pt-6 px-10 pb-16 max-w-[680px]">
+    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[680px]">
       <Link href="/playbooks" className="text-[12.5px] mb-4.5 inline-block no-underline" style={{ color: "var(--fg-muted)" }}>
         ← Playbooks
       </Link>

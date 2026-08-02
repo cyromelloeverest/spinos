@@ -29,7 +29,7 @@ export default async function EmpresaSettingsPage({
   if (!organization || !user) redirect("/onboarding");
 
   return (
-    <div className="pt-10 px-10 pb-16 max-w-[560px]">
+    <div className="pt-10 px-4 md:px-10 pb-16 max-w-[560px]">
       <h1 className="text-[25px] font-medium m-0 mb-2" style={{ fontFamily: "var(--font-display)" }}>
         Perfil da empresa
       </h1>
@@ -50,16 +50,16 @@ export default async function EmpresaSettingsPage({
         <form action={updateOrganizationProfile} className="flex flex-col gap-4">
           <FormField label="Nome da empresa" name="name" required defaultValue={organization.name} />
           <FormField label="Site" name="site" placeholder="Ex: https://suaempresa.com.br" defaultValue={organization.site ?? ""} />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label="Cidade" name="city" defaultValue={organization.city ?? ""} />
             <FormField label="Estado" name="state" placeholder="Ex: SP" defaultValue={organization.state ?? ""} />
           </div>
           <FormField label="Segmento" name="segment" placeholder="Ex: Marketing para B2B" defaultValue={organization.segment ?? ""} />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label="Nº de funcionários" name="employeeRange" placeholder="Ex: 11-50" defaultValue={organization.employeeRange ?? ""} />
             <FormField label="Faturamento" name="revenueRange" placeholder="Ex: R$ 1M-5M/ano" defaultValue={organization.revenueRange ?? ""} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label="CNPJ" name="cnpj" placeholder="Ex: 12.345.678/0001-90" defaultValue={organization.cnpj ?? ""} />
             <FormField label="Telefone comercial" name="phone" placeholder="Ex: (11) 4000-0000" defaultValue={organization.phone ?? ""} />
           </div>
@@ -76,7 +76,7 @@ export default async function EmpresaSettingsPage({
       <Section title="Sua conta">
         <form action={updateUserProfile} className="flex flex-col gap-4">
           <FormField label="Seu nome" name="name" placeholder="Ex: Cyro Mello" defaultValue={user.name ?? ""} />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label="Cargo" name="role" placeholder="Ex: Diretor Comercial" defaultValue={user.role ?? ""} />
             <FormField label="Telefone" name="phone" placeholder="Ex: (11) 99999-0000" defaultValue={user.phone ?? ""} />
           </div>

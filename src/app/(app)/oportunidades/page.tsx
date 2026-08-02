@@ -78,7 +78,7 @@ export default async function OpportunitiesPage({
   return (
     <div>
       <div
-        className="mx-10 mt-6 rounded-[20px] border p-6 flex items-center justify-between gap-6 flex-wrap"
+        className="mx-4 md:mx-10 mt-6 rounded-[20px] border p-6 flex items-center justify-between gap-6 flex-wrap"
         style={{ background: "var(--card)", borderColor: "var(--primary-line)", boxShadow: "var(--shadow-card)" }}
       >
         <div className="flex items-center gap-4 min-w-0">
@@ -99,12 +99,12 @@ export default async function OpportunitiesPage({
             </p>
           </div>
         </div>
-        <form action={runSearchAction} className="flex-shrink-0">
+        <form action={runSearchAction} className="flex-shrink-0 w-full sm:w-auto">
           <SearchButton disabled={searchDisabled} disabledTitle={disabledTitle} />
         </form>
       </div>
 
-      <div className="px-10 pt-4 flex justify-end">
+      <div className="px-4 md:px-10 pt-4 flex justify-end">
         <a
           href="/export"
           className="flex items-center gap-1.5 text-[12px] font-medium no-underline"
@@ -116,28 +116,28 @@ export default async function OpportunitiesPage({
       </div>
 
       {params.search === "not_configured" && (
-        <div className="mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
+        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
           Configure a chave ANTHROPIC_API_KEY no arquivo .env para ativar a busca automática.
         </div>
       )}
       {params.search === "rate_limited" && (
-        <div className="mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
+        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
           Já rodamos uma busca recentemente (limite de 1 a cada 2 dias, pra não gastar à toa). Próxima disponível em{" "}
           {params.nextAt ? formatDateTime(new Date(params.nextAt)) : "breve"}.
         </div>
       )}
       {params.search === "error" && (
-        <div className="mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }}>
+        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }}>
           {params.message ?? "Erro ao buscar oportunidades."}
         </div>
       )}
       {params.search === "ok" && (
-        <div className="mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--good)", color: "var(--good)" }}>
+        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--good)", color: "var(--good)" }}>
           {params.count} oportunidade(s) encontrada(s) e adicionada(s).
         </div>
       )}
 
-      <div className="px-10 pt-6 pb-16 flex flex-col gap-2.5 max-w-[880px]">
+      <div className="px-4 md:px-10 pt-6 pb-16 flex flex-col gap-2.5 max-w-[880px]">
         {opportunities.map((opp) => {
           const urgency = URGENCY_CONFIG[opp.urgency] ?? URGENCY_CONFIG.BAIXA;
           const UrgencyIcon = urgency.icon;
@@ -146,7 +146,7 @@ export default async function OpportunitiesPage({
           return (
             <div
               key={opp.id}
-              className="flex items-center gap-5 rounded-[16px] border p-5"
+              className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 rounded-[16px] border p-4 sm:p-5"
               style={{
                 background: "var(--card)",
                 borderColor: "var(--border)",
@@ -192,7 +192,7 @@ export default async function OpportunitiesPage({
                 </div>
               </Link>
 
-              <div className="flex flex-col items-end gap-2 flex-shrink-0">
+              <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:flex-shrink-0">
                 <div className="flex items-center gap-1.5">
                   {isNew && (
                     <div
