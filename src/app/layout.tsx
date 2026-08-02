@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Spinos — Find the next.",
-  description: "Sales Performance Intelligence & Opportunity System — inteligência comercial alimentada por IA.",
+  title: "Spinos — Inteligência Comercial",
+  description: "Inteligência comercial para equipes de vendas B2B, alimentada por IA.",
 };
 
 export default function RootLayout({

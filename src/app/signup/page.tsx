@@ -16,7 +16,7 @@ export default async function SignupPage({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-preto.svg" alt="Spinos" style={{ height: "26px", width: "auto" }} />
           <div className="text-[11.5px] italic" style={{ fontFamily: "var(--font-display)", color: "var(--fg-faint)" }}>
-            Find the next.
+            Inteligência Comercial
           </div>
         </div>
 
