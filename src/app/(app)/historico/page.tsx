@@ -88,7 +88,7 @@ export default async function HistoricoPage() {
 
               <div className="min-w-0 flex-1">
                 <div className="text-[13.5px] font-semibold">{opp.company.name}</div>
-                <div className="text-[11.5px]" style={{ fontFamily: "var(--font-mono)", color: "var(--fg-faint)" }}>
+                <div className="text-[11.5px]" style={{ color: "var(--fg-faint)" }}>
                   {opp.company.city}, {opp.company.state} · encontrada em {formatDate(opp.computedAt)}
                 </div>
               </div>

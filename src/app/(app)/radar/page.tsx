@@ -184,7 +184,7 @@ function StoryCard({ link }: { link: StoryLink }) {
         </div>
         <p className="text-[13.5px] font-semibold leading-[1.45] m-0 flex-1">{trimmedHeadline}</p>
         <div className="flex items-center justify-between text-[11px] mt-1" style={{ color: "var(--fg-faint)" }}>
-          <span style={{ fontFamily: "var(--font-mono)" }}>
+          <span>
             {signal.company.name} · {formatDate(signal.detectedAt)}
           </span>
           {favicon && (

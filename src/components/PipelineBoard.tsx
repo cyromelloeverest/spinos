@@ -96,10 +96,10 @@ export function PipelineBoard({ initialCards }: { initialCards: PipelineCard[] }
                 >
                   <Link href={`/company/${card.id}`} className="no-underline" style={{ color: "var(--fg)" }}>
                     <div className="text-[13.5px] font-semibold mb-0.5">{card.companyName}</div>
-                    <div className="text-[11px] mb-1" style={{ fontFamily: "var(--font-mono)", color: "var(--fg-faint)" }}>
+                    <div className="text-[11px] mb-1" style={{ color: "var(--fg-faint)" }}>
                       {card.daysLabel}
                     </div>
-                    <div className="text-[11px]" style={{ fontFamily: "var(--font-mono)", color: "var(--fg-faint)" }}>
+                    <div className="text-[11px]" style={{ color: "var(--fg-faint)" }}>
                       {card.city}, {card.state} · score {card.score}
                     </div>
                   </Link>

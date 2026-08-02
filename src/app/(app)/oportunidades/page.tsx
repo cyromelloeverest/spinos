@@ -7,7 +7,7 @@ import { SEARCH_COOLDOWN_MS } from "@/lib/opportunity-engine/constants";
 import { moveToPipeline, dismissOpportunity } from "@/lib/actions/pipeline";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { SearchButton } from "@/components/SearchButton";
-import { ArrowRight, X, Check, Flame, TrendingUp, Minus } from "lucide-react";
+import { ArrowRight, X, Check, Flame, TrendingUp, Minus, Target, Download } from "lucide-react";
 
 const URGENCY_CONFIG: Record<string, { label: string; icon: typeof Flame; color: string }> = {
   ALTA: { label: "Alta", icon: Flame, color: "var(--primary)" },
@@ -76,32 +76,42 @@ export default async function OpportunitiesPage({
 
   return (
     <div>
-      <div className="pt-6 px-10 flex items-baseline justify-between gap-6 flex-wrap">
-        <div>
-          <h1
-            className="text-[25px] font-medium m-0 mb-1"
-            style={{ fontFamily: "var(--font-display)", textWrap: "balance" }}
+      <div
+        className="mx-10 mt-6 rounded-[20px] border p-6 flex items-center justify-between gap-6 flex-wrap"
+        style={{ background: "var(--card)", borderColor: "var(--primary-line)", boxShadow: "var(--shadow-card)" }}
+      >
+        <div className="flex items-center gap-4 min-w-0">
+          <div
+            className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0"
+            style={{ background: "var(--primary-soft)", color: "var(--primary)" }}
           >
-            Empresas que você deveria abordar esta semana
-          </h1>
-          <p className="m-0 text-[13.5px] max-w-[60ch]" style={{ color: "var(--fg-muted)" }}>
-            {opportunities.length === 0
-              ? "Nenhuma oportunidade ainda — rode uma busca para a IA encontrar sinais reais para o seu ICP."
-              : `${opportunities.length} oportunidades calculadas a partir do seu ICP.`}
-          </p>
+            <Target size={22} strokeWidth={1.75} />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-[20px] font-bold m-0 mb-0.5" style={{ textWrap: "balance" }}>
+              Empresas que você deveria abordar esta semana
+            </h1>
+            <p className="m-0 text-[13px]" style={{ color: "var(--fg-muted)" }}>
+              {opportunities.length === 0
+                ? "Nenhuma oportunidade ainda — rode uma busca pra encontrar sinais reais pro seu ICP."
+                : `${opportunities.length} oportunidades calculadas a partir do seu ICP.`}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <a
-            href="/export"
-            className="text-[12.5px] font-semibold rounded-full border px-4 py-2 whitespace-nowrap no-underline"
-            style={{ color: "var(--fg-muted)", borderColor: "var(--border)" }}
-          >
-            Exportar CSV
-          </a>
-          <form action={runSearchAction}>
-            <SearchButton disabled={searchDisabled} disabledTitle={disabledTitle} />
-          </form>
-        </div>
+        <form action={runSearchAction} className="flex-shrink-0">
+          <SearchButton disabled={searchDisabled} disabledTitle={disabledTitle} />
+        </form>
+      </div>
+
+      <div className="px-10 pt-4 flex justify-end">
+        <a
+          href="/export"
+          className="flex items-center gap-1.5 text-[12px] font-medium no-underline"
+          style={{ color: "var(--fg-faint)" }}
+        >
+          <Download size={13} strokeWidth={1.75} />
+          Exportar CSV
+        </a>
       </div>
 
       {params.search === "not_configured" && (
@@ -145,9 +155,8 @@ export default async function OpportunitiesPage({
             >
               <Link href={`/company/${opp.id}`} className="flex items-center gap-5 flex-1 min-w-0 no-underline" style={{ color: "var(--fg)" }}>
                 <div
-                  className="w-16 h-16 rounded-[10px] flex items-center justify-center border font-semibold text-[26px] flex-shrink-0"
+                  className="w-16 h-16 rounded-[10px] flex items-center justify-center border font-bold text-[26px] flex-shrink-0"
                   style={{
-                    fontFamily: "var(--font-mono)",
                     fontVariantNumeric: "tabular-nums",
                     background: sStyle.bg,
                     color: sStyle.color,
@@ -160,7 +169,7 @@ export default async function OpportunitiesPage({
                 <div className="min-w-0">
                   <div className="flex items-center gap-2.5 mb-1.5">
                     <div className="text-[15.5px] font-semibold">{opp.company.name}</div>
-                    <div className="text-[12px]" style={{ fontFamily: "var(--font-mono)", color: "var(--fg-faint)" }}>
+                    <div className="text-[12px]" style={{ color: "var(--fg-faint)" }}>
                       {opp.company.city}, {opp.company.state}
                     </div>
                   </div>

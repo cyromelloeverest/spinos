@@ -57,7 +57,7 @@ export default async function CompanyPage({
           >
             {opp.company.name}
           </h1>
-          <div className="text-[13px]" style={{ fontFamily: "var(--font-mono)", color: "var(--fg-muted)" }}>
+          <div className="text-[13px]" style={{ color: "var(--fg-muted)" }}>
             {opp.company.city}, {opp.company.state}
           </div>
         </div>

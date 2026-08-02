@@ -49,7 +49,7 @@ export function ScriptCard({
           <div className="text-[14.5px] font-semibold" style={{ color: "var(--fg)" }}>
             {companyName}
           </div>
-          <div className="text-[11.5px]" style={{ fontFamily: "var(--font-mono)", color: "var(--fg-faint)" }}>
+          <div className="text-[11.5px]" style={{ color: "var(--fg-faint)" }}>
             {city}, {state}
           </div>
         </div>

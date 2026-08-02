@@ -21,7 +21,7 @@ export function TopBar({ organizationName }: { organizationName: string }) {
       >
         <span
           className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-semibold flex-shrink-0"
-          style={{ background: "var(--card-hover)", color: "var(--fg-muted)", fontFamily: "var(--font-mono)" }}
+          style={{ background: "var(--card-hover)", color: "var(--fg-muted)" }}
         >
           {initials}
         </span>
