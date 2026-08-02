@@ -74,8 +74,8 @@ export function PipelineBoard({ initialCards }: { initialCards: PipelineCard[] }
             <div
               className="flex flex-col gap-2.5 rounded-[12px] p-1 transition-colors"
               style={{
-                background: isDragOver ? "var(--copper-soft)" : "transparent",
-                border: isDragOver ? "1px dashed var(--copper-line)" : "1px dashed transparent",
+                background: isDragOver ? "var(--primary-soft)" : "transparent",
+                border: isDragOver ? "1px dashed var(--primary-line)" : "1px dashed transparent",
                 minHeight: "60px",
               }}
             >

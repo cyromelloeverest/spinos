@@ -23,7 +23,7 @@ export default async function AuthCodeErrorPage({
           {params.reason}
         </p>
       )}
-      <Link href="/login" className="text-[13px] no-underline" style={{ color: "var(--copper)" }}>
+      <Link href="/login" className="text-[13px] no-underline" style={{ color: "var(--primary)" }}>
         Voltar para o login →
       </Link>
     </div>

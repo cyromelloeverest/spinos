@@ -20,9 +20,9 @@ export function SearchButton({
       className="text-[12.5px] font-semibold rounded-full border px-4 py-2 whitespace-nowrap"
       style={{
         fontFamily: "var(--font-mono)",
-        background: isDisabled ? "var(--card)" : "var(--copper)",
-        color: isDisabled ? "var(--fg-faint)" : "#1a0f06",
-        borderColor: isDisabled ? "var(--border)" : "var(--copper)",
+        background: isDisabled ? "var(--card)" : "var(--primary)",
+        color: isDisabled ? "var(--fg-faint)" : "#ffffff",
+        borderColor: isDisabled ? "var(--border)" : "var(--primary)",
         cursor: isDisabled ? "not-allowed" : "pointer",
       }}
     >

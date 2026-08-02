@@ -47,8 +47,8 @@ export default async function OnboardingCompanyPage({
 
         <button
           type="submit"
-          className="mt-2 self-start text-[13px] font-semibold px-5 py-2.5 rounded-lg border cursor-pointer"
-          style={{ background: "var(--copper)", borderColor: "var(--copper)", color: "#1a0f06" }}
+          className="mt-2 self-start text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer"
+          style={{ background: "var(--primary)", borderColor: "var(--primary)", color: "#ffffff" }}
         >
           Continuar para o ICP →
         </button>

@@ -7,16 +7,17 @@ import { SEARCH_COOLDOWN_MS } from "@/lib/opportunity-engine/constants";
 import { moveToPipeline, dismissOpportunity } from "@/lib/actions/pipeline";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { SearchButton } from "@/components/SearchButton";
+import { ArrowRight, X, Check } from "lucide-react";
 
 const urgencyStyle: Record<string, { bg: string; color: string; border?: string }> = {
-  ALTA: { bg: "var(--copper-soft)", color: "var(--copper)" },
+  ALTA: { bg: "var(--primary-soft)", color: "var(--primary)" },
   MEDIA: { bg: "var(--warn-soft)", color: "var(--warn)" },
   BAIXA: { bg: "var(--card-hover)", color: "var(--fg-faint)", border: "var(--border)" },
 };
 
 function scoreStyle(score: number) {
-  if (score >= 85) return { bg: "var(--copper-soft)", color: "var(--copper)", border: "var(--copper-line)" };
-  return { bg: "var(--warn-soft)", color: "var(--warn)", border: "rgba(201,154,61,0.4)" };
+  if (score >= 85) return { bg: "var(--primary-soft)", color: "var(--primary)", border: "var(--primary-line)" };
+  return { bg: "var(--warn-soft)", color: "var(--warn)", border: "rgba(245,158,11,0.35)" };
 }
 
 function fetchOpportunities(organizationId: string) {
@@ -137,11 +138,12 @@ export default async function OpportunitiesPage({
           return (
             <div
               key={opp.id}
-              className="flex items-center gap-5 rounded-xl border p-5"
+              className="flex items-center gap-5 rounded-[16px] border p-5"
               style={{
                 background: "var(--card)",
                 borderColor: "var(--border)",
                 color: "var(--fg)",
+                boxShadow: "var(--shadow-card)",
               }}
             >
               <Link href={`/company/${opp.id}`} className="flex items-center gap-5 flex-1 min-w-0 no-underline" style={{ color: "var(--fg)" }}>
@@ -175,7 +177,7 @@ export default async function OpportunitiesPage({
                         className="text-[11.5px] rounded-[6px] border px-2 py-[3px] flex items-center gap-1 whitespace-nowrap"
                         style={{ color: "var(--fg-muted)", borderColor: "var(--border)" }}
                       >
-                        <span style={{ color: "var(--good)", fontSize: "10px" }}>✔</span>
+                        <Check size={11} strokeWidth={2.25} style={{ color: "var(--good)" }} />
                         {signal.title}
                       </div>
                     ))}
@@ -205,20 +207,21 @@ export default async function OpportunitiesPage({
                     <button
                       type="submit"
                       title="Mover para o pipeline"
-                      className="text-[11px] font-semibold rounded-full px-2.5 py-1 border cursor-pointer"
-                      style={{ background: "var(--copper-soft)", color: "var(--copper)", borderColor: "transparent" }}
+                      className="flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1 border cursor-pointer"
+                      style={{ background: "var(--primary-soft)", color: "var(--primary)", borderColor: "transparent" }}
                     >
-                      → Pipeline
+                      Pipeline
+                      <ArrowRight size={12} strokeWidth={2} />
                     </button>
                   </form>
                   <form action={dismissOpportunity.bind(null, opp.id)}>
                     <button
                       type="submit"
                       title="Descartar"
-                      className="text-[11px] rounded-full w-[26px] h-[26px] border cursor-pointer flex items-center justify-center"
+                      className="rounded-full w-[26px] h-[26px] border cursor-pointer flex items-center justify-center"
                       style={{ color: "var(--fg-faint)", borderColor: "var(--border)" }}
                     >
-                      ✕
+                      <X size={13} strokeWidth={1.75} />
                     </button>
                   </form>
                 </div>

@@ -19,7 +19,7 @@ export default async function RedefinirSenhaPage({
         <div className="flex items-center gap-2.5 mb-8 justify-center">
           <div
             className="w-[18px] h-[18px] rounded-[4px] flex-shrink-0"
-            style={{ background: "linear-gradient(155deg, var(--copper), #a85a2a)" }}
+            style={{ background: "var(--primary)" }}
           />
           <div className="text-[16px]" style={{ fontFamily: "var(--font-display)", color: "var(--fg)" }}>
             Spinos
@@ -52,7 +52,7 @@ export default async function RedefinirSenhaPage({
               name="password"
               required
               minLength={8}
-              className="rounded-[8px] border px-3 py-2.5 text-[13.5px] outline-none"
+              className="rounded-[10px] border px-3.5 h-[44px] text-[13.5px] outline-none"
               style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)" }}
             />
           </label>
@@ -65,15 +65,15 @@ export default async function RedefinirSenhaPage({
               name="confirmPassword"
               required
               minLength={8}
-              className="rounded-[8px] border px-3 py-2.5 text-[13.5px] outline-none"
+              className="rounded-[10px] border px-3.5 h-[44px] text-[13.5px] outline-none"
               style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)" }}
             />
           </label>
 
           <button
             type="submit"
-            className="mt-2 text-[13px] font-semibold px-5 py-2.5 rounded-lg border cursor-pointer"
-            style={{ background: "var(--copper)", borderColor: "var(--copper)", color: "#1a0f06" }}
+            className="mt-2 text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer"
+            style={{ background: "var(--primary)", borderColor: "var(--primary)", color: "#ffffff" }}
           >
             Salvar nova senha
           </button>

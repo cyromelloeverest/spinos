@@ -60,8 +60,8 @@ export default async function EmpresaSettingsPage({
           </div>
           <button
             type="submit"
-            className="mt-2 self-start text-[13px] font-semibold px-5 py-2.5 rounded-lg border cursor-pointer"
-            style={{ background: "var(--copper)", borderColor: "var(--copper)", color: "#1a0f06" }}
+            className="mt-2 self-start text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer"
+            style={{ background: "var(--primary)", borderColor: "var(--primary)", color: "#ffffff" }}
           >
             Salvar empresa
           </button>
@@ -76,7 +76,7 @@ export default async function EmpresaSettingsPage({
               E-mail de login
             </span>
             <div
-              className="rounded-[8px] border px-3 py-2.5 text-[13.5px]"
+              className="rounded-[10px] border px-3.5 h-[44px] text-[13.5px]"
               style={{ background: "var(--card-hover)", borderColor: "var(--border)", color: "var(--fg-muted)" }}
             >
               {user.email}
@@ -87,7 +87,7 @@ export default async function EmpresaSettingsPage({
           </div>
           <button
             type="submit"
-            className="mt-2 self-start text-[13px] font-semibold px-5 py-2.5 rounded-lg border cursor-pointer"
+            className="mt-2 self-start text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer"
             style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}
           >
             Salvar conta

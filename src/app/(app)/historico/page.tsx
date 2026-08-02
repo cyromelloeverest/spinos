@@ -5,9 +5,9 @@ import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 
 const STATUS_LABEL: Record<string, { label: string; bg: string; color: string }> = {
-  CONTATO_FEITO: { label: "Contato feito", bg: "var(--copper-soft)", color: "var(--copper)" },
-  VISITA_AGENDADA: { label: "Visita agendada", bg: "var(--copper-soft)", color: "var(--copper)" },
-  PROPOSTA_ENVIADA: { label: "Proposta enviada", bg: "var(--copper-soft)", color: "var(--copper)" },
+  CONTATO_FEITO: { label: "Contato feito", bg: "var(--primary-soft)", color: "var(--primary)" },
+  VISITA_AGENDADA: { label: "Visita agendada", bg: "var(--primary-soft)", color: "var(--primary)" },
+  PROPOSTA_ENVIADA: { label: "Proposta enviada", bg: "var(--primary-soft)", color: "var(--primary)" },
   VENDIDO: { label: "Vendido", bg: "var(--good-soft)", color: "var(--good)" },
   PERDIDO: { label: "Perdido", bg: "var(--card-hover)", color: "var(--critical)" },
   DESCARTADA: { label: "Descartada", bg: "var(--card-hover)", color: "var(--fg-faint)" },

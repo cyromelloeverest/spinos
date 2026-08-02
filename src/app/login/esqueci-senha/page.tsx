@@ -15,7 +15,7 @@ export default async function EsqueciSenhaPage({
         <div className="flex items-center gap-2.5 mb-8 justify-center">
           <div
             className="w-[18px] h-[18px] rounded-[4px] flex-shrink-0"
-            style={{ background: "linear-gradient(155deg, var(--copper), #a85a2a)" }}
+            style={{ background: "var(--primary)" }}
           />
           <div className="text-[16px]" style={{ fontFamily: "var(--font-display)", color: "var(--fg)" }}>
             Spinos
@@ -53,8 +53,8 @@ export default async function EsqueciSenhaPage({
             <FormField label="E-mail" name="email" placeholder="voce@empresa.com.br" required />
             <button
               type="submit"
-              className="mt-2 text-[13px] font-semibold px-5 py-2.5 rounded-lg border cursor-pointer"
-              style={{ background: "var(--copper)", borderColor: "var(--copper)", color: "#1a0f06" }}
+              className="mt-2 text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer"
+              style={{ background: "var(--primary)", borderColor: "var(--primary)", color: "#ffffff" }}
             >
               Enviar link
             </button>
@@ -62,7 +62,7 @@ export default async function EsqueciSenhaPage({
         )}
 
         <p className="text-[12.5px] text-center mt-6" style={{ color: "var(--fg-muted)" }}>
-          <Link href="/login" style={{ color: "var(--copper)" }}>
+          <Link href="/login" style={{ color: "var(--primary)" }}>
             ← Voltar pro login
           </Link>
         </p>

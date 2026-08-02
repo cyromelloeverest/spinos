@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown, ChevronUp, Check, Copy } from "lucide-react";
 
 export function ScriptCard({
   companyName,
@@ -25,7 +26,7 @@ export function ScriptCard({
   }
 
   return (
-    <div className="rounded-xl border" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+    <div className="rounded-[16px] border" style={{ background: "var(--card)", borderColor: "var(--border)", boxShadow: "var(--shadow-card)" }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -52,8 +53,9 @@ export function ScriptCard({
             {city}, {state}
           </div>
         </div>
-        <div className="text-[12.5px] flex-shrink-0" style={{ color: "var(--fg-faint)" }}>
-          {open ? "Fechar ▲" : "Ver script ▼"}
+        <div className="flex items-center gap-1 text-[12.5px] flex-shrink-0" style={{ color: "var(--fg-faint)" }}>
+          {open ? "Fechar" : "Ver script"}
+          {open ? <ChevronUp size={14} strokeWidth={1.75} /> : <ChevronDown size={14} strokeWidth={1.75} />}
         </div>
       </button>
 
@@ -68,14 +70,15 @@ export function ScriptCard({
           <button
             type="button"
             onClick={handleCopy}
-            className="mt-3 text-[12.5px] font-semibold rounded-full px-4 py-2 border cursor-pointer"
+            className="mt-3 flex items-center gap-1.5 text-[12.5px] font-semibold rounded-full px-4 py-2 border cursor-pointer"
             style={{
-              background: copied ? "var(--good-soft)" : "var(--copper-soft)",
-              color: copied ? "var(--good)" : "var(--copper)",
+              background: copied ? "var(--good-soft)" : "var(--primary-soft)",
+              color: copied ? "var(--good)" : "var(--primary)",
               borderColor: "transparent",
             }}
           >
-            {copied ? "Copiado ✓" : "Copiar script"}
+            {copied ? <Check size={13} strokeWidth={2} /> : <Copy size={13} strokeWidth={1.75} />}
+            {copied ? "Copiado" : "Copiar script"}
           </button>
         </div>
       )}

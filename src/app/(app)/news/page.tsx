@@ -3,20 +3,21 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { faviconUrl } from "@/lib/favicon";
+import { ExternalLink } from "lucide-react";
 
 const CATEGORY_STYLE: Record<string, { label: string; bg: string; color: string }> = {
   HIRING: { label: "Contratação", bg: "rgba(91,141,217,0.14)", color: "#5b8dd9" },
-  EXPANSION: { label: "Expansão", bg: "var(--copper-soft)", color: "var(--copper)" },
+  EXPANSION: { label: "Expansão", bg: "var(--primary-soft)", color: "var(--primary)" },
   FUNDING: { label: "Investimento", bg: "var(--warn-soft)", color: "var(--warn)" },
   TECHNOLOGY: { label: "Tecnologia", bg: "rgba(79,184,166,0.14)", color: "#4fb8a6" },
   MARKETING: { label: "Marketing", bg: "rgba(199,107,158,0.14)", color: "#c76b9e" },
   LEADERSHIP_CHANGE: { label: "Mudança de liderança", bg: "rgba(155,127,212,0.14)", color: "#9b7fd4" },
   PROCUREMENT: { label: "Compras", bg: "var(--good-soft)", color: "var(--good)" },
-  REGULATORY: { label: "Regulatório", bg: "rgba(184,87,76,0.14)", color: "var(--critical)" },
+  REGULATORY: { label: "Regulatório", bg: "var(--critical-soft)", color: "var(--critical)" },
   PARTNERSHIP: { label: "Parceria", bg: "rgba(91,141,217,0.14)", color: "#5b8dd9" },
   AWARD: { label: "Prêmio", bg: "var(--warn-soft)", color: "var(--warn)" },
   EVENT: { label: "Evento", bg: "rgba(79,184,166,0.14)", color: "#4fb8a6" },
-  ICP_MATCH: { label: "Match com seu ICP", bg: "var(--copper-soft)", color: "var(--copper)" },
+  ICP_MATCH: { label: "Match com seu ICP", bg: "var(--primary-soft)", color: "var(--primary)" },
   OTHER: { label: "Novidade", bg: "var(--card-hover)", color: "var(--fg-muted)" },
 };
 
@@ -118,34 +119,31 @@ function HeroCard({ link }: { link: StoryLink }) {
   return (
     <a
       href={`/company/${opportunityScore.id}`}
-      className="grid gap-0 rounded-2xl border overflow-hidden no-underline"
-      style={{ gridTemplateColumns: "42% 1fr", borderColor: "var(--border)", color: "var(--fg)" }}
+      className="grid gap-0 rounded-[16px] border overflow-hidden no-underline"
+      style={{ gridTemplateColumns: "220px 1fr", borderColor: "var(--border)", color: "var(--fg)", boxShadow: "var(--shadow-card)" }}
     >
       <div
         className="flex items-center justify-center relative p-8"
-        style={{
-          background: `linear-gradient(155deg, ${cat.color} 0%, var(--ink-900) 130%)`,
-          minHeight: "220px",
-        }}
+        style={{ background: cat.bg, minHeight: "200px" }}
       >
         <div
-          className="absolute top-4 left-4 text-[10.5px] font-semibold uppercase rounded-full px-2.5 py-1"
-          style={{ background: "rgba(11,14,19,0.55)", color: "#fff", letterSpacing: "0.05em" }}
-        >
-          {cat.label}
-        </div>
-        <div
-          className="text-[64px] font-semibold"
-          style={{ fontFamily: "var(--font-display)", color: "rgba(255,255,255,0.92)" }}
+          className="text-[42px] font-bold"
+          style={{ color: cat.color }}
         >
           {initials(signal.company.name)}
         </div>
       </div>
       <div className="p-6 flex flex-col justify-center" style={{ background: "var(--card)" }}>
-        <div className="text-[11.5px] mb-2" style={{ fontFamily: "var(--font-mono)", color: "var(--fg-faint)" }}>
+        <div
+          className="text-[10.5px] font-semibold uppercase self-start rounded-full px-2.5 py-1 mb-3"
+          style={{ background: cat.bg, color: cat.color, letterSpacing: "0.05em" }}
+        >
+          {cat.label}
+        </div>
+        <div className="text-[11.5px] mb-2" style={{ color: "var(--fg-faint)" }}>
           {signal.company.name} · {formatDate(signal.detectedAt)}
         </div>
-        <div className="text-[21px] font-medium leading-[1.3] mb-3" style={{ fontFamily: "var(--font-display)", textWrap: "balance" }}>
+        <div className="text-[20px] font-bold leading-[1.3] mb-3" style={{ textWrap: "balance" }}>
           {headline}
         </div>
         {signal.sourceUrl && (
@@ -154,7 +152,8 @@ function HeroCard({ link }: { link: StoryLink }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={favicon} alt="" width={14} height={14} className="rounded-[3px]" />
             )}
-            Ver fonte ↗
+            Ver fonte
+            <ExternalLink size={12} strokeWidth={1.75} />
           </span>
         )}
       </div>
@@ -172,8 +171,8 @@ function StoryCard({ link }: { link: StoryLink }) {
   return (
     <a
       href={`/company/${opportunityScore.id}`}
-      className="rounded-xl border overflow-hidden flex flex-col no-underline"
-      style={{ borderColor: "var(--border)", color: "var(--fg)", background: "var(--card)" }}
+      className="rounded-[16px] border overflow-hidden flex flex-col no-underline"
+      style={{ borderColor: "var(--border)", color: "var(--fg)", background: "var(--card)", boxShadow: "var(--shadow-card)" }}
     >
       <div className="h-[6px]" style={{ background: cat.color }} />
       <div className="p-4.5 flex flex-col gap-2 flex-1">

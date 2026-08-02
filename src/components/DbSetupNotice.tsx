@@ -6,7 +6,7 @@ export function DbSetupNotice() {
       </h1>
       <p className="text-[13.5px] leading-[1.6]" style={{ color: "var(--fg-muted)" }}>
         Esta ação precisa de um Postgres real. Crie um projeto no{" "}
-        <a href="https://supabase.com" target="_blank" rel="noreferrer" style={{ color: "var(--copper)" }}>
+        <a href="https://supabase.com" target="_blank" rel="noreferrer" style={{ color: "var(--primary)" }}>
           Supabase
         </a>{" "}
         e cole a Connection String no arquivo <code>.env</code> na chave <code>DATABASE_URL</code>. Depois rode:

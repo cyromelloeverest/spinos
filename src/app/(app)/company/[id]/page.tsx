@@ -64,7 +64,7 @@ export default async function CompanyPage({
         <div className="text-right flex-shrink-0">
           <div
             className="text-[40px] font-semibold leading-none"
-            style={{ fontFamily: "var(--font-mono)", color: "var(--copper)", fontVariantNumeric: "tabular-nums" }}
+            style={{ fontFamily: "var(--font-mono)", color: "var(--primary)", fontVariantNumeric: "tabular-nums" }}
           >
             {opp.score}
           </div>
@@ -94,13 +94,13 @@ export default async function CompanyPage({
                 {signal.detectedAt.toISOString().slice(0, 10)}
               </div>
               <div className="flex flex-col items-center">
-                <div className="w-[7px] h-[7px] rounded-full mt-1.5 flex-shrink-0" style={{ background: "var(--copper)" }} />
+                <div className="w-[7px] h-[7px] rounded-full mt-1.5 flex-shrink-0" style={{ background: "var(--primary)" }} />
                 {i < opp.signalsUsed.length - 1 && (
                   <div className="w-px flex-1 mt-1" style={{ background: "var(--border)" }} />
                 )}
               </div>
               <div className="pb-5">
-                <div className="text-[10.5px] uppercase mb-0.5" style={{ color: "var(--copper)", letterSpacing: "0.06em" }}>
+                <div className="text-[10.5px] uppercase mb-0.5" style={{ color: "var(--primary)", letterSpacing: "0.06em" }}>
                   {signal.title}
                 </div>
                 <div className="text-[13.5px] leading-[1.5] mb-1">{signal.description}</div>
@@ -173,7 +173,7 @@ export default async function CompanyPage({
             <select
               name="recommendedOffering"
               defaultValue={opp.recommendedOffering ?? ""}
-              className="rounded-[8px] border px-3 py-2.5 text-[13.5px] outline-none"
+              className="rounded-[10px] border px-3.5 h-[44px] text-[13.5px] outline-none"
               style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)" }}
             >
               <option value="">Selecione...</option>
@@ -186,7 +186,7 @@ export default async function CompanyPage({
           </label>
           <button
             type="submit"
-            className="self-start text-[12.5px] font-semibold px-4 py-2 rounded-lg border cursor-pointer"
+            className="self-start text-[12.5px] font-semibold px-4 py-2 rounded-[12px] border cursor-pointer"
             style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}
           >
             Salvar contato
@@ -199,7 +199,7 @@ export default async function CompanyPage({
           <>
             <div
               className="text-[12.5px] font-semibold rounded-full px-3.5 py-2"
-              style={{ background: "var(--copper-soft)", color: "var(--copper)" }}
+              style={{ background: "var(--primary-soft)", color: "var(--primary)" }}
             >
               No pipeline: {STAGE_LABEL[opp.stage]}
             </div>
@@ -212,8 +212,8 @@ export default async function CompanyPage({
             <form action={moveToPipeline.bind(null, opp.id)}>
               <button
                 type="submit"
-                className="text-[13px] font-medium px-4 py-2.5 rounded-lg border cursor-pointer"
-                style={{ background: "var(--copper)", borderColor: "var(--copper)", color: "#1a0f06" }}
+                className="text-[13px] font-medium px-4 py-2.5 rounded-[12px] border cursor-pointer"
+                style={{ background: "var(--primary)", borderColor: "var(--primary)", color: "#ffffff" }}
               >
                 Iniciar contato
               </button>
@@ -221,7 +221,7 @@ export default async function CompanyPage({
             <form action={dismissOpportunity.bind(null, opp.id)}>
               <button
                 type="submit"
-                className="text-[13px] font-medium px-4 py-2.5 rounded-lg border cursor-pointer"
+                className="text-[13px] font-medium px-4 py-2.5 rounded-[12px] border cursor-pointer"
                 style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}
               >
                 Descartar
@@ -269,7 +269,7 @@ function ContactField({
         name={name}
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className="rounded-[8px] border px-3 py-2.5 text-[13.5px] outline-none"
+        className="rounded-[10px] border px-3.5 h-[44px] text-[13.5px] outline-none"
         style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)" }}
       />
     </label>
@@ -314,12 +314,12 @@ function Button({
   return (
     <button
       disabled={disabled}
-      className="text-[13px] font-medium px-4 py-2.5 rounded-lg border"
+      className="text-[13px] font-medium px-4 py-2.5 rounded-[12px] border"
       style={{
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.5 : 1,
         ...(primary
-          ? { background: "var(--copper)", borderColor: "var(--copper)", color: "#1a0f06" }
+          ? { background: "var(--primary)", borderColor: "var(--primary)", color: "#ffffff" }
           : { background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }),
       }}
     >
