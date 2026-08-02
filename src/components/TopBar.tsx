@@ -26,6 +26,10 @@ export function TopBar({ organizationName, onMenuClick }: { organizationName: st
       >
         <Menu size={18} strokeWidth={1.75} />
       </button>
+      <Link href="/" className="md:hidden flex items-center no-underline">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-preto.svg" alt="Spinos" style={{ height: "18px", width: "auto" }} />
+      </Link>
       <Link
         href="/settings/empresa"
         className="flex items-center gap-2 rounded-full pl-1.5 pr-3.5 py-1.5 border no-underline"
