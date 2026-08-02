@@ -13,15 +13,8 @@ export default async function LoginPage({
     <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
       <div className="w-full max-w-[380px] px-6">
         <div className="flex flex-col items-center gap-1.5 mb-8">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-[18px] h-[18px] rounded-[4px] flex-shrink-0"
-              style={{ background: "var(--primary)" }}
-            />
-            <div className="text-[16px]" style={{ fontFamily: "var(--font-display)", color: "var(--fg)" }}>
-              Spinos
-            </div>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-preto.svg" alt="Spinos" style={{ height: "26px", width: "auto" }} />
           <div className="text-[11.5px] italic" style={{ fontFamily: "var(--font-display)", color: "var(--fg-faint)" }}>
             Find the next.
           </div>

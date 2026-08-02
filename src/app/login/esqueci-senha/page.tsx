@@ -12,14 +12,9 @@ export default async function EsqueciSenhaPage({
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
       <div className="w-full max-w-[380px] px-6">
-        <div className="flex items-center gap-2.5 mb-8 justify-center">
-          <div
-            className="w-[18px] h-[18px] rounded-[4px] flex-shrink-0"
-            style={{ background: "var(--primary)" }}
-          />
-          <div className="text-[16px]" style={{ fontFamily: "var(--font-display)", color: "var(--fg)" }}>
-            Spinos
-          </div>
+        <div className="flex items-center justify-center mb-8">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-preto.svg" alt="Spinos" style={{ height: "26px", width: "auto" }} />
         </div>
 
         <h1

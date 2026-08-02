@@ -56,12 +56,9 @@ export function Rail({
       className="flex flex-col gap-6 p-4 overflow-y-auto border-r"
       style={{ background: "var(--dark)", color: "var(--dark-fg)", borderColor: "var(--dark-border)" }}
     >
-      <Link href="/" className="flex items-center gap-2.5 px-1.5 no-underline" style={{ color: "var(--dark-fg)" }}>
-        <div
-          className="w-[20px] h-[20px] rounded-[6px] flex-shrink-0"
-          style={{ background: "var(--primary)" }}
-        />
-        <div className="text-[15px] font-semibold tracking-tight">Spinos</div>
+      <Link href="/" className="flex items-center px-1.5 no-underline" style={{ color: "var(--dark-fg)" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-branco.svg" alt="Spinos" height={20} style={{ height: "20px", width: "auto" }} />
       </Link>
 
       <nav className="flex flex-col gap-0.5">
