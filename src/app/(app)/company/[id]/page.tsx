@@ -5,6 +5,7 @@ import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { moveToPipeline, dismissOpportunity } from "@/lib/actions/pipeline";
 import { updateContactInfo } from "@/lib/actions/contact";
 import { faviconUrl } from "@/lib/favicon";
+import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
 
 const STAGE_LABEL: Record<string, string> = {
   CONTATO_FEITO: "Contato feito",
@@ -101,7 +102,7 @@ export default async function CompanyPage({
               </div>
               <div className="pb-5">
                 <div className="text-[10.5px] uppercase mb-0.5" style={{ color: "var(--primary)", letterSpacing: "0.06em" }}>
-                  {signal.title}
+                  {SIGNAL_CATEGORY_LABEL[signal.category] ?? signal.title}
                 </div>
                 <div className="text-[13.5px] leading-[1.5] mb-1">{signal.description}</div>
                 {signal.sourceUrl && (

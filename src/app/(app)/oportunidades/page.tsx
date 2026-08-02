@@ -8,6 +8,7 @@ import { moveToPipeline, dismissOpportunity } from "@/lib/actions/pipeline";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { SearchButton } from "@/components/SearchButton";
 import { ArrowRight, X, Check, Flame, TrendingUp, Minus, Target, Download } from "lucide-react";
+import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
 
 const URGENCY_CONFIG: Record<string, { label: string; icon: typeof Flame; color: string }> = {
   ALTA: { label: "Alta", icon: Flame, color: "var(--primary)" },
@@ -184,7 +185,7 @@ export default async function OpportunitiesPage({
                         style={{ color: "var(--fg-muted)", borderColor: "var(--border)" }}
                       >
                         <Check size={11} strokeWidth={2.25} style={{ color: "var(--good)" }} />
-                        {signal.title}
+                        {SIGNAL_CATEGORY_LABEL[signal.category] ?? signal.title}
                       </div>
                     ))}
                   </div>
