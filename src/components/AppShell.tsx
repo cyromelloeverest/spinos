@@ -8,11 +8,13 @@ export function AppShell({
   organization,
   signOutAction,
   isSuperAdmin = false,
+  trialDaysLeft = null,
   children,
 }: {
   organization: OrgProfile;
   signOutAction: () => Promise<void>;
   isSuperAdmin?: boolean;
+  trialDaysLeft?: number | null;
   children: React.ReactNode;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -35,6 +37,19 @@ export function AppShell({
       )}
       <div className="min-w-0 flex flex-col">
         <TopBar organizationName={organization?.name ?? "Configurar empresa"} onMenuClick={() => setMobileNavOpen(true)} />
+        {trialDaysLeft !== null && (
+          <div
+            className="px-4 md:px-10 py-2 text-[12px] text-center"
+            style={{
+              background: trialDaysLeft <= 2 ? "var(--warn-soft, #FEF3C7)" : "var(--card-hover)",
+              color: trialDaysLeft <= 2 ? "var(--warn)" : "var(--fg-muted)",
+            }}
+          >
+            {trialDaysLeft <= 0
+              ? "Seu teste grátis termina hoje."
+              : `Seu teste grátis termina em ${trialDaysLeft} dia${trialDaysLeft === 1 ? "" : "s"}.`}
+          </div>
+        )}
         <main className="min-w-0 flex-1">{children}</main>
       </div>
     </div>

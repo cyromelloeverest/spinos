@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { splitList } from "@/lib/form-utils";
 import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-org";
+import { newTrialEndsAt } from "@/lib/trial";
 
 export async function createOrganization(formData: FormData) {
   const userId = await getCurrentUserId();
@@ -23,7 +24,7 @@ export async function createOrganization(formData: FormData) {
 
   try {
     const organization = await prisma.organization.create({
-      data: { name, site, city, state, segment, employeeRange, revenueRange },
+      data: { name, site, city, state, segment, employeeRange, revenueRange, trialEndsAt: newTrialEndsAt() },
     });
     await prisma.membership.create({
       data: { userId, organizationId: organization.id, role: "OWNER" },

@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isCurrentUserSuperAdmin } from "@/lib/auth/current-org";
 import { PLANS, type PlanId } from "@/lib/plans";
+import { isTrialExpired, trialDaysLeft } from "@/lib/trial";
+import { extendTrial, removeTrialLimit } from "@/lib/actions/admin";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { PlanSelect } from "@/components/PlanSelect";
 import { ShieldCheck } from "lucide-react";
@@ -63,6 +65,7 @@ export default async function AdminPage() {
                   <Th>Usuários</Th>
                   <Th>Oportunidades ativas</Th>
                   <Th>Plano</Th>
+                  <Th>Teste grátis</Th>
                   <Th>Criada em</Th>
                 </tr>
               </thead>
@@ -70,6 +73,8 @@ export default async function AdminPage() {
                 {organizations.map((org) => {
                   const limit = PLANS[org.plan as PlanId].maxActiveOpportunities;
                   const overLimit = limit !== null && org.activeOpportunities > limit;
+                  const expired = isTrialExpired(org.trialEndsAt);
+                  const daysLeft = trialDaysLeft(org.trialEndsAt);
                   return (
                     <tr key={org.id} style={{ borderTop: "1px solid var(--border)" }}>
                       <Td>
@@ -88,6 +93,39 @@ export default async function AdminPage() {
                       </Td>
                       <Td>
                         <PlanSelect organizationId={org.id} currentPlan={org.plan} />
+                      </Td>
+                      <Td>
+                        <div className="flex flex-col gap-1.5 min-w-[160px]">
+                          <span style={{ color: org.trialEndsAt === null ? "var(--fg-faint)" : expired ? "var(--critical)" : "var(--fg)" }}>
+                            {org.trialEndsAt === null
+                              ? "Sem limite"
+                              : expired
+                                ? `Expirado há ${Math.abs(daysLeft ?? 0)} dia(s)`
+                                : `${daysLeft} dia(s) restante(s)`}
+                          </span>
+                          <div className="flex gap-1.5">
+                            <form action={extendTrial.bind(null, org.id, 30)}>
+                              <button
+                                type="submit"
+                                className="text-[11px] font-medium px-2 py-1 rounded-[6px] border cursor-pointer"
+                                style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}
+                              >
+                                +30 dias
+                              </button>
+                            </form>
+                            {org.trialEndsAt !== null && (
+                              <form action={removeTrialLimit.bind(null, org.id)}>
+                                <button
+                                  type="submit"
+                                  className="text-[11px] font-medium px-2 py-1 rounded-[6px] border cursor-pointer"
+                                  style={{ background: "transparent", borderColor: "var(--border)", color: "var(--fg-faint)" }}
+                                >
+                                  Sem limite
+                                </button>
+                              </form>
+                            )}
+                          </div>
+                        </div>
                       </Td>
                       <Td>{org.createdAt.toLocaleDateString("pt-BR")}</Td>
                     </tr>

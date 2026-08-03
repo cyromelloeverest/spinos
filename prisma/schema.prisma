@@ -46,6 +46,7 @@ model Organization {
   cnpj          String?
   phone         String?
   plan          Plan      @default(STARTER)
+  trialEndsAt   DateTime? // null = sem limite de teste (conta já paga / uso interno)
   lastSearchAt  DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
