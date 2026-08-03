@@ -1,10 +1,55 @@
 "use server";
 
+import { type EmailOtpType } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth/current-org";
 import { SITE_URL } from "@/lib/site-url";
+
+// Mantém public.users.email sincronizado com auth.users.email — importante
+// depois de uma troca de e-mail confirmada, senão o app mostra o e-mail antigo.
+async function syncUserEmail(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data } = await supabase.auth.getUser();
+  if (data.user?.id && data.user.email) {
+    await prisma.user.update({
+      where: { id: data.user.id },
+      data: { email: data.user.email },
+    }).catch(() => {});
+  }
+}
+
+// Exige um clique real (form POST) em vez de confirmar direto no GET —
+// antivírus de e-mail "pré-visitam" links automaticamente, e um link que
+// confirma sozinho ao ser aberto é consumido por eles antes da pessoa clicar.
+export async function confirmAuthLink(formData: FormData) {
+  const code = String(formData.get("code") ?? "");
+  const token_hash = String(formData.get("token_hash") ?? "");
+  const type = String(formData.get("type") ?? "") as EmailOtpType;
+  const next = String(formData.get("next") ?? "/");
+
+  const supabase = await createClient();
+
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      await syncUserEmail(supabase);
+      redirect(next);
+    }
+    redirect(`/auth/auth-code-error?reason=${encodeURIComponent(error.message)}`);
+  }
+
+  if (token_hash && type) {
+    const { error } = await supabase.auth.verifyOtp({ type, token_hash });
+    if (!error) {
+      await syncUserEmail(supabase);
+      redirect(next);
+    }
+    redirect(`/auth/auth-code-error?reason=${encodeURIComponent(error.message)}`);
+  }
+
+  redirect("/auth/auth-code-error?reason=Link sem código de confirmação.");
+}
 
 export async function signUp(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
