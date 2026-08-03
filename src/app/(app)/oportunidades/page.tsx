@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { runSearchAction } from "@/lib/actions/search";
-import { SEARCH_COOLDOWN_MS } from "@/lib/opportunity-engine/constants";
+import { SEARCH_COOLDOWN_MS, startOfCurrentMonth } from "@/lib/opportunity-engine/constants";
 import { moveToPipeline, dismissOpportunity } from "@/lib/actions/pipeline";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { SearchButton } from "@/components/SearchButton";
@@ -53,11 +53,13 @@ export default async function OpportunitiesPage({
 
   let opportunities: Awaited<ReturnType<typeof fetchOpportunities>> = [];
   let organization: Awaited<ReturnType<typeof prisma.organization.findUnique>> = null;
+  let searchesThisMonth = 0;
   let dbError = false;
   try {
-    [opportunities, organization] = await Promise.all([
+    [opportunities, organization, searchesThisMonth] = await Promise.all([
       fetchOpportunities(organizationId),
       prisma.organization.findUnique({ where: { id: organizationId } }),
+      prisma.searchRun.count({ where: { organizationId, createdAt: { gte: startOfCurrentMonth() } } }),
     ]);
   } catch {
     dbError = true;
@@ -71,14 +73,17 @@ export default async function OpportunitiesPage({
   const onCooldown = Boolean(nextAvailableAt && isInFuture(nextAvailableAt));
   const plan = getPlan(organization?.plan ?? "STARTER");
   const atPlanLimit = plan.maxActiveOpportunities !== null && opportunities.length >= plan.maxActiveOpportunities;
-  const searchDisabled = !anthropicConfigured || onCooldown || atPlanLimit;
+  const atSearchLimit = plan.maxSearchesPerMonth !== null && searchesThisMonth >= plan.maxSearchesPerMonth;
+  const searchDisabled = !anthropicConfigured || onCooldown || atPlanLimit || atSearchLimit;
   const disabledTitle = !anthropicConfigured
     ? "Configure ANTHROPIC_API_KEY no .env para ativar"
     : atPlanLimit
       ? `Limite de ${plan.maxActiveOpportunities} oportunidades ativas do plano ${plan.name} atingido`
-      : onCooldown && nextAvailableAt
-        ? `Próxima busca disponível em ${formatDateTime(nextAvailableAt)}`
-        : undefined;
+      : atSearchLimit
+        ? `Limite de ${plan.maxSearchesPerMonth} buscas/mês do plano ${plan.name} atingido`
+        : onCooldown && nextAvailableAt
+          ? `Próxima busca disponível em ${formatDateTime(nextAvailableAt)}`
+          : undefined;
 
   return (
     <div>
@@ -105,6 +110,12 @@ export default async function OpportunitiesPage({
                 <span style={{ color: atPlanLimit ? "var(--warn)" : "var(--fg-faint)" }}>
                   {" "}
                   ({opportunities.length}/{plan.maxActiveOpportunities} do plano {plan.name})
+                </span>
+              )}
+              {plan.maxSearchesPerMonth !== null && (
+                <span style={{ color: atSearchLimit ? "var(--warn)" : "var(--fg-faint)" }}>
+                  {" "}
+                  · {searchesThisMonth}/{plan.maxSearchesPerMonth} buscas este mês
                 </span>
               )}
             </p>
@@ -140,6 +151,11 @@ export default async function OpportunitiesPage({
       {params.search === "plan_limit" && (
         <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
           Seu plano permite até {params.limit ?? plan.maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no pipeline para liberar espaço, ou fale com a gente para evoluir de plano.
+        </div>
+      )}
+      {params.search === "search_limit" && (
+        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
+          Seu plano permite até {params.limit ?? plan.maxSearchesPerMonth} buscas por mês, e o limite já foi atingido. O contador reseta no início do próximo mês, ou fale com a gente para evoluir de plano.
         </div>
       )}
       {params.search === "error" && (

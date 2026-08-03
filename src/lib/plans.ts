@@ -5,6 +5,7 @@ export type PlanDefinition = {
   name: string;
   maxActiveOpportunities: number | null; // null = ilimitado
   maxUsers: number | null;
+  maxSearchesPerMonth: number | null;
   features: {
     radar: boolean;
     assistenteVendas: boolean;
@@ -18,6 +19,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     name: "Starter",
     maxActiveOpportunities: 25,
     maxUsers: 1,
+    maxSearchesPerMonth: 4,
     features: { radar: false, assistenteVendas: false, multipleIcps: false },
   },
   PROFISSIONAL: {
@@ -25,6 +27,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     name: "Profissional",
     maxActiveOpportunities: 100,
     maxUsers: 5,
+    maxSearchesPerMonth: 15,
     features: { radar: true, assistenteVendas: true, multipleIcps: false },
   },
   ENTERPRISE: {
@@ -32,6 +35,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     name: "Enterprise",
     maxActiveOpportunities: null,
     maxUsers: null,
+    maxSearchesPerMonth: null,
     features: { radar: true, assistenteVendas: true, multipleIcps: true },
   },
 };

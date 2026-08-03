@@ -5,7 +5,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { prisma } from "@/lib/prisma";
 import { OpportunitySearchResultSchema } from "./schema";
 import { findBestMatch } from "./company-matching";
-import { SEARCH_COOLDOWN_MS } from "./constants";
+import { SEARCH_COOLDOWN_MS, startOfCurrentMonth } from "./constants";
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
 import { getPlan } from "@/lib/plans";
 
@@ -14,6 +14,7 @@ export type SearchOutcome =
   | { status: "error"; message: string }
   | { status: "rate_limited"; nextAvailableAt: string }
   | { status: "plan_limit"; limit: number }
+  | { status: "search_limit"; limit: number }
   | { status: "ok"; count: number };
 
 function buildPrompt(org: {
@@ -94,6 +95,15 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
     }
   }
 
+  if (plan.maxSearchesPerMonth !== null) {
+    const searchesThisMonth = await prisma.searchRun.count({
+      where: { organizationId, createdAt: { gte: startOfCurrentMonth() } },
+    });
+    if (searchesThisMonth >= plan.maxSearchesPerMonth) {
+      return { status: "search_limit", limit: plan.maxSearchesPerMonth };
+    }
+  }
+
   const runTimestamp = new Date();
   const previousLastSearchAt = organization.lastSearchAt;
 
@@ -103,6 +113,7 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
     where: { id: organizationId },
     data: { lastSearchAt: runTimestamp },
   });
+  const searchRun = await prisma.searchRun.create({ data: { organizationId } });
 
   const client = new Anthropic({ apiKey });
 
@@ -120,11 +131,13 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
     });
   } catch (err) {
     // A busca falhou antes de produzir resultado — não deve consumir o
-    // limite de 1 busca a cada 2 dias, então desfazemos o registro acima.
+    // limite de 1 busca a cada 2 dias nem o limite de buscas/mês, então
+    // desfazemos os dois registros acima.
     await prisma.organization.update({
       where: { id: organizationId },
       data: { lastSearchAt: previousLastSearchAt },
     });
+    await prisma.searchRun.delete({ where: { id: searchRun.id } }).catch(() => {});
     const message = err instanceof Anthropic.APIError ? err.message : "Erro inesperado ao chamar a IA.";
     return { status: "error", message: `Busca falhou: ${message}` };
   }
@@ -134,6 +147,7 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
       where: { id: organizationId },
       data: { lastSearchAt: previousLastSearchAt },
     });
+    await prisma.searchRun.delete({ where: { id: searchRun.id } }).catch(() => {});
     return { status: "error", message: "A IA não retornou um resultado estruturado válido." };
   }
 

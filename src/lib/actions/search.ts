@@ -24,6 +24,9 @@ export async function runSearchAction() {
   if (result.status === "plan_limit") {
     redirect(`/oportunidades?search=plan_limit&limit=${result.limit}`);
   }
+  if (result.status === "search_limit") {
+    redirect(`/oportunidades?search=search_limit&limit=${result.limit}`);
+  }
   if (result.status === "error") {
     redirect(`/oportunidades?search=error&message=${encodeURIComponent(result.message)}`);
   }

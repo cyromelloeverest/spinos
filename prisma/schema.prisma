@@ -57,8 +57,23 @@ model Organization {
   chatConversations ChatConversation[]
   crmExports        CrmExport[]
   invites           Invite[]
+  searchRuns        SearchRun[]
 
   @@map("organizations")
+}
+
+// Um registro por busca de oportunidades efetivamente executada (chamada à IA
+// iniciada) — usado só para contar o limite de buscas/mês do plano. Uma busca
+// que falha antes de retornar resultado é removida (não deve consumir o limite).
+model SearchRun {
+  id             String   @id @default(cuid())
+  organizationId String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@map("search_runs")
 }
 
 model User {
