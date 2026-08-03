@@ -6,7 +6,7 @@ import { isTrialExpired, trialDaysLeft } from "@/lib/trial";
 import { extendTrial, removeTrialLimit, adminInviteUser, adminRemoveUser, adminCancelInvite, adminToggleSearchBlock } from "@/lib/actions/admin";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { PlanSelect } from "@/components/PlanSelect";
-import { ShieldCheck, X, Ban, Play } from "lucide-react";
+import { ShieldCheck, X, Ban, Play, UserX } from "lucide-react";
 
 const ROLE_LABEL: Record<string, string> = { OWNER: "Dono", ADMIN: "Admin", MEMBER: "Membro" };
 
@@ -31,6 +31,13 @@ async function fetchOrganizations() {
   return withCounts;
 }
 
+function fetchOrphanUsers() {
+  return prisma.user.findMany({
+    where: { memberships: { none: {} } },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
 export default async function AdminPage({
   searchParams,
 }: {
@@ -42,8 +49,9 @@ export default async function AdminPage({
   const params = await searchParams;
 
   let organizations: Awaited<ReturnType<typeof fetchOrganizations>>;
+  let orphanUsers: Awaited<ReturnType<typeof fetchOrphanUsers>> = [];
   try {
-    organizations = await fetchOrganizations();
+    [organizations, orphanUsers] = await Promise.all([fetchOrganizations(), fetchOrphanUsers()]);
   } catch {
     return <DbSetupNotice />;
   }
@@ -240,6 +248,32 @@ export default async function AdminPage({
             </table>
           </div>
         </div>
+
+        {orphanUsers.length > 0 && (
+          <div className="mt-8">
+            <div className="flex items-center gap-2 mb-2.5">
+              <UserX size={16} strokeWidth={1.75} style={{ color: "var(--warn)" }} />
+              <h2 className="text-[13px] font-semibold m-0">Cadastros incompletos</h2>
+            </div>
+            <p className="text-[12.5px] mb-3" style={{ color: "var(--fg-muted)" }}>
+              Confirmaram o e-mail mas ainda não criaram uma empresa — não aparecem na lista acima porque ainda não pertencem a nenhuma organização.
+            </p>
+            <div className="rounded-[12px] border overflow-hidden" style={{ borderColor: "var(--border)" }}>
+              {orphanUsers.map((u, i) => (
+                <div
+                  key={u.id}
+                  className="flex items-center justify-between px-4 py-2.5 text-[13px]"
+                  style={{ borderTop: i > 0 ? "1px solid var(--border)" : undefined }}
+                >
+                  <span>{u.name || u.email}</span>
+                  <span style={{ color: "var(--fg-faint)" }}>
+                    {u.email} · desde {u.createdAt.toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
