@@ -3,17 +3,19 @@ import { prisma } from "@/lib/prisma";
 import { isCurrentUserSuperAdmin } from "@/lib/auth/current-org";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { isTrialExpired, trialDaysLeft } from "@/lib/trial";
-import { extendTrial, removeTrialLimit } from "@/lib/actions/admin";
+import { extendTrial, removeTrialLimit, adminInviteUser, adminRemoveUser, adminCancelInvite } from "@/lib/actions/admin";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { PlanSelect } from "@/components/PlanSelect";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, X } from "lucide-react";
+
+const ROLE_LABEL: Record<string, string> = { OWNER: "Dono", ADMIN: "Admin", MEMBER: "Membro" };
 
 async function fetchOrganizations() {
   const organizations = await prisma.organization.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      users: { orderBy: { createdAt: "asc" }, take: 1, include: { user: { select: { email: true } } } },
-      _count: { select: { users: true } },
+      users: { orderBy: { createdAt: "asc" }, include: { user: { select: { email: true, name: true } } } },
+      invites: { where: { acceptedAt: null }, orderBy: { createdAt: "desc" } },
     },
   });
 
@@ -29,9 +31,15 @@ async function fetchOrganizations() {
   return withCounts;
 }
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const isSuperAdmin = await isCurrentUserSuperAdmin();
   if (!isSuperAdmin) redirect("/");
+
+  const params = await searchParams;
 
   let organizations: Awaited<ReturnType<typeof fetchOrganizations>>;
   try {
@@ -54,6 +62,15 @@ export default async function AdminPage() {
         </p>
       </div>
 
+      {params.error && (
+        <div
+          className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]"
+          style={{ borderColor: "var(--critical)", color: "var(--critical)" }}
+        >
+          {params.error}
+        </div>
+      )}
+
       <div className="px-4 md:px-10 pt-6 pb-16">
         <div className="rounded-[16px] border overflow-hidden" style={{ borderColor: "var(--border)", boxShadow: "var(--shadow-card)" }}>
           <div className="overflow-x-auto">
@@ -61,7 +78,6 @@ export default async function AdminPage() {
               <thead>
                 <tr style={{ background: "var(--card-hover)" }}>
                   <Th>Empresa</Th>
-                  <Th>Contato</Th>
                   <Th>Usuários</Th>
                   <Th>Oportunidades ativas</Th>
                   <Th>Plano</Th>
@@ -75,6 +91,7 @@ export default async function AdminPage() {
                   const overLimit = limit !== null && org.activeOpportunities > limit;
                   const expired = isTrialExpired(org.trialEndsAt);
                   const daysLeft = trialDaysLeft(org.trialEndsAt);
+                  const pendingInvites = org.invites.filter((i) => i.expiresAt > new Date());
                   return (
                     <tr key={org.id} style={{ borderTop: "1px solid var(--border)" }}>
                       <Td>
@@ -83,8 +100,70 @@ export default async function AdminPage() {
                           {org.city ? `${org.city}, ${org.state}` : "—"}
                         </div>
                       </Td>
-                      <Td>{org.users[0]?.user.email ?? "—"}</Td>
-                      <Td>{org._count.users}</Td>
+                      <Td>
+                        <div className="flex flex-col gap-1.5 min-w-[220px]">
+                          {org.users.map((m) => (
+                            <div key={m.id} className="flex items-center justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="truncate">{m.user.name || m.user.email}</div>
+                                <div className="text-[11px]" style={{ color: "var(--fg-faint)" }}>
+                                  {m.user.email} · {ROLE_LABEL[m.role]}
+                                </div>
+                              </div>
+                              <form action={adminRemoveUser.bind(null, org.id, m.id)}>
+                                <button
+                                  type="submit"
+                                  className="flex items-center justify-center w-6 h-6 rounded-[6px] border cursor-pointer flex-shrink-0"
+                                  style={{ background: "transparent", borderColor: "var(--border)", color: "var(--fg-faint)" }}
+                                  title="Remover"
+                                >
+                                  <X size={12} strokeWidth={1.75} />
+                                </button>
+                              </form>
+                            </div>
+                          ))}
+
+                          {pendingInvites.map((inv) => (
+                            <div key={inv.id} className="flex items-center justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="truncate" style={{ color: "var(--fg-muted)" }}>
+                                  {inv.email}
+                                </div>
+                                <div className="text-[11px]" style={{ color: "var(--fg-faint)" }}>
+                                  Convite pendente
+                                </div>
+                              </div>
+                              <form action={adminCancelInvite.bind(null, org.id, inv.id)}>
+                                <button
+                                  type="submit"
+                                  className="flex items-center justify-center w-6 h-6 rounded-[6px] border cursor-pointer flex-shrink-0"
+                                  style={{ background: "transparent", borderColor: "var(--border)", color: "var(--fg-faint)" }}
+                                  title="Cancelar convite"
+                                >
+                                  <X size={12} strokeWidth={1.75} />
+                                </button>
+                              </form>
+                            </div>
+                          ))}
+
+                          <form action={adminInviteUser.bind(null, org.id)} className="flex gap-1.5 mt-1">
+                            <input
+                              name="email"
+                              type="email"
+                              placeholder="e-mail@empresa.com"
+                              className="min-w-0 flex-1 rounded-[6px] border px-2 py-1 text-[11.5px] outline-none"
+                              style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)" }}
+                            />
+                            <button
+                              type="submit"
+                              className="text-[11px] font-medium px-2.5 py-1 rounded-[6px] border cursor-pointer flex-shrink-0"
+                              style={{ background: "var(--primary)", borderColor: "var(--primary)", color: "#ffffff" }}
+                            >
+                              + adicionar
+                            </button>
+                          </form>
+                        </div>
+                      </Td>
                       <Td>
                         <span style={{ color: overLimit ? "var(--critical)" : "var(--fg)" }}>
                           {org.activeOpportunities}
