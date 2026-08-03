@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Check, Copy, ExternalLink } from "lucide-react";
+import { ChevronDown, ChevronUp, Check, Copy } from "lucide-react";
 import { linkedinPersonSearchUrl } from "@/lib/linkedin";
+import { LinkedInButton } from "./LinkedInButton";
 
 export function ScriptCard({
   companyName,
@@ -84,16 +85,7 @@ export function ScriptCard({
               {copied ? <Check size={13} strokeWidth={2} /> : <Copy size={13} strokeWidth={1.75} />}
               {copied ? "Copiado" : "Copiar script"}
             </button>
-            <a
-              href={linkedinPersonSearchUrl(personName || "", companyName)}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1.5 text-[12.5px] font-semibold rounded-full px-4 py-2 border no-underline"
-              style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}
-            >
-              <ExternalLink size={13} strokeWidth={1.75} />
-              Buscar no LinkedIn
-            </a>
+            <LinkedInButton href={linkedinPersonSearchUrl(personName || "", companyName)} label="Buscar no LinkedIn" />
           </div>
         </div>
       )}
