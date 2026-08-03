@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Users, Plug, LogOut, X, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Users, Plug, LogOut, X, ShieldCheck, ScanSearch } from "lucide-react";
 
 export type OrgProfile = {
   name: string;
@@ -17,6 +17,7 @@ const navItems = [
   { href: "/radar", label: "Radar", icon: Radar },
   { href: "/pipeline", label: "Pipeline", icon: Kanban },
   { href: "/assistente-vendas", label: "Assistente de Vendas", icon: Bot },
+  { href: "/inteligencia-competitiva", label: "Inteligência Competitiva", icon: ScanSearch, comingSoon: true },
   { href: "/historico", label: "Histórico", icon: History },
   { href: "/playbooks", label: "Playbooks", icon: BookOpen },
 ];
@@ -30,7 +31,6 @@ const configItems = [
 
 const roadmapItems = [
   "Chat com IA sobre suas oportunidades",
-  "Descoberta automática de concorrentes",
   "Exportar direto para CRM (HubSpot/Pipedrive)",
   "Alertas automáticos de novas oportunidades",
 ];
@@ -98,7 +98,15 @@ export function Rail({
               }}
             >
               <Icon size={16} strokeWidth={1.75} className="flex-shrink-0" />
-              {item.label}
+              <span className="truncate">{item.label}</span>
+              {"comingSoon" in item && item.comingSoon && (
+                <span
+                  className="text-[9px] font-semibold uppercase rounded-full px-1.5 py-[1px] flex-shrink-0 ml-auto"
+                  style={{ background: "var(--dark-hover)", color: "var(--dark-fg-muted)", letterSpacing: "0.04em" }}
+                >
+                  Em breve
+                </span>
+              )}
             </Link>
           );
         })}
