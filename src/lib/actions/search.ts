@@ -3,15 +3,18 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { searchOpportunities } from "@/lib/opportunity-engine/search";
-import { getCurrentOrganizationId } from "@/lib/auth/current-org";
+import { getCurrentMembership } from "@/lib/auth/current-org";
 
 export async function runSearchAction() {
-  const organizationId = await getCurrentOrganizationId();
-  if (!organizationId) {
+  const membership = await getCurrentMembership();
+  if (!membership) {
     redirect("/onboarding");
   }
+  if (membership.searchBlocked) {
+    redirect("/oportunidades?search=user_blocked");
+  }
 
-  const result = await searchOpportunities(organizationId);
+  const result = await searchOpportunities(membership.organizationId);
   revalidatePath("/");
   revalidatePath("/oportunidades");
 

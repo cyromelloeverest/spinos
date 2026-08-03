@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentOrganizationId } from "@/lib/auth/current-org";
+import { getCurrentOrganizationId, getCurrentMembership } from "@/lib/auth/current-org";
 import { runSearchAction } from "@/lib/actions/search";
 import { SEARCH_COOLDOWN_MS, startOfCurrentMonth } from "@/lib/opportunity-engine/constants";
 import { moveToPipeline, dismissOpportunity } from "@/lib/actions/pipeline";
@@ -67,6 +67,7 @@ export default async function OpportunitiesPage({
 
   if (dbError) return <DbSetupNotice />;
 
+  const membership = await getCurrentMembership();
   const anthropicConfigured = Boolean(process.env.ANTHROPIC_API_KEY);
   const lastSearchAt = organization?.lastSearchAt ?? null;
   const nextAvailableAt = lastSearchAt ? new Date(lastSearchAt.getTime() + SEARCH_COOLDOWN_MS) : null;
@@ -74,16 +75,19 @@ export default async function OpportunitiesPage({
   const plan = getPlan(organization?.plan ?? "STARTER");
   const atPlanLimit = plan.maxActiveOpportunities !== null && opportunities.length >= plan.maxActiveOpportunities;
   const atSearchLimit = plan.maxSearchesPerMonth !== null && searchesThisMonth >= plan.maxSearchesPerMonth;
-  const searchDisabled = !anthropicConfigured || onCooldown || atPlanLimit || atSearchLimit;
+  const userBlocked = Boolean(membership?.searchBlocked);
+  const searchDisabled = !anthropicConfigured || onCooldown || atPlanLimit || atSearchLimit || userBlocked;
   const disabledTitle = !anthropicConfigured
     ? "Configure ANTHROPIC_API_KEY no .env para ativar"
-    : atPlanLimit
-      ? `Limite de ${plan.maxActiveOpportunities} oportunidades ativas do plano ${plan.name} atingido`
-      : atSearchLimit
-        ? `Limite de ${plan.maxSearchesPerMonth} buscas/mês do plano ${plan.name} atingido`
-        : onCooldown && nextAvailableAt
-          ? `Próxima busca disponível em ${formatDateTime(nextAvailableAt)}`
-          : undefined;
+    : userBlocked
+      ? "Sua conta está temporariamente impedida de fazer buscas"
+      : atPlanLimit
+        ? `Limite de ${plan.maxActiveOpportunities} oportunidades ativas do plano ${plan.name} atingido`
+        : atSearchLimit
+          ? `Limite de ${plan.maxSearchesPerMonth} buscas/mês do plano ${plan.name} atingido`
+          : onCooldown && nextAvailableAt
+            ? `Próxima busca disponível em ${formatDateTime(nextAvailableAt)}`
+            : undefined;
 
   return (
     <div>
@@ -156,6 +160,11 @@ export default async function OpportunitiesPage({
       {params.search === "search_limit" && (
         <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
           Seu plano permite até {params.limit ?? plan.maxSearchesPerMonth} buscas por mês, e o limite já foi atingido. O contador reseta no início do próximo mês, ou fale com a gente para evoluir de plano.
+        </div>
+      )}
+      {params.search === "user_blocked" && (
+        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
+          Sua conta está temporariamente impedida de fazer buscas. Fale com o administrador da sua empresa.
         </div>
       )}
       {params.search === "error" && (

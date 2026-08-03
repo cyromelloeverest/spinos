@@ -94,3 +94,17 @@ export async function adminCancelInvite(organizationId: string, inviteId: string
 
   revalidatePath("/admin");
 }
+
+export async function adminToggleSearchBlock(organizationId: string, membershipId: string) {
+  await requireSuperAdmin();
+
+  const membership = await prisma.membership.findUnique({ where: { id: membershipId } });
+  if (!membership || membership.organizationId !== organizationId) redirect("/admin");
+
+  await prisma.membership.update({
+    where: { id: membershipId },
+    data: { searchBlocked: !membership.searchBlocked },
+  });
+
+  revalidatePath("/admin");
+}

@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { isCurrentUserSuperAdmin } from "@/lib/auth/current-org";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { isTrialExpired, trialDaysLeft } from "@/lib/trial";
-import { extendTrial, removeTrialLimit, adminInviteUser, adminRemoveUser, adminCancelInvite } from "@/lib/actions/admin";
+import { extendTrial, removeTrialLimit, adminInviteUser, adminRemoveUser, adminCancelInvite, adminToggleSearchBlock } from "@/lib/actions/admin";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { PlanSelect } from "@/components/PlanSelect";
-import { ShieldCheck, X } from "lucide-react";
+import { ShieldCheck, X, Ban, Play } from "lucide-react";
 
 const ROLE_LABEL: Record<string, string> = { OWNER: "Dono", ADMIN: "Admin", MEMBER: "Membro" };
 
@@ -105,21 +105,47 @@ export default async function AdminPage({
                           {org.users.map((m) => (
                             <div key={m.id} className="flex items-center justify-between gap-2">
                               <div className="min-w-0">
-                                <div className="truncate">{m.user.name || m.user.email}</div>
+                                <div className="truncate flex items-center gap-1.5">
+                                  {m.user.name || m.user.email}
+                                  {m.searchBlocked && (
+                                    <span
+                                      className="text-[9.5px] font-semibold uppercase rounded-full px-1.5 py-[1px] flex-shrink-0"
+                                      style={{ background: "var(--critical-soft, #FEE2E2)", color: "var(--critical)" }}
+                                    >
+                                      Busca bloqueada
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="text-[11px]" style={{ color: "var(--fg-faint)" }}>
                                   {m.user.email} · {ROLE_LABEL[m.role]}
                                 </div>
                               </div>
-                              <form action={adminRemoveUser.bind(null, org.id, m.id)}>
-                                <button
-                                  type="submit"
-                                  className="flex items-center justify-center w-6 h-6 rounded-[6px] border cursor-pointer flex-shrink-0"
-                                  style={{ background: "transparent", borderColor: "var(--border)", color: "var(--fg-faint)" }}
-                                  title="Remover"
-                                >
-                                  <X size={12} strokeWidth={1.75} />
-                                </button>
-                              </form>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <form action={adminToggleSearchBlock.bind(null, org.id, m.id)}>
+                                  <button
+                                    type="submit"
+                                    className="flex items-center justify-center w-6 h-6 rounded-[6px] border cursor-pointer"
+                                    style={{
+                                      background: "transparent",
+                                      borderColor: "var(--border)",
+                                      color: m.searchBlocked ? "var(--good)" : "var(--fg-faint)",
+                                    }}
+                                    title={m.searchBlocked ? "Liberar busca" : "Bloquear busca temporariamente"}
+                                  >
+                                    {m.searchBlocked ? <Play size={12} strokeWidth={1.75} /> : <Ban size={12} strokeWidth={1.75} />}
+                                  </button>
+                                </form>
+                                <form action={adminRemoveUser.bind(null, org.id, m.id)}>
+                                  <button
+                                    type="submit"
+                                    className="flex items-center justify-center w-6 h-6 rounded-[6px] border cursor-pointer"
+                                    style={{ background: "transparent", borderColor: "var(--border)", color: "var(--fg-faint)" }}
+                                    title="Remover"
+                                  >
+                                    <X size={12} strokeWidth={1.75} />
+                                  </button>
+                                </form>
+                              </div>
                             </div>
                           ))}
 

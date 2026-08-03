@@ -103,6 +103,7 @@ model Membership {
   userId         String
   organizationId String
   role           Role     @default(MEMBER)
+  searchBlocked  Boolean  @default(false)
   createdAt      DateTime @default(now())
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
