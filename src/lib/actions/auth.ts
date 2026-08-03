@@ -7,7 +7,7 @@ import { getCurrentUserId } from "@/lib/auth/current-org";
 import { SITE_URL } from "@/lib/site-url";
 
 export async function signUp(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) {
@@ -26,6 +26,15 @@ export async function signUp(formData: FormData) {
   }
 
   if (data.user) {
+    // Por segurança contra enumeração de e-mails, o Supabase retorna um
+    // "sucesso" com um ID que não corresponde a nenhuma conta real quando o
+    // e-mail já tem cadastro confirmado. Se já existe um public.users com
+    // esse e-mail sob outro ID, é exatamente esse caso — não criar nada.
+    const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+    if (existing && existing.id !== data.user.id) {
+      redirect(`/signup?error=${encodeURIComponent("Esse e-mail já tem uma conta. Faça login ou clique em \"Esqueci minha senha\".")}`);
+    }
+
     // Cria o registro correspondente em public.users, usando o mesmo ID
     // do usuário no Supabase Auth — evita precisar de tabela de mapeamento.
     await prisma.user.upsert({
@@ -43,7 +52,7 @@ export async function signUp(formData: FormData) {
 }
 
 export async function signIn(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 
   const supabase = await createClient();
@@ -73,7 +82,7 @@ export async function signOut() {
 }
 
 export async function requestPasswordReset(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
 
   if (!email) {
     redirect("/login/esqueci-senha?error=Informe seu e-mail.");
@@ -93,7 +102,7 @@ export async function requestEmailChange(formData: FormData) {
   const userId = await getCurrentUserId();
   if (!userId) redirect("/login");
 
-  const newEmail = String(formData.get("email") ?? "").trim();
+  const newEmail = String(formData.get("email") ?? "").trim().toLowerCase();
   if (!newEmail) {
     redirect("/settings/empresa?emailError=Informe o novo e-mail.");
   }
