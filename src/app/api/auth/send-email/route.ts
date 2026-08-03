@@ -73,7 +73,7 @@ export async function POST(req: Request) {
       : email_data.token_hash;
 
   const next = email_data.redirect_to || "/";
-  const confirmUrl = `${SITE_URL}/auth/confirm?token_hash=${tokenHash}&type=${email_data.email_action_type}&next=${encodeURIComponent(next)}`;
+  const confirmUrl = `${SITE_URL}/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(email_data.email_action_type)}&next=${encodeURIComponent(next)}`;
 
   const { subject, html } = buildEmailContent(email_data.email_action_type, confirmUrl);
 
