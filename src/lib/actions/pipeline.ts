@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getCurrentOrganizationId } from "@/lib/auth/current-org";
+import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-org";
 
 async function requireOrgId(): Promise<string> {
   const orgId = await getCurrentOrganizationId();
@@ -13,9 +13,10 @@ async function requireOrgId(): Promise<string> {
 
 export async function moveToPipeline(opportunityScoreId: string) {
   const organizationId = await requireOrgId();
+  const userId = await getCurrentUserId();
   await prisma.opportunityScore.update({
     where: { id: opportunityScoreId, organizationId },
-    data: { stage: "CONTATO_FEITO", stageUpdatedAt: new Date() },
+    data: { stage: "CONTATO_FEITO", stageUpdatedAt: new Date(), lastActionByUserId: userId, lastActionAt: new Date() },
   });
   revalidatePath("/");
   revalidatePath("/oportunidades");
@@ -25,11 +26,14 @@ export async function moveToPipeline(opportunityScoreId: string) {
 
 export async function setStage(opportunityScoreId: string, stage: string) {
   const organizationId = await requireOrgId();
+  const userId = await getCurrentUserId();
   await prisma.opportunityScore.update({
     where: { id: opportunityScoreId, organizationId },
     data: {
       stage: stage as "CONTATO_FEITO" | "VISITA_AGENDADA" | "PROPOSTA_ENVIADA" | "VENDIDO" | "PERDIDO",
       stageUpdatedAt: new Date(),
+      lastActionByUserId: userId,
+      lastActionAt: new Date(),
     },
   });
   revalidatePath("/");
@@ -38,9 +42,10 @@ export async function setStage(opportunityScoreId: string, stage: string) {
 
 export async function dismissOpportunity(opportunityScoreId: string) {
   const organizationId = await requireOrgId();
+  const userId = await getCurrentUserId();
   await prisma.opportunityScore.update({
     where: { id: opportunityScoreId, organizationId },
-    data: { status: "DISMISSED" },
+    data: { status: "DISMISSED", lastActionByUserId: userId, lastActionAt: new Date() },
   });
   revalidatePath("/");
   revalidatePath("/oportunidades");

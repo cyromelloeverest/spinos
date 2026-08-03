@@ -86,7 +86,8 @@ model User {
   isSuperAdmin Boolean  @default(false)
   createdAt    DateTime @default(now())
 
-  memberships Membership[]
+  memberships        Membership[]
+  opportunityActions OpportunityScore[]
 
   @@map("users")
 }
@@ -284,13 +285,16 @@ model OpportunityScore {
   contactEmail        String?
   recommendedOffering String?
   computedAt          DateTime          @default(now())
+  lastActionByUserId  String?
+  lastActionAt        DateTime?
 
-  organization Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  company      Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  icp          ICP                      @relation(fields: [icpId], references: [id], onDelete: Cascade)
-  signalsUsed  OpportunityScoreSignal[]
-  feedback     Feedback?
-  crmExports   CrmExport[]
+  organization     Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  company          Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  icp              ICP                      @relation(fields: [icpId], references: [id], onDelete: Cascade)
+  lastActionByUser User?                    @relation(fields: [lastActionByUserId], references: [id], onDelete: SetNull)
+  signalsUsed      OpportunityScoreSignal[]
+  feedback         Feedback?
+  crmExports       CrmExport[]
 
   @@unique([organizationId, companyId, icpId])
   @@index([organizationId, score])

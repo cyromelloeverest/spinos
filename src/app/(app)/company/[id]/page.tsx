@@ -27,7 +27,11 @@ export default async function CompanyPage({
 
   const opp = await prisma.opportunityScore.findUnique({
     where: { id },
-    include: { company: true, signalsUsed: { include: { signal: true }, orderBy: { signal: { detectedAt: "desc" } } } },
+    include: {
+      company: true,
+      lastActionByUser: true,
+      signalsUsed: { include: { signal: true }, orderBy: { signal: { detectedAt: "desc" } } },
+    },
   });
 
   if (!opp || opp.organizationId !== organizationId) notFound();
@@ -222,6 +226,11 @@ export default async function CompanyPage({
             >
               No pipeline: {STAGE_LABEL[opp.stage]}
             </div>
+            {opp.lastActionByUser && (
+              <span className="text-[12px]" style={{ color: "var(--fg-faint)" }}>
+                por {opp.lastActionByUser.name || opp.lastActionByUser.email}
+              </span>
+            )}
             <Link href="/pipeline" className="text-[13px] no-underline" style={{ color: "var(--fg-muted)" }}>
               Ver no pipeline →
             </Link>

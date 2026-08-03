@@ -12,6 +12,7 @@ export type PipelineCard = {
   score: number;
   stage: string;
   daysLabel: string;
+  lastActionByName: string | null;
 };
 
 const COLUMNS: { stage: string; label: string }[] = [
@@ -98,6 +99,7 @@ export function PipelineBoard({ initialCards }: { initialCards: PipelineCard[] }
                     <div className="text-[13.5px] font-semibold mb-0.5">{card.companyName}</div>
                     <div className="text-[11px] mb-1" style={{ color: "var(--fg-faint)" }}>
                       {card.daysLabel}
+                      {card.lastActionByName && ` · por ${card.lastActionByName}`}
                     </div>
                     <div className="text-[11px]" style={{ color: "var(--fg-faint)" }}>
                       {card.city}, {card.state} · score {card.score}

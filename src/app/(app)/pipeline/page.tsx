@@ -15,7 +15,7 @@ function daysInStage(stageUpdatedAt: Date | null): string {
 function fetchPipelineOpportunities(organizationId: string) {
   return prisma.opportunityScore.findMany({
     where: { organizationId, stage: { not: null } },
-    include: { company: true },
+    include: { company: true, lastActionByUser: true },
     orderBy: { stageUpdatedAt: "desc" },
   });
 }
@@ -41,6 +41,7 @@ export default async function PipelinePage() {
     score: opp.score,
     stage: opp.stage!,
     daysLabel: daysInStage(opp.stageUpdatedAt),
+    lastActionByName: opp.lastActionByUser?.name || opp.lastActionByUser?.email || null,
   }));
 
   return (
