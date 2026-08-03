@@ -5,7 +5,7 @@ import { FormField } from "@/components/FormField";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
   const params = await searchParams;
 
@@ -37,6 +37,7 @@ export default async function LoginPage({
         )}
 
         <form action={signIn} className="flex flex-col gap-4">
+          {params.next && <input type="hidden" name="next" value={params.next} />}
           <FormField label="E-mail" name="email" placeholder="voce@empresa.com.br" required />
           <label className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">

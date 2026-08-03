@@ -4,14 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth/current-org";
-
-// Em produção na Vercel, essa variável já vem preenchida sozinha com o
-// domínio de produção atual — mesmo depois de trocar pra um domínio próprio.
-// NEXT_PUBLIC_SITE_URL só é necessária se quisermos forçar outra coisa.
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null) ??
-  "http://localhost:3000";
+import { SITE_URL } from "@/lib/site-url";
 
 export async function signUp(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
@@ -58,6 +51,11 @@ export async function signIn(formData: FormData) {
 
   if (error) {
     redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  }
+
+  const next = String(formData.get("next") ?? "").trim();
+  if (next.startsWith("/")) {
+    redirect(next);
   }
 
   const membership = await prisma.membership.findFirst({

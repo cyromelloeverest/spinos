@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Plug, LogOut, X, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Users, Plug, LogOut, X, ShieldCheck } from "lucide-react";
 
 export type OrgProfile = {
   name: string;
@@ -24,6 +24,7 @@ const navItems = [
 const configItems = [
   { href: "/settings/empresa", label: "Perfil da empresa", icon: Building2, enabled: true },
   { href: "/settings/icp", label: "Meu ICP", icon: Target, enabled: true },
+  { href: "/settings/equipe", label: "Equipe", icon: Users, enabled: true },
   { href: "#", label: "Integrações", icon: Plug, enabled: false },
 ];
 

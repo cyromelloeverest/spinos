@@ -56,6 +56,7 @@ model Organization {
   feedbacks         Feedback[]
   chatConversations ChatConversation[]
   crmExports        CrmExport[]
+  invites           Invite[]
 
   @@map("organizations")
 }
@@ -92,6 +93,24 @@ model Membership {
 
   @@unique([userId, organizationId])
   @@map("memberships")
+}
+
+// Convite pendente para um novo usuário entrar numa organização já existente
+// (em vez de criar a própria organização, como acontece no cadastro normal).
+model Invite {
+  id             String    @id @default(cuid())
+  organizationId String
+  email          String
+  role           Role      @default(MEMBER)
+  token          String    @unique
+  createdAt      DateTime  @default(now())
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("invites")
 }
 
 // ============================================================
