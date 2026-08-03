@@ -6,6 +6,8 @@ import { moveToPipeline, dismissOpportunity } from "@/lib/actions/pipeline";
 import { updateContactInfo } from "@/lib/actions/contact";
 import { faviconUrl } from "@/lib/favicon";
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
+import { linkedinPersonSearchUrl, linkedinCompanySearchUrl } from "@/lib/linkedin";
+import { ExternalLink } from "lucide-react";
 
 const STAGE_LABEL: Record<string, string> = {
   CONTATO_FEITO: "Contato feito",
@@ -58,8 +60,20 @@ export default async function CompanyPage({
           >
             {opp.company.name}
           </h1>
-          <div className="text-[13px]" style={{ color: "var(--fg-muted)" }}>
-            {opp.company.city}, {opp.company.state}
+          <div className="flex items-center gap-2.5 text-[13px]" style={{ color: "var(--fg-muted)" }}>
+            <span>
+              {opp.company.city}, {opp.company.state}
+            </span>
+            <a
+              href={linkedinCompanySearchUrl(opp.company.name)}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1 no-underline"
+              style={{ color: "var(--primary)" }}
+            >
+              <ExternalLink size={13} strokeWidth={1.75} />
+              LinkedIn
+            </a>
           </div>
         </div>
         <div className="text-right flex-shrink-0">
@@ -143,7 +157,26 @@ export default async function CompanyPage({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-7.5">
         <Field label="Área provável comprando" value={opp.buyerArea ?? "—"} />
-        <Field label="Decisor provável" value={opp.decisionMaker ?? "—"} />
+        <div>
+          <div className="text-[11px] uppercase mb-1" style={{ color: "var(--fg-faint)", letterSpacing: "0.06em" }}>
+            Decisor provável
+          </div>
+          <div className="flex items-center gap-2.5">
+            <div className="text-[14px]">{opp.contactName || opp.decisionMaker || "—"}</div>
+            {(opp.contactName || opp.decisionMaker) && (
+              <a
+                href={linkedinPersonSearchUrl(opp.contactName || opp.decisionMaker || "", opp.company.name)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 text-[12px] no-underline"
+                style={{ color: "var(--primary)" }}
+              >
+                <ExternalLink size={13} strokeWidth={1.75} />
+                LinkedIn
+              </a>
+            )}
+          </div>
+        </div>
       </div>
 
       <Section title="Como abordar">

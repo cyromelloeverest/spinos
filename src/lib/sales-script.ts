@@ -26,6 +26,9 @@ ${opp.execSummary}
 MENSAGEM PRONTA (WhatsApp ou e-mail)
 "Olá! Somos a ${opp.orgName}. ${opp.suggestedApproach} Podemos marcar uma conversa rápida essa semana?"
 
+MENSAGEM DE CONEXÃO NO LINKEDIN (máx. 300 caracteres)
+"${buildLinkedinNote(opp)}"
+
 QUEM PROCURAR
 ${alvo}
 
@@ -34,6 +37,16 @@ ${bulletList(opp.commercialArguments)}
 
 SE ELE(A) HESITAR, PROVAVELMENTE VAI DIZER
 ${bulletList(opp.objections)}`;
+}
+
+const LINKEDIN_NOTE_LIMIT = 300;
+
+function buildLinkedinNote(opp: ScriptInput): string {
+  const primeiroNome = opp.contactName ? opp.contactName.split(" ")[0] : null;
+  const saudacao = primeiroNome ? `Oi ${primeiroNome}, tudo bem?` : "Oi, tudo bem?";
+  const note = `${saudacao} Sou da ${opp.orgName}. Vi que ${stripTrailingPunctuation(lowerFirst(opp.headline))} e achei que fazia sentido nos conectarmos.`;
+  if (note.length <= LINKEDIN_NOTE_LIMIT) return note;
+  return `${note.slice(0, LINKEDIN_NOTE_LIMIT - 1)}…`;
 }
 
 function lowerFirst(text: string): string {

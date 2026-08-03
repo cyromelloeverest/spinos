@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Check, Copy } from "lucide-react";
+import { ChevronDown, ChevronUp, Check, Copy, ExternalLink } from "lucide-react";
+import { linkedinPersonSearchUrl } from "@/lib/linkedin";
 
 export function ScriptCard({
   companyName,
@@ -9,12 +10,14 @@ export function ScriptCard({
   state,
   score,
   script,
+  personName,
 }: {
   companyName: string;
   city: string | null;
   state: string | null;
   score: number;
   script: string;
+  personName?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -67,19 +70,31 @@ export function ScriptCard({
           >
             {script}
           </pre>
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="mt-3 flex items-center gap-1.5 text-[12.5px] font-semibold rounded-full px-4 py-2 border cursor-pointer"
-            style={{
-              background: copied ? "var(--good-soft)" : "var(--primary-soft)",
-              color: copied ? "var(--good)" : "var(--primary)",
-              borderColor: "transparent",
-            }}
-          >
-            {copied ? <Check size={13} strokeWidth={2} /> : <Copy size={13} strokeWidth={1.75} />}
-            {copied ? "Copiado" : "Copiar script"}
-          </button>
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 text-[12.5px] font-semibold rounded-full px-4 py-2 border cursor-pointer"
+              style={{
+                background: copied ? "var(--good-soft)" : "var(--primary-soft)",
+                color: copied ? "var(--good)" : "var(--primary)",
+                borderColor: "transparent",
+              }}
+            >
+              {copied ? <Check size={13} strokeWidth={2} /> : <Copy size={13} strokeWidth={1.75} />}
+              {copied ? "Copiado" : "Copiar script"}
+            </button>
+            <a
+              href={linkedinPersonSearchUrl(personName || "", companyName)}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 text-[12.5px] font-semibold rounded-full px-4 py-2 border no-underline"
+              style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}
+            >
+              <ExternalLink size={13} strokeWidth={1.75} />
+              Buscar no LinkedIn
+            </a>
+          </div>
         </div>
       )}
     </div>
