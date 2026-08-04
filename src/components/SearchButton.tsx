@@ -113,7 +113,7 @@ function ConfirmPhase({
         Vamos encontrar suas próximas oportunidades
       </h2>
       <p className="text-[13.5px] leading-[1.6] mb-1" style={{ color: "var(--fg-muted)" }}>
-        Vamos vasculhar sinais públicos reais — notícias, vagas, editais, expansões — pra achar empresas com alta
+        Vamos vasculhar sinais públicos reais (notícias, vagas, editais, expansões) pra achar empresas com alta
         chance de fechar negócio com você agora.
       </p>
       {typeof remainingSearches === "number" ? (
