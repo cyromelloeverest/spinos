@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
+import { SpinosScore } from "@/components/SpinosScore";
 
 const STATUS_LABEL: Record<string, { label: string; bg: string; color: string }> = {
   CONTATO_FEITO: { label: "Contato feito", bg: "var(--primary-soft)", color: "var(--primary)" },
@@ -73,18 +74,7 @@ export default async function HistoricoPage() {
               className="flex items-center gap-4 rounded-[16px] border px-4 py-3 no-underline"
               style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)", boxShadow: "var(--shadow-card)" }}
             >
-              <div
-                className="w-11 h-11 rounded-[9px] flex items-center justify-center border font-semibold text-[16px] flex-shrink-0"
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontVariantNumeric: "tabular-nums",
-                  background: "var(--card-hover)",
-                  color: "var(--fg-muted)",
-                  borderColor: "var(--border)",
-                }}
-              >
-                {opp.score}
-              </div>
+              <SpinosScore value={opp.score} variant="compact" />
 
               <div className="min-w-0 flex-1">
                 <div className="text-[13.5px] font-semibold">{opp.company.name}</div>

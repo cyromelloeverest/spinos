@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, Check, Copy } from "lucide-react";
 import { linkedinPersonSearchUrl } from "@/lib/linkedin";
 import { LinkedInButton } from "./LinkedInButton";
+import { SpinosScore } from "./SpinosScore";
 
 export function ScriptCard({
   companyName,
@@ -37,18 +38,7 @@ export function ScriptCard({
         className="w-full flex items-center gap-4 px-5 py-4 text-left cursor-pointer"
         style={{ background: "transparent", border: "none" }}
       >
-        <div
-          className="w-11 h-11 rounded-[9px] flex items-center justify-center border font-semibold text-[16px] flex-shrink-0"
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontVariantNumeric: "tabular-nums",
-            background: "var(--card-hover)",
-            color: "var(--fg-muted)",
-            borderColor: "var(--border)",
-          }}
-        >
-          {score}
-        </div>
+        <SpinosScore value={score} variant="compact" />
         <div className="min-w-0 flex-1">
           <div className="text-[14.5px] font-semibold" style={{ color: "var(--fg)" }}>
             {companyName}

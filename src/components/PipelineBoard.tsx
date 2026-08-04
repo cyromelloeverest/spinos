@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { setStage } from "@/lib/actions/pipeline";
+import { SpinosScore } from "./SpinosScore";
 
 export type PipelineCard = {
   id: string;
@@ -96,13 +97,16 @@ export function PipelineBoard({ initialCards }: { initialCards: PipelineCard[] }
                   style={{ background: "var(--card)", borderColor: "var(--border)", cursor: "grab", boxShadow: "var(--shadow-card)" }}
                 >
                   <Link href={`/company/${card.id}`} className="no-underline" style={{ color: "var(--fg)" }}>
-                    <div className="text-[13.5px] font-semibold mb-0.5">{card.companyName}</div>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <div className="text-[13.5px] font-semibold flex-1 min-w-0 truncate">{card.companyName}</div>
+                      <SpinosScore value={card.score} variant="inline" />
+                    </div>
                     <div className="text-[11px] mb-1" style={{ color: "var(--fg-faint)" }}>
                       {card.daysLabel}
                       {card.lastActionByName && ` · por ${card.lastActionByName}`}
                     </div>
                     <div className="text-[11px]" style={{ color: "var(--fg-faint)" }}>
-                      {card.city}, {card.state} · score {card.score}
+                      {card.city}, {card.state}
                     </div>
                   </Link>
                 </div>

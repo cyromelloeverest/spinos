@@ -7,7 +7,7 @@ import { Search, Loader2, X, Target } from "lucide-react";
 const PROGRESS_MESSAGES = [
   "Vasculhando sinais públicos de compra…",
   "Cruzando os sinais com o seu ICP…",
-  "Analisando o Opportunity Score de cada empresa…",
+  "Calculando o Spinos Score de cada empresa…",
   "Priorizando quem está pronto pra comprar agora…",
   "Quase lá — organizando os melhores achados…",
 ];

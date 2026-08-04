@@ -7,6 +7,7 @@ import { SEARCH_COOLDOWN_MS, startOfCurrentMonth } from "@/lib/opportunity-engin
 import { moveToPipeline, dismissOpportunity } from "@/lib/actions/pipeline";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { SearchButton } from "@/components/SearchButton";
+import { SpinosScore } from "@/components/SpinosScore";
 import { ArrowRight, X, Check, Flame, TrendingUp, Minus, Target, Download } from "lucide-react";
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
 import { getPlan } from "@/lib/plans";
@@ -16,12 +17,6 @@ const URGENCY_CONFIG: Record<string, { label: string; icon: typeof Flame; color:
   MEDIA: { label: "Média", icon: TrendingUp, color: "var(--fg-muted)" },
   BAIXA: { label: "Baixa", icon: Minus, color: "var(--fg-faint)" },
 };
-
-function scoreStyle(score: number) {
-  if (score >= 85) return { bg: "var(--primary)", color: "#ffffff", border: "var(--primary)" };
-  if (score >= 60) return { bg: "var(--primary-soft)", color: "var(--primary)", border: "var(--primary-line)" };
-  return { bg: "var(--card-hover)", color: "var(--fg-muted)", border: "var(--border)" };
-}
 
 function fetchOpportunities(organizationId: string) {
   return prisma.opportunityScore.findMany({
@@ -184,7 +179,6 @@ export default async function OpportunitiesPage({
         {opportunities.map((opp) => {
           const urgency = URGENCY_CONFIG[opp.urgency] ?? URGENCY_CONFIG.BAIXA;
           const UrgencyIcon = urgency.icon;
-          const sStyle = scoreStyle(opp.score);
           const isNew = Boolean(lastSearchAt && opp.computedAt.getTime() === lastSearchAt.getTime());
           return (
             <div
@@ -198,17 +192,7 @@ export default async function OpportunitiesPage({
               }}
             >
               <Link href={`/company/${opp.id}`} className="flex items-center gap-5 flex-1 min-w-0 no-underline" style={{ color: "var(--fg)" }}>
-                <div
-                  className="w-16 h-16 rounded-[10px] flex items-center justify-center border font-bold text-[26px] flex-shrink-0"
-                  style={{
-                    fontVariantNumeric: "tabular-nums",
-                    background: sStyle.bg,
-                    color: sStyle.color,
-                    borderColor: sStyle.border,
-                  }}
-                >
-                  {opp.score}
-                </div>
+                <SpinosScore value={opp.score} variant="card" />
 
                 <div className="min-w-0">
                   <div className="flex items-center gap-2.5 mb-1.5">

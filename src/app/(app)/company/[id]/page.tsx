@@ -8,6 +8,7 @@ import { faviconUrl } from "@/lib/favicon";
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
 import { linkedinPersonSearchUrl, linkedinCompanySearchUrl } from "@/lib/linkedin";
 import { LinkedInButton } from "@/components/LinkedInButton";
+import { SpinosScore } from "@/components/SpinosScore";
 
 const STAGE_LABEL: Record<string, string> = {
   CONTATO_FEITO: "Contato feito",
@@ -71,19 +72,8 @@ export default async function CompanyPage({
             <LinkedInButton href={linkedinCompanySearchUrl(opp.company.name)} size="sm" />
           </div>
         </div>
-        <div className="text-right flex-shrink-0">
-          <div
-            className="text-[40px] font-semibold leading-none"
-            style={{ fontFamily: "var(--font-mono)", color: "var(--primary)", fontVariantNumeric: "tabular-nums" }}
-          >
-            {opp.score}
-          </div>
-          <div
-            className="text-[11px] uppercase mt-1"
-            style={{ color: "var(--fg-faint)", letterSpacing: "0.07em" }}
-          >
-            Opportunity Score
-          </div>
+        <div className="flex-shrink-0">
+          <SpinosScore value={opp.score} variant="hero" />
         </div>
       </div>
 
@@ -141,7 +131,7 @@ export default async function CompanyPage({
         </div>
       </Section>
 
-      <Section title={`Por que o score é ${opp.score}`}>
+      <Section title={`Por que o Spinos Score é ${opp.score}`}>
         <div
           className="rounded-[10px] border px-5 py-4.5 text-[13.5px] leading-[1.65]"
           style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg-muted)" }}

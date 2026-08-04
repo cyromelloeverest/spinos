@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
+import { SpinosScore } from "@/components/SpinosScore";
 import { Target, Kanban, Trophy, Sparkles, TrendingUp, ArrowRight } from "lucide-react";
 
 function getGreeting(): string {
@@ -29,12 +30,14 @@ const FUNNEL_STAGES: { stage: string; label: string }[] = [
 ];
 
 const RECENT_WINDOW_MS = 10 * 24 * 60 * 60 * 1000;
+const HOT_SCORE_THRESHOLD = 85;
 
 async function fetchDashboardData(organizationId: string) {
   const since = new Date(Date.now() - RECENT_WINDOW_MS);
+  const activeFilter = { organizationId, stage: null, status: { not: "DISMISSED" } } as const;
 
-  const [active, staged, won, lost, recentSignals, best, avgScoreResult] = await Promise.all([
-    prisma.opportunityScore.count({ where: { organizationId, stage: null, status: { not: "DISMISSED" } } }),
+  const [active, staged, won, lost, recentSignals, best, avgScoreResult, hotCount] = await Promise.all([
+    prisma.opportunityScore.count({ where: activeFilter }),
     prisma.opportunityScore.count({
       where: { organizationId, stage: { notIn: ["VENDIDO", "PERDIDO"] } },
     }),
@@ -47,15 +50,13 @@ async function fetchDashboardData(organizationId: string) {
       },
     }),
     prisma.opportunityScore.findMany({
-      where: { organizationId, stage: null, status: { not: "DISMISSED" } },
+      where: activeFilter,
       include: { company: true },
       orderBy: { score: "desc" },
       take: 5,
     }),
-    prisma.opportunityScore.aggregate({
-      where: { organizationId, stage: null, status: { not: "DISMISSED" } },
-      _avg: { score: true },
-    }),
+    prisma.opportunityScore.aggregate({ where: activeFilter, _avg: { score: true } }),
+    prisma.opportunityScore.count({ where: { ...activeFilter, score: { gte: HOT_SCORE_THRESHOLD } } }),
   ]);
 
   const funnelCounts = await Promise.all(
@@ -72,6 +73,7 @@ async function fetchDashboardData(organizationId: string) {
     recentSignals,
     best,
     avgScore: avgScoreResult._avg.score,
+    hotCount,
     conversionRate,
     funnel: FUNNEL_STAGES.map((s, i) => ({ ...s, count: funnelCounts[i] })),
   };
@@ -101,6 +103,7 @@ export default async function DashboardPage({
 
   const maxFunnel = Math.max(1, ...data.funnel.map((f) => f.count));
   const name = greetingName(user?.name, organization?.name);
+  const avgScoreRounded = data.avgScore !== null ? Math.round(data.avgScore) : null;
 
   return (
     <div>
@@ -123,23 +126,88 @@ export default async function DashboardPage({
         </div>
       )}
 
-      <div className="px-4 md:px-10 pt-6 grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
-        <KpiCard icon={Target} label="Oportunidades ativas" value={data.active} />
-        <KpiCard icon={Kanban} label="No pipeline" value={data.staged} />
-        <KpiCard icon={Trophy} label="Vendidas" value={data.won} />
-        <KpiCard
+      <div className="px-4 md:px-10 pt-6">
+        {avgScoreRounded !== null ? (
+          <div
+            className="rounded-[20px] border p-6 md:p-7 flex flex-col md:flex-row items-center gap-6 md:gap-8"
+            style={{ background: "var(--card)", borderColor: "var(--primary-line)", boxShadow: "var(--shadow-card)" }}
+          >
+            <SpinosScore value={avgScoreRounded} variant="hero" />
+            <div className="flex-1 min-w-0 text-center md:text-left">
+              <div
+                className="text-[11px] uppercase font-semibold mb-1.5"
+                style={{ color: "var(--fg-faint)", letterSpacing: "0.08em" }}
+              >
+                Spinos Score médio das suas oportunidades ativas
+              </div>
+              <p
+                className="text-[16px] leading-[1.5] m-0 mb-3"
+                style={{ fontFamily: "var(--font-display)", textWrap: "balance" }}
+              >
+                {data.hotCount > 0
+                  ? `${data.hotCount} ${data.hotCount === 1 ? "oportunidade está" : "oportunidades estão"} no patamar mais quente (${HOT_SCORE_THRESHOLD}+) — prontas pra abordagem agora.`
+                  : `Nenhuma oportunidade no patamar mais quente (${HOT_SCORE_THRESHOLD}+) ainda — vale acompanhar as próximas buscas.`}
+              </p>
+              <Link
+                href="/oportunidades"
+                className="inline-flex items-center gap-1 text-[13px] font-semibold no-underline"
+                style={{ color: "var(--primary)" }}
+              >
+                Ver oportunidades
+                <ArrowRight size={14} strokeWidth={2} />
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div
+            className="rounded-[20px] border border-dashed p-8 text-center"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <p className="text-[14px] m-0 mb-3" style={{ color: "var(--fg-muted)" }}>
+              Ainda sem oportunidades ativas — rode sua primeira busca pra descobrir o Spinos Score das suas
+              melhores empresas-alvo.
+            </p>
+            <Link
+              href="/oportunidades"
+              className="inline-flex items-center gap-1 text-[13px] font-semibold no-underline"
+              style={{ color: "var(--primary)" }}
+            >
+              Buscar oportunidades
+              <ArrowRight size={14} strokeWidth={2} />
+            </Link>
+          </div>
+        )}
+      </div>
+
+      <div className="px-4 md:px-10 pt-5 grid grid-cols-2 md:grid-cols-4 gap-3.5">
+        <StatTile icon={Target} label="Oportunidades ativas" value={data.active} accent="var(--primary)" />
+        <StatTile icon={Kanban} label="No pipeline" value={data.staged} accent="var(--primary)" />
+        <StatTile icon={Trophy} label="Vendidas" value={data.won} accent="var(--good)" />
+        <StatTile
           icon={TrendingUp}
           label="Taxa de conversão"
           value={data.conversionRate !== null ? `${data.conversionRate}%` : "—"}
+          accent="var(--good)"
         />
-        <KpiCard icon={Sparkles} label="Novidades (10 dias)" value={data.recentSignals} />
       </div>
 
       <div className="px-4 md:px-10 pt-8 pb-16 grid grid-cols-1 md:grid-cols-[1.3fr_1fr] gap-6">
         <div>
-          <h2 className="text-[11.5px] uppercase font-semibold m-0 mb-3.5" style={{ color: "var(--fg-faint)", letterSpacing: "0.08em" }}>
-            Melhores oportunidades
-          </h2>
+          <div className="flex items-center justify-between mb-3.5">
+            <h2 className="text-[11.5px] uppercase font-semibold m-0" style={{ color: "var(--fg-faint)", letterSpacing: "0.08em" }}>
+              Melhores oportunidades
+            </h2>
+            {data.recentSignals > 0 && (
+              <Link
+                href="/radar"
+                className="flex items-center gap-1 text-[11.5px] font-medium no-underline"
+                style={{ color: "var(--primary)" }}
+              >
+                <Sparkles size={12} strokeWidth={2} />
+                {data.recentSignals} novidade{data.recentSignals === 1 ? "" : "s"}
+              </Link>
+            )}
+          </div>
           <div className="flex flex-col gap-2.5">
             {data.best.length === 0 && (
               <div className="rounded-[10px] border border-dashed p-5 text-[12.5px] text-center" style={{ borderColor: "var(--border)", color: "var(--fg-faint)" }}>
@@ -153,16 +221,7 @@ export default async function DashboardPage({
                 className="flex items-center gap-4 rounded-[14px] border px-4 py-3 no-underline"
                 style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)", boxShadow: "var(--shadow-card)" }}
               >
-                <div
-                  className="w-10 h-10 rounded-[9px] flex items-center justify-center font-semibold text-[15px] flex-shrink-0"
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    background: opp.score >= 85 ? "var(--primary)" : "var(--primary-soft)",
-                    color: opp.score >= 85 ? "#ffffff" : "var(--primary)",
-                  }}
-                >
-                  {opp.score}
-                </div>
+                <SpinosScore value={opp.score} variant="compact" />
                 <div className="min-w-0 flex-1">
                   <div className="text-[13.5px] font-semibold truncate">{opp.company.name}</div>
                   <div className="text-[11.5px] truncate" style={{ color: "var(--fg-faint)" }}>
@@ -227,32 +286,32 @@ export default async function DashboardPage({
   );
 }
 
-function KpiCard({
+function StatTile({
   icon: Icon,
   label,
   value,
+  accent,
 }: {
   icon: typeof Target;
   label: string;
   value: string | number;
+  accent: string;
 }) {
   return (
     <div
-      className="rounded-[16px] border p-4 flex flex-col gap-2.5"
+      className="rounded-[14px] border overflow-hidden"
       style={{ background: "var(--card)", borderColor: "var(--border)", boxShadow: "var(--shadow-card)" }}
     >
-      <div
-        className="w-8 h-8 rounded-[8px] flex items-center justify-center"
-        style={{ background: "var(--primary-soft)", color: "var(--primary)" }}
-      >
-        <Icon size={16} strokeWidth={1.75} />
-      </div>
-      <div>
-        <div className="text-[22px] font-bold leading-none" style={{ fontFamily: "var(--font-mono)" }}>
-          {value}
+      <div style={{ height: 3, background: accent }} />
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-[11.5px] font-medium" style={{ color: "var(--fg-muted)" }}>
+            {label}
+          </div>
+          <Icon size={14} strokeWidth={1.75} style={{ color: "var(--fg-faint)" }} />
         </div>
-        <div className="text-[11.5px] mt-1" style={{ color: "var(--fg-muted)" }}>
-          {label}
+        <div className="text-[26px] font-bold leading-none" style={{ fontFamily: "var(--font-mono)", letterSpacing: "-0.02em" }}>
+          {value}
         </div>
       </div>
     </div>
