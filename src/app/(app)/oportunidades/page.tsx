@@ -75,6 +75,8 @@ export default async function OpportunitiesPage({
   const plan = getPlan(organization?.plan ?? "STARTER");
   const atPlanLimit = plan.maxActiveOpportunities !== null && opportunities.length >= plan.maxActiveOpportunities;
   const atSearchLimit = plan.maxSearchesPerMonth !== null && searchesThisMonth >= plan.maxSearchesPerMonth;
+  const remainingSearches =
+    plan.maxSearchesPerMonth !== null ? Math.max(plan.maxSearchesPerMonth - searchesThisMonth - 1, 0) : null;
   const userBlocked = Boolean(membership?.searchBlocked);
   const searchDisabled = !anthropicConfigured || onCooldown || atPlanLimit || atSearchLimit || userBlocked;
   const disabledTitle = !anthropicConfigured
@@ -126,7 +128,7 @@ export default async function OpportunitiesPage({
           </div>
         </div>
         <form action={runSearchAction} className="flex-shrink-0 w-full sm:w-auto">
-          <SearchButton disabled={searchDisabled} disabledTitle={disabledTitle} />
+          <SearchButton disabled={searchDisabled} disabledTitle={disabledTitle} remainingSearches={remainingSearches} />
         </form>
       </div>
 
