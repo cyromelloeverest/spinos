@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth/current-org";
+import { translateAuthError } from "@/lib/auth/error-messages";
 import { SITE_URL } from "@/lib/site-url";
 
 // Mantém public.users.email sincronizado com auth.users.email — importante
@@ -36,7 +37,7 @@ export async function confirmAuthLink(formData: FormData) {
       await syncUserEmail(supabase);
       redirect(next);
     }
-    redirect(`/auth/auth-code-error?reason=${encodeURIComponent(error.message)}`);
+    redirect(`/auth/auth-code-error?reason=${encodeURIComponent(translateAuthError(error.message))}`);
   }
 
   if (token_hash && type) {
@@ -45,7 +46,7 @@ export async function confirmAuthLink(formData: FormData) {
       await syncUserEmail(supabase);
       redirect(next);
     }
-    redirect(`/auth/auth-code-error?reason=${encodeURIComponent(error.message)}`);
+    redirect(`/auth/auth-code-error?reason=${encodeURIComponent(translateAuthError(error.message))}`);
   }
 
   redirect("/auth/auth-code-error?reason=Link sem código de confirmação.");
@@ -67,7 +68,7 @@ export async function signUp(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+    redirect(`/signup?error=${encodeURIComponent(translateAuthError(error.message))}`);
   }
 
   if (data.user) {
@@ -104,7 +105,7 @@ export async function signIn(formData: FormData) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    redirect(`/login?error=${encodeURIComponent(translateAuthError(error.message))}`);
   }
 
   const next = String(formData.get("next") ?? "").trim();
@@ -159,7 +160,7 @@ export async function requestEmailChange(formData: FormData) {
   );
 
   if (error) {
-    redirect(`/settings/empresa?emailError=${encodeURIComponent(error.message)}`);
+    redirect(`/settings/empresa?emailError=${encodeURIComponent(translateAuthError(error.message))}`);
   }
 
   redirect("/settings/empresa?emailPendente=1");
@@ -182,7 +183,7 @@ export async function updatePassword(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
-    redirect(`/redefinir-senha?error=${encodeURIComponent(error.message)}`);
+    redirect(`/redefinir-senha?error=${encodeURIComponent(translateAuthError(error.message))}`);
   }
 
   redirect("/?senhaAtualizada=1");

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentMembership, getCurrentUserId, setActiveOrganizationCookie } from "@/lib/auth/current-org";
+import { translateAuthError } from "@/lib/auth/error-messages";
 import { getPlan } from "@/lib/plans";
 import { SITE_URL } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
@@ -107,7 +108,7 @@ export async function acceptInviteSignUp(token: string, formData: FormData) {
   });
 
   if (error) {
-    redirect(`/convite/${token}?error=${encodeURIComponent(error.message)}`);
+    redirect(`/convite/${token}?error=${encodeURIComponent(translateAuthError(error.message))}`);
   }
 
   if (data.user) {
