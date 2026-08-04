@@ -3,23 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { faviconUrl } from "@/lib/favicon";
-import { ExternalLink } from "lucide-react";
-
-const CATEGORY_STYLE: Record<string, { label: string; bg: string; color: string }> = {
-  HIRING: { label: "Contratação", bg: "rgba(91,141,217,0.14)", color: "#5b8dd9" },
-  EXPANSION: { label: "Expansão", bg: "var(--primary-soft)", color: "var(--primary)" },
-  FUNDING: { label: "Investimento", bg: "var(--warn-soft)", color: "var(--warn)" },
-  TECHNOLOGY: { label: "Tecnologia", bg: "rgba(79,184,166,0.14)", color: "#4fb8a6" },
-  MARKETING: { label: "Marketing", bg: "rgba(199,107,158,0.14)", color: "#c76b9e" },
-  LEADERSHIP_CHANGE: { label: "Mudança de liderança", bg: "rgba(155,127,212,0.14)", color: "#9b7fd4" },
-  PROCUREMENT: { label: "Compras", bg: "var(--good-soft)", color: "var(--good)" },
-  REGULATORY: { label: "Regulatório", bg: "var(--critical-soft)", color: "var(--critical)" },
-  PARTNERSHIP: { label: "Parceria", bg: "rgba(91,141,217,0.14)", color: "#5b8dd9" },
-  AWARD: { label: "Prêmio", bg: "var(--warn-soft)", color: "var(--warn)" },
-  EVENT: { label: "Evento", bg: "rgba(79,184,166,0.14)", color: "#4fb8a6" },
-  ICP_MATCH: { label: "Match com seu ICP", bg: "var(--primary-soft)", color: "var(--primary)" },
-  OTHER: { label: "Novidade", bg: "var(--card-hover)", color: "var(--fg-muted)" },
-};
+import { SIGNAL_CATEGORY_LABEL, SIGNAL_CATEGORY_ICON } from "@/lib/signal-categories";
+import { ExternalLink, Flame } from "lucide-react";
 
 function initials(name: string): string {
   return name
@@ -31,7 +16,11 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-function formatDate(date: Date): string {
+function formatRelativeDate(date: Date): string {
+  const diffDays = Math.floor((Date.now() - date.getTime()) / (24 * 60 * 60 * 1000));
+  if (diffDays <= 0) return "Hoje";
+  if (diffDays === 1) return "Ontem";
+  if (diffDays < 7) return `Há ${diffDays} dias`;
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
@@ -97,7 +86,7 @@ export default async function NewsPage() {
         {hero && <HeroCard link={hero} />}
 
         {rest.length > 0 && (
-          <div className="grid gap-5 mt-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
+          <div className="grid gap-4 mt-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
             {rest.map((link) => (
               <StoryCard key={link.id} link={link} />
             ))}
@@ -110,88 +99,110 @@ export default async function NewsPage() {
 
 type StoryLink = Awaited<ReturnType<typeof fetchStories>>[number];
 
+function CategoryBadge({ category }: { category: string }) {
+  const label = SIGNAL_CATEGORY_LABEL[category] ?? SIGNAL_CATEGORY_LABEL.OTHER;
+  const Icon = SIGNAL_CATEGORY_ICON[category] ?? SIGNAL_CATEGORY_ICON.OTHER;
+  return (
+    <div
+      className="inline-flex items-center gap-1.5 text-[10.5px] font-semibold uppercase rounded-full px-2.5 py-1 flex-shrink-0"
+      style={{ background: "var(--card-hover)", color: "var(--fg-muted)", letterSpacing: "0.05em" }}
+    >
+      <Icon size={11} strokeWidth={2} />
+      {label}
+    </div>
+  );
+}
+
+function CompanyAvatar({ name, size = 40 }: { name: string; size?: number }) {
+  return (
+    <div
+      className="flex items-center justify-center font-bold flex-shrink-0"
+      style={{
+        width: size,
+        height: size,
+        borderRadius: Math.round(size * 0.28),
+        background: "var(--primary-soft)",
+        color: "var(--primary)",
+        fontSize: Math.round(size * 0.34),
+      }}
+    >
+      {initials(name)}
+    </div>
+  );
+}
+
+function UrgencyFlag({ urgency }: { urgency: string }) {
+  if (urgency !== "ALTA") return null;
+  return <Flame size={12} strokeWidth={2} style={{ color: "var(--primary)" }} className="flex-shrink-0" />;
+}
+
 function HeroCard({ link }: { link: StoryLink }) {
   const { signal, opportunityScore } = link;
-  const cat = CATEGORY_STYLE[signal.category] ?? CATEGORY_STYLE.OTHER;
   const favicon = signal.sourceUrl ? faviconUrl(signal.sourceUrl) : null;
-  const headline = headlineFor(signal, cat.label);
+  const headline = headlineFor(signal, SIGNAL_CATEGORY_LABEL[signal.category] ?? SIGNAL_CATEGORY_LABEL.OTHER);
 
   return (
     <a
       href={`/company/${opportunityScore.id}`}
-      className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-0 rounded-[16px] border overflow-hidden no-underline"
-      style={{ borderColor: "var(--border)", color: "var(--fg)", boxShadow: "var(--shadow-card)" }}
+      className="block rounded-[20px] border p-6 md:p-7 no-underline"
+      style={{ borderColor: "var(--primary-line)", background: "var(--card)", color: "var(--fg)", boxShadow: "var(--shadow-card)" }}
     >
-      <div
-        className="flex items-center justify-center relative p-8"
-        style={{ background: cat.bg, minHeight: "200px" }}
-      >
-        <div
-          className="text-[42px] font-bold"
-          style={{ color: cat.color }}
-        >
-          {initials(signal.company.name)}
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <CompanyAvatar name={signal.company.name} size={44} />
+        <div className="min-w-0">
+          <div className="text-[13.5px] font-semibold truncate">{signal.company.name}</div>
+          <div className="flex items-center gap-1.5 text-[11.5px]" style={{ color: "var(--fg-faint)" }}>
+            <UrgencyFlag urgency={opportunityScore.urgency} />
+            {formatRelativeDate(signal.detectedAt)}
+          </div>
+        </div>
+        <div className="ml-auto">
+          <CategoryBadge category={signal.category} />
         </div>
       </div>
-      <div className="p-6 flex flex-col justify-center" style={{ background: "var(--card)" }}>
-        <div
-          className="text-[10.5px] font-semibold uppercase self-start rounded-full px-2.5 py-1 mb-3"
-          style={{ background: cat.bg, color: cat.color, letterSpacing: "0.05em" }}
-        >
-          {cat.label}
-        </div>
-        <div className="text-[11.5px] mb-2" style={{ color: "var(--fg-faint)" }}>
-          {signal.company.name} · {formatDate(signal.detectedAt)}
-        </div>
-        <div className="text-[20px] font-bold leading-[1.3] mb-3" style={{ textWrap: "balance" }}>
-          {headline}
-        </div>
-        {signal.sourceUrl && (
-          <span className="text-[12px] inline-flex items-center gap-1.5" style={{ color: "var(--fg-faint)" }}>
-            {favicon && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={favicon} alt="" width={14} height={14} className="rounded-[3px]" />
-            )}
-            Ver fonte
-            <ExternalLink size={12} strokeWidth={1.75} />
-          </span>
-        )}
+      <div className="text-[22px] font-bold leading-[1.3] mb-3" style={{ textWrap: "balance" }}>
+        {headline}
       </div>
+      {signal.sourceUrl && (
+        <span className="text-[12px] inline-flex items-center gap-1.5 font-medium" style={{ color: "var(--primary)" }}>
+          {favicon && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={favicon} alt="" width={14} height={14} className="rounded-[3px]" />
+          )}
+          Ver fonte
+          <ExternalLink size={12} strokeWidth={1.75} />
+        </span>
+      )}
     </a>
   );
 }
 
 function StoryCard({ link }: { link: StoryLink }) {
   const { signal, opportunityScore } = link;
-  const cat = CATEGORY_STYLE[signal.category] ?? CATEGORY_STYLE.OTHER;
-  const favicon = signal.sourceUrl ? faviconUrl(signal.sourceUrl) : null;
-  const headline = headlineFor(signal, cat.label);
+  const headline = headlineFor(signal, SIGNAL_CATEGORY_LABEL[signal.category] ?? SIGNAL_CATEGORY_LABEL.OTHER);
   const trimmedHeadline = headline.length > 150 ? headline.slice(0, 150) + "…" : headline;
+  const favicon = signal.sourceUrl ? faviconUrl(signal.sourceUrl) : null;
 
   return (
     <a
       href={`/company/${opportunityScore.id}`}
-      className="rounded-[16px] border overflow-hidden flex flex-col no-underline"
+      className="rounded-[16px] border p-4.5 flex flex-col gap-3 no-underline"
       style={{ borderColor: "var(--border)", color: "var(--fg)", background: "var(--card)", boxShadow: "var(--shadow-card)" }}
     >
-      <div className="h-[6px]" style={{ background: cat.color }} />
-      <div className="p-4.5 flex flex-col gap-2 flex-1">
-        <div
-          className="text-[10px] font-semibold uppercase self-start rounded-full px-2 py-0.5"
-          style={{ background: cat.bg, color: cat.color, letterSpacing: "0.05em" }}
-        >
-          {cat.label}
-        </div>
-        <p className="text-[13.5px] font-semibold leading-[1.45] m-0 flex-1">{trimmedHeadline}</p>
-        <div className="flex items-center justify-between text-[11px] mt-1" style={{ color: "var(--fg-faint)" }}>
-          <span>
-            {signal.company.name} · {formatDate(signal.detectedAt)}
-          </span>
-          {favicon && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={favicon} alt="" width={14} height={14} className="rounded-[3px] flex-shrink-0" />
-          )}
-        </div>
+      <div className="flex items-center justify-between gap-2">
+        <CategoryBadge category={signal.category} />
+        <span className="flex items-center gap-1.5 text-[11px] flex-shrink-0" style={{ color: "var(--fg-faint)" }}>
+          <UrgencyFlag urgency={opportunityScore.urgency} />
+          {formatRelativeDate(signal.detectedAt)}
+        </span>
+      </div>
+      <p className="text-[13.5px] font-semibold leading-[1.45] m-0 flex-1">{trimmedHeadline}</p>
+      <div className="flex items-center justify-between text-[11px]" style={{ color: "var(--fg-faint)" }}>
+        <span className="truncate">{signal.company.name}</span>
+        {favicon && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={favicon} alt="" width={13} height={13} className="rounded-[3px] flex-shrink-0" />
+        )}
       </div>
     </a>
   );
