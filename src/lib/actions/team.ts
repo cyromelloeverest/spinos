@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getCurrentMembership, getCurrentUserId } from "@/lib/auth/current-org";
+import { getCurrentMembership, getCurrentUserId, setActiveOrganizationCookie } from "@/lib/auth/current-org";
 import { getPlan } from "@/lib/plans";
 import { SITE_URL } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
@@ -145,6 +145,10 @@ export async function finalizeInviteAcceptance(token: string) {
     }),
     prisma.invite.update({ where: { id: invite.id }, data: { acceptedAt: new Date() } }),
   ]);
+
+  // Se o usuário já tinha outra organização, sem isso ele cairia de volta
+  // nela — a org do convite recém-aceito deve ser o que ele vê agora.
+  await setActiveOrganizationCookie(invite.organizationId);
 
   redirect("/");
 }

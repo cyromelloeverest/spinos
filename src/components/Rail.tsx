@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Users, Plug, LogOut, X, ShieldCheck, ScanSearch } from "lucide-react";
+import { useState } from "react";
+import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Users, Plug, LogOut, X, ShieldCheck, ScanSearch, ChevronsUpDown, Check } from "lucide-react";
+import { switchOrganization } from "@/lib/actions/organization";
 
 export type OrgProfile = {
   name: string;
@@ -10,6 +12,8 @@ export type OrgProfile = {
   city: string | null;
   state: string | null;
 } | null;
+
+export type OrgMembership = { organizationId: string; name: string };
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -41,14 +45,20 @@ export function Rail({
   isSuperAdmin = false,
   open = false,
   onNavigate,
+  memberships = [],
+  currentOrganizationId = null,
 }: {
   organization: OrgProfile;
   signOutAction: () => Promise<void>;
   isSuperAdmin?: boolean;
   open?: boolean;
   onNavigate?: () => void;
+  memberships?: OrgMembership[];
+  currentOrganizationId?: string | null;
 }) {
   const pathname = usePathname();
+  const [orgMenuOpen, setOrgMenuOpen] = useState(false);
+  const canSwitchOrg = memberships.length > 1;
 
   const displayName = organization?.name ?? "Configurar empresa";
   const initials = displayName
@@ -202,34 +212,75 @@ export function Rail({
       )}
 
       <div className="mt-auto flex flex-col gap-3">
-        <div
-          className="rounded-[10px] p-3 flex items-start gap-2.5"
-          style={{ background: "var(--dark-hover)" }}
-        >
-          <div
-            className="w-[26px] h-[26px] rounded-[6px] flex items-center justify-center text-[10.5px] flex-shrink-0 font-semibold"
+        <div className="relative">
+          {orgMenuOpen && (
+            <div className="fixed inset-0 z-40" onClick={() => setOrgMenuOpen(false)} />
+          )}
+
+          {canSwitchOrg && orgMenuOpen && (
+            <div
+              className="absolute bottom-full left-0 right-0 mb-1.5 z-50 rounded-[10px] border overflow-hidden py-1"
+              style={{ background: "var(--dark-hover)", borderColor: "var(--dark-border)" }}
+            >
+              {memberships.map((m) => (
+                <form key={m.organizationId} action={switchOrganization.bind(null, m.organizationId)}>
+                  <button
+                    type="submit"
+                    disabled={m.organizationId === currentOrganizationId}
+                    className="flex items-center gap-2 w-full text-left px-3 py-2 text-[12.5px] border-0"
+                    style={{
+                      background: "transparent",
+                      color: m.organizationId === currentOrganizationId ? "#ffffff" : "var(--dark-fg-muted)",
+                      cursor: m.organizationId === currentOrganizationId ? "default" : "pointer",
+                    }}
+                  >
+                    <span className="truncate flex-1">{m.name}</span>
+                    {m.organizationId === currentOrganizationId && (
+                      <Check size={14} strokeWidth={2} className="flex-shrink-0" style={{ color: "var(--primary)" }} />
+                    )}
+                  </button>
+                </form>
+              ))}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => canSwitchOrg && setOrgMenuOpen((v) => !v)}
+            className="w-full rounded-[10px] p-3 flex items-start gap-2.5 border-0 text-left relative z-30"
             style={{
-              background: "var(--primary)",
-              color: "#ffffff",
+              background: "var(--dark-hover)",
+              cursor: canSwitchOrg ? "pointer" : "default",
             }}
           >
-            {initials}
-          </div>
-          <div className="min-w-0">
-            <div className="text-[12.5px] font-semibold" style={{ color: "#ffffff" }}>
-              {displayName}
+            <div
+              className="w-[26px] h-[26px] rounded-[6px] flex items-center justify-center text-[10.5px] flex-shrink-0 font-semibold"
+              style={{
+                background: "var(--primary)",
+                color: "#ffffff",
+              }}
+            >
+              {initials}
             </div>
-            {organization?.segment && (
-              <div className="text-[11px] mt-0.5 leading-[1.3]" style={{ color: "var(--dark-fg-muted)" }}>
-                {organization.segment}
+            <div className="min-w-0 flex-1">
+              <div className="text-[12.5px] font-semibold" style={{ color: "#ffffff" }}>
+                {displayName}
               </div>
+              {organization?.segment && (
+                <div className="text-[11px] mt-0.5 leading-[1.3]" style={{ color: "var(--dark-fg-muted)" }}>
+                  {organization.segment}
+                </div>
+              )}
+              {locationLine && (
+                <div className="text-[10.5px] mt-0.5" style={{ color: "var(--dark-fg-muted)" }}>
+                  {locationLine}
+                </div>
+              )}
+            </div>
+            {canSwitchOrg && (
+              <ChevronsUpDown size={14} strokeWidth={1.75} className="flex-shrink-0 mt-0.5" style={{ color: "var(--dark-fg-muted)" }} />
             )}
-            {locationLine && (
-              <div className="text-[10.5px] mt-0.5" style={{ color: "var(--dark-fg-muted)" }}>
-                {locationLine}
-              </div>
-            )}
-          </div>
+          </button>
         </div>
         <form action={signOutAction}>
           <button

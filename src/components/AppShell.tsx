@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Rail, type OrgProfile } from "./Rail";
+import { Rail, type OrgProfile, type OrgMembership } from "./Rail";
 import { TopBar } from "./TopBar";
 
 export function AppShell({
@@ -9,12 +9,16 @@ export function AppShell({
   signOutAction,
   isSuperAdmin = false,
   trialDaysLeft = null,
+  memberships = [],
+  currentOrganizationId = null,
   children,
 }: {
   organization: OrgProfile;
   signOutAction: () => Promise<void>;
   isSuperAdmin?: boolean;
   trialDaysLeft?: number | null;
+  memberships?: OrgMembership[];
+  currentOrganizationId?: string | null;
   children: React.ReactNode;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -27,6 +31,8 @@ export function AppShell({
         isSuperAdmin={isSuperAdmin}
         open={mobileNavOpen}
         onNavigate={() => setMobileNavOpen(false)}
+        memberships={memberships}
+        currentOrganizationId={currentOrganizationId}
       />
       {mobileNavOpen && (
         <div
