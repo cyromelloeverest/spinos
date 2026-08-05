@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { EmptyState } from "@/components/EmptyState";
+import { SignalImage } from "@/components/SignalImage";
 import { faviconUrl } from "@/lib/favicon";
 import { SIGNAL_CATEGORY_LABEL, SIGNAL_CATEGORY_ICON } from "@/lib/signal-categories";
 import { ExternalLink, Flame } from "lucide-react";
@@ -143,35 +144,45 @@ function HeroCard({ link }: { link: StoryLink }) {
   return (
     <a
       href={`/company/${opportunityScore.id}`}
-      className="block rounded-[16px] border p-6 md:p-7 no-underline"
+      className="block rounded-[16px] border overflow-hidden no-underline"
       style={{ borderColor: "var(--primary-line)", background: "var(--card)", color: "var(--fg)", boxShadow: "var(--shadow-card)" }}
     >
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <CompanyAvatar name={signal.company.name} size={44} />
-        <div className="min-w-0">
-          <div className="text-[13.5px] font-semibold truncate">{signal.company.name}</div>
-          <div className="flex items-center gap-1.5 text-[11.5px]" style={{ color: "var(--fg-faint)" }}>
-            <UrgencyFlag urgency={opportunityScore.urgency} />
-            {formatRelativeDate(signal.detectedAt)}
+      {signal.imageUrl && (
+        <SignalImage
+          src={signal.imageUrl}
+          alt=""
+          className="w-full object-cover"
+          style={{ height: "260px", background: "var(--card-hover)" }}
+        />
+      )}
+      <div className="p-6 md:p-7">
+        <div className="flex items-center gap-3 mb-4 flex-wrap">
+          <CompanyAvatar name={signal.company.name} size={44} />
+          <div className="min-w-0">
+            <div className="text-[13.5px] font-semibold truncate">{signal.company.name}</div>
+            <div className="flex items-center gap-1.5 text-[11.5px]" style={{ color: "var(--fg-faint)" }}>
+              <UrgencyFlag urgency={opportunityScore.urgency} />
+              {formatRelativeDate(signal.detectedAt)}
+            </div>
+          </div>
+          <div className="ml-auto">
+            <CategoryBadge category={signal.category} />
           </div>
         </div>
-        <div className="ml-auto">
-          <CategoryBadge category={signal.category} />
+        <div className="text-[22px] font-bold leading-[1.3] mb-3" style={{ textWrap: "balance" }}>
+          {headline}
         </div>
+        {signal.sourceUrl && (
+          <span className="text-[12px] inline-flex items-center gap-1.5 font-medium" style={{ color: "var(--primary)" }}>
+            {favicon && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={favicon} alt="" width={14} height={14} className="rounded-[3px]" />
+            )}
+            Ver fonte
+            <ExternalLink size={12} strokeWidth={1.75} />
+          </span>
+        )}
       </div>
-      <div className="text-[22px] font-bold leading-[1.3] mb-3" style={{ textWrap: "balance" }}>
-        {headline}
-      </div>
-      {signal.sourceUrl && (
-        <span className="text-[12px] inline-flex items-center gap-1.5 font-medium" style={{ color: "var(--primary)" }}>
-          {favicon && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={favicon} alt="" width={14} height={14} className="rounded-[3px]" />
-          )}
-          Ver fonte
-          <ExternalLink size={12} strokeWidth={1.75} />
-        </span>
-      )}
     </a>
   );
 }
@@ -185,23 +196,33 @@ function StoryCard({ link }: { link: StoryLink }) {
   return (
     <a
       href={`/company/${opportunityScore.id}`}
-      className="rounded-[16px] border p-4.5 flex flex-col gap-3 no-underline"
+      className="rounded-[16px] border overflow-hidden flex flex-col no-underline"
       style={{ borderColor: "var(--border)", color: "var(--fg)", background: "var(--card)", boxShadow: "var(--shadow-card)" }}
     >
-      <div className="flex items-center justify-between gap-2">
-        <CategoryBadge category={signal.category} />
-        <span className="flex items-center gap-1.5 text-[11px] flex-shrink-0" style={{ color: "var(--fg-faint)" }}>
-          <UrgencyFlag urgency={opportunityScore.urgency} />
-          {formatRelativeDate(signal.detectedAt)}
-        </span>
-      </div>
-      <p className="text-[13.5px] font-semibold leading-[1.45] m-0 flex-1">{trimmedHeadline}</p>
-      <div className="flex items-center justify-between text-[11px]" style={{ color: "var(--fg-faint)" }}>
-        <span className="truncate">{signal.company.name}</span>
-        {favicon && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={favicon} alt="" width={13} height={13} className="rounded-[3px] flex-shrink-0" />
-        )}
+      {signal.imageUrl && (
+        <SignalImage
+          src={signal.imageUrl}
+          alt=""
+          className="w-full object-cover flex-shrink-0"
+          style={{ height: "130px", background: "var(--card-hover)" }}
+        />
+      )}
+      <div className="p-4.5 flex flex-col gap-3 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <CategoryBadge category={signal.category} />
+          <span className="flex items-center gap-1.5 text-[11px] flex-shrink-0" style={{ color: "var(--fg-faint)" }}>
+            <UrgencyFlag urgency={opportunityScore.urgency} />
+            {formatRelativeDate(signal.detectedAt)}
+          </span>
+        </div>
+        <p className="text-[13.5px] font-semibold leading-[1.45] m-0 flex-1">{trimmedHeadline}</p>
+        <div className="flex items-center justify-between text-[11px]" style={{ color: "var(--fg-faint)" }}>
+          <span className="truncate">{signal.company.name}</span>
+          {favicon && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={favicon} alt="" width={13} height={13} className="rounded-[3px] flex-shrink-0" />
+          )}
+        </div>
       </div>
     </a>
   );

@@ -8,6 +8,7 @@ import { findBestMatch } from "./company-matching";
 import { SEARCH_COOLDOWN_MS, startOfCurrentMonth } from "./constants";
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
 import { getPlan } from "@/lib/plans";
+import { fetchOgImage } from "@/lib/og-image";
 
 export type SearchOutcome =
   | { status: "not_configured" }
@@ -153,6 +154,15 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
 
   const { opportunities } = response.parsed_output;
 
+  // Busca o og:image de cada fonte em paralelo antes de criar qualquer
+  // registro — uma única onda de fetches (com timeout curto cada) em vez de
+  // N chamadas sequenciais, e deduplicada por URL. Puro scraping de
+  // metadado, sem custo de IA; falha de uma fonte nunca derruba a busca.
+  const uniqueSourceUrls = [...new Set(opportunities.flatMap((o) => o.signals.map((s) => s.sourceUrl)).filter(Boolean))];
+  const imageUrlBySource = new Map(
+    await Promise.all(uniqueSourceUrls.map(async (url) => [url, await fetchOgImage(url)] as const)),
+  );
+
   // Pool em memória de empresas candidatas a match — carregado uma vez e
   // atualizado a cada criação nesta execução, para que candidatas repetidas
   // dentro do mesmo batch (não só entre execuções) também sejam mescladas.
@@ -221,6 +231,7 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
           category: signal.category,
           sourceType: "ai_web_search",
           sourceUrl: signal.sourceUrl,
+          imageUrl: imageUrlBySource.get(signal.sourceUrl) ?? null,
           title: SIGNAL_CATEGORY_LABEL[signal.category] ?? signal.category,
           description: signal.text,
           detectedAt: runTimestamp,
