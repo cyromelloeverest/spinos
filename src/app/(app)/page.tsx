@@ -123,6 +123,32 @@ export default async function DashboardPage({
       )}
 
       <div className="px-4 md:px-10 pt-6">
+        <Link
+          href="/oportunidades"
+          className="rounded-[16px] border p-5 sm:p-6 flex items-center gap-4 no-underline"
+          style={{ background: "var(--card)", borderColor: "var(--primary-line)", boxShadow: "var(--shadow-card)", color: "var(--fg)" }}
+        >
+          <div
+            className="w-12 h-12 rounded-[12px] flex items-center justify-center flex-shrink-0"
+            style={{ background: "var(--primary-soft)", color: "var(--primary)" }}
+          >
+            <Target size={22} strokeWidth={1.75} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[17px] font-bold m-0 mb-0.5" style={{ textWrap: "balance" }}>
+              Empresas que você deveria abordar esta semana
+            </h2>
+            <p className="m-0 text-[13px]" style={{ color: "var(--fg-muted)" }}>
+              {data.active > 0
+                ? `${data.active} oportunidade${data.active === 1 ? "" : "s"} esperando por você.`
+                : "Rode uma busca pra encontrar suas primeiras oportunidades."}
+            </p>
+          </div>
+          <ArrowRight size={18} strokeWidth={1.75} style={{ color: "var(--fg-faint)" }} className="flex-shrink-0" />
+        </Link>
+      </div>
+
+      <div className="px-4 md:px-10 pt-4">
         {avgScoreRounded !== null ? (
           <div
             className="rounded-[16px] border p-6 md:p-7 flex flex-col md:flex-row items-center gap-6 md:gap-8"
