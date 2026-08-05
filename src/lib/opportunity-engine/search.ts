@@ -33,11 +33,16 @@ function buildPrompt(org: {
   keywords: string[];
   productsSold: string[];
   servicesSold: string[];
+  averageTicketBRL: number | null;
+  salesCycleLength: string | null;
+  saleModel: string | null;
   idealCustomerDescription: string | null;
   preferredSignalCategories: string[];
   companiesToAvoid: string[];
 }) {
   const preferredSignalLabels = icp.preferredSignalCategories.map((c) => SIGNAL_CATEGORY_LABEL[c] ?? c);
+  const saleModelLabel =
+    icp.saleModel === "RECORRENTE" ? "recorrente/assinatura" : icp.saleModel === "PONTUAL" ? "pontual" : "não informado";
 
   return `Você é um Diretor de Inteligência Comercial. Sua tarefa é encontrar, usando busca na web, empresas reais com sinais públicos recentes de que estão iniciando um ciclo de compra que combina com o ICP abaixo.
 
@@ -56,8 +61,13 @@ ICP (perfil de cliente ideal):
 - Palavras-chave: ${icp.keywords.join(", ") || "não informado"}
 - Produtos vendidos pela contratante: ${icp.productsSold.join(", ") || "não informado"}
 - Serviços vendidos pela contratante: ${icp.servicesSold.join(", ") || "não informado"}
+- Ticket médio de venda da contratante: ${icp.averageTicketBRL ? `R$ ${icp.averageTicketBRL.toLocaleString("pt-BR")}` : "não informado"} — use isso pra calibrar se o porte do prospect é compatível (nem pequeno demais pra pagar, nem tão grande que o ticket vira irrelevante)
+- Ciclo de vendas típico da contratante: ${icp.salesCycleLength || "não informado"} — use isso como referência ao estimar a janela de urgência de cada oportunidade
+- Modelo de venda da contratante: ${saleModelLabel}
 ${icp.idealCustomerDescription ? `- Descrição livre do cliente ideal (siga isso de perto, é a fonte mais confiável de nuance): ${icp.idealCustomerDescription}\n` : ""}${preferredSignalLabels.length > 0 ? `- Tipos de sinal mais relevantes pra essa empresa, priorize-os: ${preferredSignalLabels.join(", ")}\n` : ""}${icp.companiesToAvoid.length > 0 ? `- NÃO sugira estas empresas de jeito nenhum (já são clientes, concorrentes, ou já foram descartadas): ${icp.companiesToAvoid.join(", ")}\n` : ""}
-Busque sinais públicos reais (notícias, vagas de emprego, editais, investimentos, expansões, mudanças de liderança) publicados recentemente. Para cada empresa candidata encontrada, preencha o schema com pelo menos uma fonte real (URL verificável) por sinal citado. Não invente sinais nem URLs. Priorize 3 a 6 oportunidades de alta qualidade em vez de uma lista longa e genérica.`;
+Busque sinais públicos reais (notícias, vagas de emprego, editais, investimentos, expansões, mudanças de liderança) publicados recentemente. Para cada empresa candidata encontrada, preencha o schema com pelo menos uma fonte real (URL verificável) por sinal citado. Não invente sinais nem URLs. Priorize 3 a 6 oportunidades de alta qualidade em vez de uma lista longa e genérica.
+
+Pra cada oportunidade, tente também identificar o NOME REAL do provável decisor (não só o cargo) — procure em fontes públicas verificáveis como LinkedIn, a página "quem somos"/"equipe" do site da empresa, ou matérias de imprensa que citem a pessoa pelo nome. Preencha decisionMakerName só quando tiver certeza razoável da fonte; caso contrário, deixe null. Nunca invente um nome.`;
 }
 
 export async function searchOpportunities(organizationId: string): Promise<SearchOutcome> {
@@ -201,6 +211,10 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
         reasoning: opp.reasoning,
         buyerArea: opp.buyerArea,
         decisionMaker: opp.decisionMaker,
+        // undefined (não null) quando a IA não achou nome dessa vez — Prisma
+        // ignora o campo no update, preservando um nome já achado antes em
+        // vez de apagar informação boa por causa de uma busca menos sortuda.
+        decisionMakerName: opp.decisionMakerName ?? undefined,
         suggestedApproach: opp.approach,
         commercialArguments: opp.commercialArguments,
         objections: opp.objections,
@@ -217,6 +231,7 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
         reasoning: opp.reasoning,
         buyerArea: opp.buyerArea,
         decisionMaker: opp.decisionMaker,
+        decisionMakerName: opp.decisionMakerName,
         suggestedApproach: opp.approach,
         commercialArguments: opp.commercialArguments,
         objections: opp.objections,

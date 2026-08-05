@@ -81,6 +81,9 @@ const baseIcp = {
   keywords: [] as string[],
   productsSold: [] as string[],
   servicesSold: [] as string[],
+  averageTicketBRL: null as number | null,
+  salesCycleLength: null as string | null,
+  saleModel: null as string | null,
   idealCustomerDescription: null as string | null,
   preferredSignalCategories: [] as string[],
   companiesToAvoid: [] as string[],
@@ -184,6 +187,109 @@ describe("searchOpportunities — gating", () => {
     expect(result).toEqual({ status: "ok", count: 0 });
     expect(opportunityScoreCount).not.toHaveBeenCalled();
     expect(searchRunCount).not.toHaveBeenCalled();
+  });
+});
+
+describe("searchOpportunities — prompt enviado à IA", () => {
+  function lastPromptSent(): string {
+    const call = parseMock.mock.calls[parseMock.mock.calls.length - 1]?.[0];
+    return call.messages[0].content as string;
+  }
+
+  it("inclui ticket médio, ciclo de vendas e modelo de venda quando preenchidos no ICP", async () => {
+    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "ENTERPRISE" });
+    icpFindFirst.mockResolvedValueOnce({
+      ...baseIcp,
+      averageTicketBRL: 15000,
+      salesCycleLength: "3 a 6 meses",
+      saleModel: "RECORRENTE",
+    });
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
+
+    await searchOpportunities("org-1");
+
+    const prompt = lastPromptSent();
+    expect(prompt).toContain("R$ 15.000");
+    expect(prompt).toContain("3 a 6 meses");
+    expect(prompt).toContain("recorrente/assinatura");
+  });
+
+  it("mostra 'não informado' pros campos de perfil de venda quando o ICP não os preencheu", async () => {
+    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "ENTERPRISE" });
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
+
+    await searchOpportunities("org-1");
+
+    const prompt = lastPromptSent();
+    expect(prompt).toContain("Ticket médio de venda da contratante: não informado");
+    expect(prompt).toContain("Ciclo de vendas típico da contratante: não informado");
+    expect(prompt).toContain("Modelo de venda da contratante: não informado");
+  });
+
+  it("sempre instrui a IA a nunca inventar o nome do decisor", async () => {
+    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "ENTERPRISE" });
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
+
+    await searchOpportunities("org-1");
+
+    const prompt = lastPromptSent();
+    expect(prompt).toContain("Nunca invente um nome");
+  });
+});
+
+describe("searchOpportunities — persistência de decisionMakerName", () => {
+  const baseOpportunity = {
+    companyName: "Vetnil Nutrição Animal",
+    city: "Louveira",
+    state: "SP",
+    score: 88,
+    urgency: "ALTA",
+    headline: "Abriu vaga de gerente comercial",
+    execSummary: "Resumo.",
+    reasoning: "Racional.",
+    buyerArea: "Comercial",
+    decisionMaker: "Gerente Comercial",
+    approach: "Abordagem.",
+    commercialArguments: [],
+    objections: [],
+    signals: [],
+  };
+
+  beforeEach(() => {
+    organizationFindUnique.mockResolvedValue({ ...baseOrg, plan: "ENTERPRISE" });
+    companyFindMany.mockResolvedValue([]);
+    companyCreate.mockResolvedValue({ id: "company-1", name: "Vetnil Nutrição Animal", city: "Louveira", state: "SP" });
+    opportunityScoreUpsert.mockResolvedValue({ id: "score-1" });
+  });
+
+  it("grava o nome real quando a IA encontra um", async () => {
+    parseMock.mockResolvedValueOnce({
+      parsed_output: { opportunities: [{ ...baseOpportunity, decisionMakerName: "Ana Ferreira" }] },
+    });
+
+    await searchOpportunities("org-1");
+
+    expect(opportunityScoreUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({ decisionMakerName: "Ana Ferreira" }),
+        create: expect.objectContaining({ decisionMakerName: "Ana Ferreira" }),
+      }),
+    );
+  });
+
+  it("não apaga um nome já salvo quando a IA não encontra nenhum dessa vez (undefined, não null, no update)", async () => {
+    parseMock.mockResolvedValueOnce({
+      parsed_output: { opportunities: [{ ...baseOpportunity, decisionMakerName: null }] },
+    });
+
+    await searchOpportunities("org-1");
+
+    expect(opportunityScoreUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({ decisionMakerName: undefined }),
+        create: expect.objectContaining({ decisionMakerName: null }),
+      }),
+    );
   });
 });
 

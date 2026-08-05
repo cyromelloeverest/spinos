@@ -142,11 +142,19 @@ export default async function CompanyPage({
           <div className="text-[11px] uppercase mb-1" style={{ color: "var(--fg-faint)", letterSpacing: "0.06em" }}>
             Decisor provável
           </div>
-          <div className="flex items-center gap-2.5">
-            <div className="text-[14px]">{opp.contactName || opp.decisionMaker || "—"}</div>
-            {(opp.contactName || opp.decisionMaker) && (
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="text-[14px]">{opp.contactName || opp.decisionMakerName || opp.decisionMaker || "—"}</div>
+            {!opp.contactName && opp.decisionMakerName && (
+              <span
+                className="text-[10px] font-semibold uppercase rounded-full px-2 py-[2px]"
+                style={{ background: "var(--primary-soft)", color: "var(--primary)", letterSpacing: "0.04em" }}
+              >
+                Encontrado pela IA
+              </span>
+            )}
+            {(opp.contactName || opp.decisionMakerName || opp.decisionMaker) && (
               <LinkedInButton
-                href={linkedinPersonSearchUrl(opp.contactName || opp.decisionMaker || "", opp.company.name)}
+                href={linkedinPersonSearchUrl(opp.contactName || opp.decisionMakerName || opp.decisionMaker || "", opp.company.name)}
                 size="sm"
               />
             )}
@@ -171,7 +179,12 @@ export default async function CompanyPage({
       <Section title="Dados de contato">
         <form action={updateContactWithId} className="flex flex-col gap-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <ContactField label="Nome do contato" name="contactName" defaultValue={opp.contactName ?? ""} placeholder="Ex: Maria Silva" />
+            <ContactField
+              label="Nome do contato"
+              name="contactName"
+              defaultValue={opp.contactName ?? opp.decisionMakerName ?? ""}
+              placeholder="Ex: Maria Silva"
+            />
             <ContactField label="Telefone" name="contactPhone" defaultValue={opp.contactPhone ?? ""} placeholder="Ex: (19) 99999-0000" />
           </div>
           <ContactField label="E-mail" name="contactEmail" defaultValue={opp.contactEmail ?? ""} placeholder="Ex: maria@empresa.com.br" />

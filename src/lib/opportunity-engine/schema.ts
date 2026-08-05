@@ -36,6 +36,12 @@ export const OpportunitySchema = z.object({
   reasoning: z.string().describe("Por que este score específico foi atribuído"),
   buyerArea: z.string().describe("Área da empresa provavelmente comprando"),
   decisionMaker: z.string().describe("Cargo do decisor provável"),
+  decisionMakerName: z
+    .string()
+    .nullable()
+    .describe(
+      "Nome real de uma pessoa específica, SOMENTE se encontrado em fonte pública verificável (LinkedIn, página \"quem somos\", matéria de imprensa). Null se não tiver certeza razoável — nunca invente um nome.",
+    ),
   approach: z.string().describe("Como iniciar a conversa comercial"),
   commercialArguments: z.array(z.string()),
   objections: z.array(z.string()),

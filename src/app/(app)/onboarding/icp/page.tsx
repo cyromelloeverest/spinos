@@ -76,6 +76,25 @@ export default async function OnboardingICPPage({
           placeholder="Ex: usinagem, metalização, caldeiraria, corte a laser"
           hint="separados por vírgula"
         />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField label="Ticket médio (R$)" name="averageTicketBRL" placeholder="Ex: 5000" hint="opcional — ajuda a IA a calibrar porte" />
+          <FormField label="Ciclo de vendas típico" name="salesCycleLength" placeholder="Ex: 2 a 4 semanas" hint="opcional" />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[12.5px] font-medium" style={{ color: "var(--fg)" }}>
+            Modelo de venda
+          </span>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 text-[13px] cursor-pointer" style={{ color: "var(--fg)" }}>
+              <input type="radio" name="saleModel" value="PONTUAL" className="w-4 h-4" style={{ accentColor: "var(--primary)" }} />
+              Pontual
+            </label>
+            <label className="flex items-center gap-2 text-[13px] cursor-pointer" style={{ color: "var(--fg)" }}>
+              <input type="radio" name="saleModel" value="RECORRENTE" className="w-4 h-4" style={{ accentColor: "var(--primary)" }} />
+              Recorrente / assinatura
+            </label>
+          </div>
+        </div>
 
         <button
           type="submit"

@@ -14,6 +14,8 @@ export async function updateICP(icpId: string, formData: FormData) {
   const employeeMinRaw = String(formData.get("employeeMin") ?? "").trim();
   const employeeMaxRaw = String(formData.get("employeeMax") ?? "").trim();
   const radiusRaw = String(formData.get("radiusKm") ?? "").trim();
+  const ticketRaw = String(formData.get("averageTicketBRL") ?? "").trim();
+  const saleModelRaw = String(formData.get("saleModel") ?? "");
 
   await prisma.iCP.update({
     where: { id: icpId, organizationId },
@@ -29,6 +31,9 @@ export async function updateICP(icpId: string, formData: FormData) {
       productsSold: splitList(formData.get("productsSold")),
       servicesSold: splitList(formData.get("servicesSold")),
       radiusKm: radiusRaw ? Number(radiusRaw) : null,
+      averageTicketBRL: ticketRaw ? Number(ticketRaw) : null,
+      salesCycleLength: String(formData.get("salesCycleLength") ?? "").trim() || null,
+      saleModel: saleModelRaw === "PONTUAL" || saleModelRaw === "RECORRENTE" ? saleModelRaw : null,
       idealCustomerDescription: String(formData.get("idealCustomerDescription") ?? "").trim() || null,
       preferredSignalCategories: formData.getAll("preferredSignalCategories").map(String) as SignalCategory[],
       companiesToAvoid: splitList(formData.get("companiesToAvoid")),

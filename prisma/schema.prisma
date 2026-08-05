@@ -181,6 +181,13 @@ model SecurityEvent {
 // ICP — critério de cliente ideal, define contra o que pontuamos
 // ============================================================
 
+// Modelo de venda do próprio contratante (não do prospect) — pontual x
+// recorrente muda o que "bom encaixe" significa pra IA de busca.
+enum SaleModel {
+  PONTUAL
+  RECORRENTE
+}
+
 model ICP {
   id                        String           @id @default(cuid())
   organizationId            String
@@ -201,6 +208,13 @@ model ICP {
   idealCustomerDescription  String?
   preferredSignalCategories SignalCategory[]
   companiesToAvoid          String[]
+  // Sinal de orçamento/capacidade do prospect: quanto maior o ticket médio,
+  // maior o porte que o prospect provavelmente precisa ter pra pagar.
+  averageTicketBRL          Float?
+  // Texto livre de propósito ("2-4 semanas", "3-6 meses") — alimenta a
+  // janela de urgência do Spinos Score.
+  salesCycleLength          String?
+  saleModel                 SaleModel?
   isActive                  Boolean          @default(true)
   createdAt                 DateTime         @default(now())
   updatedAt                 DateTime         @updatedAt
@@ -322,6 +336,10 @@ model OpportunityScore {
   reasoning           String
   buyerArea           String?
   decisionMaker       String?
+  // Nome real de uma pessoa, só quando a IA encontra via fonte pública
+  // verificável (LinkedIn, "quem somos", imprensa) — decisionMaker acima
+  // continua sendo só o cargo provável, mesmo quando isso aqui é null.
+  decisionMakerName   String?
   suggestedApproach   String
   commercialArguments String[]
   objections          String[]
