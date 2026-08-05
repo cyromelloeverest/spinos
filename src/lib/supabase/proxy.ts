@@ -8,13 +8,17 @@ const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/convite", "/aceitar-convit
 // 'nonce-<valor>' no header Content-Security-Policy da resposta — não precisa
 // tocar em layout.tsx. style-src precisa de 'unsafe-inline' porque o design
 // system inteiro usa style={{ ... }} (atributo style inline do React), que
-// nonce não cobre.
+// nonce não cobre. img-src libera qualquer host https porque o Radar mostra
+// og:image de sinais raspados de qualquer site de notícia/fonte pública —
+// não dá pra prever/allowlistar domínio (isso já mordeu a gente uma vez com
+// o favicon do Google redirecionando pra gstatic.com). <img> não executa
+// nada, então abrir img-src pra https: não reintroduz risco de XSS.
 function buildCspHeader(nonce: string): string {
   return [
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
     `style-src 'self' 'unsafe-inline'`,
-    `img-src 'self' https://www.google.com https://*.gstatic.com data:`,
+    `img-src 'self' https: data:`,
     `font-src 'self'`,
     `connect-src 'self'`,
     `object-src 'none'`,

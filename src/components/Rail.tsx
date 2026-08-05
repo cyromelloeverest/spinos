@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Users, Plug, LogOut, X, ShieldCheck, ScanSearch, ChevronsUpDown, Check } from "lucide-react";
 import { switchOrganization } from "@/lib/actions/organization";
+import { initials } from "@/lib/initials";
 
 export type OrgProfile = {
   name: string;
@@ -61,13 +62,6 @@ export function Rail({
   const canSwitchOrg = memberships.length > 1;
 
   const displayName = organization?.name ?? "Configurar empresa";
-  const initials = displayName
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
   const locationLine = [organization?.city, organization?.state].filter(Boolean).join(", ");
 
   return (
@@ -260,7 +254,7 @@ export function Rail({
                 color: "#ffffff",
               }}
             >
-              {initials}
+              {initials(displayName)}
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-[12.5px] font-semibold" style={{ color: "#ffffff" }}>

@@ -2,16 +2,9 @@
 
 import Link from "next/link";
 import { Menu } from "lucide-react";
+import { initials } from "@/lib/initials";
 
 export function TopBar({ organizationName, onMenuClick }: { organizationName: string; onMenuClick?: () => void }) {
-  const initials = organizationName
-    .split(" ")
-    .filter((w) => w.length > 1)
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
   return (
     <div
       className="flex items-center justify-between md:justify-end px-4 md:px-6 py-2.5 border-b flex-shrink-0"
@@ -39,7 +32,7 @@ export function TopBar({ organizationName, onMenuClick }: { organizationName: st
           className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-semibold flex-shrink-0"
           style={{ background: "var(--card-hover)", color: "var(--fg-muted)" }}
         >
-          {initials}
+          {initials(organizationName)}
         </span>
         <span className="text-[12.5px] font-medium hidden sm:inline">{organizationName}</span>
       </Link>

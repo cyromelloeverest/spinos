@@ -7,16 +7,7 @@ import { SignalImage } from "@/components/SignalImage";
 import { faviconUrl } from "@/lib/favicon";
 import { SIGNAL_CATEGORY_LABEL, SIGNAL_CATEGORY_ICON } from "@/lib/signal-categories";
 import { ExternalLink, Flame } from "lucide-react";
-
-function initials(name: string): string {
-  return name
-    .split(" ")
-    .filter((w) => w.length > 1)
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
+import { initials } from "@/lib/initials";
 
 function formatRelativeDate(date: Date): string {
   const diffDays = Math.floor((Date.now() - date.getTime()) / (24 * 60 * 60 * 1000));
