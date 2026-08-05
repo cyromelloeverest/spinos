@@ -72,6 +72,15 @@ export default async function LoginPage({
             Criar conta
           </Link>
         </p>
+
+        <p className="flex items-center justify-center gap-3 text-[11.5px] mt-8" style={{ color: "var(--fg-faint)" }}>
+          <Link href="/termos" style={{ color: "var(--fg-faint)" }}>
+            Termos de Uso
+          </Link>
+          <Link href="/privacidade" style={{ color: "var(--fg-faint)" }}>
+            Política de Privacidade
+          </Link>
+        </p>
       </div>
     </div>
   );

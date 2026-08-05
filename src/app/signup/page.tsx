@@ -52,6 +52,21 @@ export default async function SignupPage({
             />
           </label>
 
+          <label className="flex items-start gap-2 text-[11.5px]" style={{ color: "var(--fg-muted)" }}>
+            <input type="checkbox" name="acceptTerms" required className="mt-0.5" />
+            <span>
+              Li e concordo com os{" "}
+              <Link href="/termos" target="_blank" style={{ color: "var(--primary)" }}>
+                Termos de Uso
+              </Link>{" "}
+              e a{" "}
+              <Link href="/privacidade" target="_blank" style={{ color: "var(--primary)" }}>
+                Política de Privacidade
+              </Link>
+              .
+            </span>
+          </label>
+
           <button
             type="submit"
             className="mt-2 text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer"
