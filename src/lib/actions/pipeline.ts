@@ -24,10 +24,21 @@ export async function moveToPipeline(opportunityScoreId: string) {
   redirect("/pipeline");
 }
 
-export async function setStage(opportunityScoreId: string, stage: string) {
+export type LossReason = "NOT_INTERESTED" | "WRONG_FIT" | "NO_RESPONSE";
+
+// Move o card e grava (ou apaga) o Feedback correspondente — esse é o único
+// sinal de calibração que nenhum concorrente tem acesso, então precisa ficar
+// sempre consistente com o estágio real, não só acumular.
+export async function setStage(
+  opportunityScoreId: string,
+  stage: string,
+  lossReason?: LossReason,
+  lossNotes?: string,
+) {
   const organizationId = await requireOrgId();
   const userId = await getCurrentUserId();
-  await prisma.opportunityScore.update({
+
+  const updated = await prisma.opportunityScore.update({
     where: { id: opportunityScoreId, organizationId },
     data: {
       stage: stage as "CONTATO_FEITO" | "VISITA_AGENDADA" | "PROPOSTA_ENVIADA" | "VENDIDO" | "PERDIDO",
@@ -35,7 +46,39 @@ export async function setStage(opportunityScoreId: string, stage: string) {
       lastActionByUserId: userId,
       lastActionAt: new Date(),
     },
+    select: { id: true, companyId: true },
   });
+
+  if (stage === "VENDIDO") {
+    await prisma.feedback.upsert({
+      where: { opportunityScoreId: updated.id },
+      update: { outcome: "CONVERTED", notes: null },
+      create: {
+        organizationId,
+        companyId: updated.companyId,
+        opportunityScoreId: updated.id,
+        outcome: "CONVERTED",
+      },
+    });
+  } else if (stage === "PERDIDO") {
+    const outcome = lossReason ?? "NOT_INTERESTED";
+    await prisma.feedback.upsert({
+      where: { opportunityScoreId: updated.id },
+      update: { outcome, notes: lossNotes?.trim() || null },
+      create: {
+        organizationId,
+        companyId: updated.companyId,
+        opportunityScoreId: updated.id,
+        outcome,
+        notes: lossNotes?.trim() || null,
+      },
+    });
+  } else {
+    // Voltou de um estágio terminal pra um não-terminal — o Feedback antigo
+    // não reflete mais a realidade dessa oportunidade.
+    await prisma.feedback.deleteMany({ where: { opportunityScoreId: updated.id } });
+  }
+
   revalidatePath("/");
   revalidatePath("/pipeline");
 }

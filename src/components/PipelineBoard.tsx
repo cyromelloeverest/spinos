@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { setStage } from "@/lib/actions/pipeline";
+import { setStage, type LossReason } from "@/lib/actions/pipeline";
 import { SpinosScore } from "./SpinosScore";
 import { PIPELINE_STAGE_ORDER, PIPELINE_STAGE_LABEL, pipelineStageColor } from "@/lib/pipeline-stages";
 
@@ -19,17 +19,33 @@ export type PipelineCard = {
 
 const COLUMNS = PIPELINE_STAGE_ORDER.map((stage) => ({ stage, label: PIPELINE_STAGE_LABEL[stage] }));
 
+const LOSS_REASONS: { value: LossReason; label: string }[] = [
+  { value: "NOT_INTERESTED", label: "Não teve interesse" },
+  { value: "WRONG_FIT", label: "Fora do perfil ideal" },
+  { value: "NO_RESPONSE", label: "Sem resposta" },
+];
+
 export function PipelineBoard({ initialCards }: { initialCards: PipelineCard[] }) {
   const [cards, setCards] = useState(initialCards);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
+  const [pendingLoss, setPendingLoss] = useState<{ cardId: string; companyName: string } | null>(null);
   const [, startTransition] = useTransition();
+
+  function applyStage(cardId: string, targetStage: string, lossReason?: LossReason, lossNotes?: string) {
+    setCards((prev) => prev.map((c) => (c.id === cardId ? { ...c, stage: targetStage } : c)));
+    startTransition(() => {
+      setStage(cardId, targetStage, lossReason, lossNotes);
+    });
+  }
 
   function handleDrop(targetStage: string, cardId: string) {
     setDragOverStage(null);
-    setCards((prev) => prev.map((c) => (c.id === cardId ? { ...c, stage: targetStage } : c)));
-    startTransition(() => {
-      setStage(cardId, targetStage);
-    });
+    if (targetStage === "PERDIDO") {
+      const card = cards.find((c) => c.id === cardId);
+      if (card) setPendingLoss({ cardId, companyName: card.companyName });
+      return;
+    }
+    applyStage(cardId, targetStage);
   }
 
   return (
@@ -118,6 +134,101 @@ export function PipelineBoard({ initialCards }: { initialCards: PipelineCard[] }
           </div>
         );
       })}
+
+      {pendingLoss && (
+        <LossReasonModal
+          companyName={pendingLoss.companyName}
+          onCancel={() => setPendingLoss(null)}
+          onConfirm={(reason, notes) => {
+            applyStage(pendingLoss.cardId, "PERDIDO", reason, notes);
+            setPendingLoss(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function LossReasonModal({
+  companyName,
+  onCancel,
+  onConfirm,
+}: {
+  companyName: string;
+  onCancel: () => void;
+  onConfirm: (reason: LossReason, notes: string) => void;
+}) {
+  const [reason, setReason] = useState<LossReason | null>(null);
+  const [notes, setNotes] = useState("");
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(15,23,42,0.55)" }}
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-[420px] rounded-[16px] border p-6"
+        style={{ background: "var(--card)", borderColor: "var(--border)", boxShadow: "var(--shadow-card)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-[16px] font-semibold m-0 mb-1.5">Por que perdeu {companyName}?</h2>
+        <p className="text-[12.5px] leading-[1.5] mb-4" style={{ color: "var(--fg-muted)" }}>
+          Isso alimenta o motor pra reconhecer padrões parecidos nas próximas buscas — é o único dado que a
+          concorrência não tem acesso.
+        </p>
+
+        <div className="flex flex-col gap-2 mb-4">
+          {LOSS_REASONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setReason(option.value)}
+              className="text-left text-[13px] font-medium px-3.5 py-2.5 rounded-[10px] border cursor-pointer"
+              style={{
+                background: reason === option.value ? "var(--primary-soft)" : "var(--card)",
+                borderColor: reason === option.value ? "var(--primary)" : "var(--border)",
+                color: reason === option.value ? "var(--primary)" : "var(--fg)",
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Detalhe opcional (o que disseram, o que faltou etc.)"
+          rows={3}
+          className="w-full text-[13px] rounded-[10px] border px-3 py-2.5 mb-5 resize-none"
+          style={{ borderColor: "var(--border)", background: "var(--bg)", color: "var(--fg)", fontFamily: "inherit" }}
+        />
+
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            disabled={!reason}
+            onClick={() => reason && onConfirm(reason, notes)}
+            className="flex-1 text-[13.5px] font-semibold rounded-[12px] px-4 py-2.5 border-0"
+            style={{
+              background: reason ? "var(--critical)" : "var(--card-hover)",
+              color: reason ? "#ffffff" : "var(--fg-faint)",
+              cursor: reason ? "pointer" : "not-allowed",
+            }}
+          >
+            Marcar como perdida
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-[13.5px] font-medium rounded-[12px] px-4 py-2.5 border cursor-pointer"
+            style={{ background: "transparent", color: "var(--fg-muted)", borderColor: "var(--border)" }}
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
