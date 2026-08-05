@@ -3,13 +3,32 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-org";
 import { updateOrganizationProfile, updateUserProfile } from "@/lib/actions/settings";
 import { requestEmailChange } from "@/lib/actions/auth";
+import { createCheckoutSession, createPortalSession } from "@/lib/actions/billing";
+import { PLANS } from "@/lib/plans";
 import { FormField } from "@/components/FormField";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
+import { Check } from "lucide-react";
+
+function subscriptionStatusLabel(org: { subscriptionStatus: string | null; trialEndsAt: Date | null }): string {
+  if (org.subscriptionStatus === "active") return "Assinatura ativa";
+  if (org.subscriptionStatus === "trialing") return "Assinatura em período de teste";
+  if (org.subscriptionStatus === "past_due") return "Pagamento pendente — atualize seu cartão";
+  if (org.subscriptionStatus === "canceled") return "Assinatura cancelada";
+  if (org.trialEndsAt) return "Período de teste gratuito (sem assinatura)";
+  return "Sem assinatura ativa";
+}
 
 export default async function EmpresaSettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; emailPendente?: string; emailAtualizado?: string; emailError?: string }>;
+  searchParams: Promise<{
+    saved?: string;
+    emailPendente?: string;
+    emailAtualizado?: string;
+    emailError?: string;
+    assinatura?: string;
+    error?: string;
+  }>;
 }) {
   const params = await searchParams;
   const [organizationId, userId] = await Promise.all([getCurrentOrganizationId(), getCurrentUserId()]);
@@ -45,6 +64,91 @@ export default async function EmpresaSettingsPage({
           Alterações salvas com sucesso.
         </div>
       )}
+
+      <Section title="Assinatura">
+        {params.assinatura === "sucesso" && (
+          <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--good)", color: "var(--good)" }}>
+            Assinatura confirmada! Seu plano foi atualizado.
+          </div>
+        )}
+        {params.assinatura === "cancelado" && (
+          <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
+            Checkout cancelado — nenhuma cobrança foi feita.
+          </div>
+        )}
+        {params.error && (
+          <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }}>
+            {params.error}
+          </div>
+        )}
+
+        <div
+          className="rounded-[14px] border p-4 mb-4 flex items-center justify-between gap-4 flex-wrap"
+          style={{ background: "var(--card)", borderColor: "var(--border)" }}
+        >
+          <div>
+            <div className="text-[15px] font-semibold">{PLANS[organization.plan].name}</div>
+            <div className="text-[12.5px] mt-0.5" style={{ color: "var(--fg-muted)" }}>
+              {subscriptionStatusLabel(organization)}
+            </div>
+          </div>
+          {organization.stripeCustomerId && (
+            <form action={createPortalSession}>
+              <button
+                type="submit"
+                className="text-[13px] font-semibold px-4 py-2 rounded-[10px] border cursor-pointer"
+                style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}
+              >
+                Gerenciar assinatura
+              </button>
+            </form>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {Object.values(PLANS).map((plan) => {
+            const isCurrent = plan.id === organization.plan;
+            return (
+              <div
+                key={plan.id}
+                className="rounded-[14px] border p-4 flex flex-col gap-3"
+                style={{
+                  borderColor: isCurrent ? "var(--primary-line)" : "var(--border)",
+                  background: "var(--card)",
+                }}
+              >
+                <div>
+                  <div className="text-[13.5px] font-semibold">{plan.name}</div>
+                  <div className="mt-1" style={{ fontFamily: "var(--font-mono)" }}>
+                    <span className="text-[20px] font-bold" style={{ letterSpacing: "-0.02em" }}>
+                      R${plan.priceMonthlyBRL}
+                    </span>
+                    <span className="text-[12px]" style={{ color: "var(--fg-faint)" }}>
+                      /mês
+                    </span>
+                  </div>
+                </div>
+                {isCurrent ? (
+                  <div className="text-[12px] font-medium flex items-center gap-1.5" style={{ color: "var(--good)" }}>
+                    <Check size={14} strokeWidth={2} />
+                    Plano atual
+                  </div>
+                ) : (
+                  <form action={createCheckoutSession.bind(null, plan.id)}>
+                    <button
+                      type="submit"
+                      className="w-full text-[12.5px] font-semibold px-3 py-2 rounded-[10px] border-0 cursor-pointer"
+                      style={{ background: "var(--primary)", color: "#ffffff" }}
+                    >
+                      Assinar
+                    </button>
+                  </form>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </Section>
 
       <Section title="Empresa">
         <form action={updateOrganizationProfile} className="flex flex-col gap-4">

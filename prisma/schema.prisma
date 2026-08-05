@@ -48,8 +48,18 @@ model Organization {
   plan          Plan      @default(STARTER)
   trialEndsAt   DateTime? // null = sem limite de teste (conta já paga / uso interno)
   lastSearchAt  DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+
+  // Assinatura via Stripe. Null = nunca assinou (ainda em trial manual, ou
+  // conta cortesia/uso interno gerenciada só pelo admin). subscriptionStatus
+  // guarda o status bruto do Stripe (active, trialing, past_due, canceled...)
+  // — deliberadamente não é enum pra não precisar acompanhar todo valor novo
+  // que o Stripe adicionar.
+  stripeCustomerId     String? @unique
+  stripeSubscriptionId String? @unique
+  subscriptionStatus   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   users             Membership[]
   icps              ICP[]

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getPlan, PLANS } from "./plans";
+import { getPlan, getPlanByStripePriceId, PLANS } from "./plans";
 
 describe("getPlan", () => {
   it("retorna o plano correto para um id válido", () => {
@@ -43,5 +43,30 @@ describe("PLANS", () => {
         expect(prevVal === null || currVal >= prevVal).toBe(true);
       }
     }
+  });
+
+  it("cada plano tem um stripePriceId único e um preço mensal positivo", () => {
+    const priceIds = new Set<string>();
+    for (const plan of Object.values(PLANS)) {
+      expect(plan.stripePriceId).toBeTruthy();
+      expect(priceIds.has(plan.stripePriceId)).toBe(false);
+      priceIds.add(plan.stripePriceId);
+      expect(plan.priceMonthlyBRL).toBeGreaterThan(0);
+    }
+  });
+
+  it("o preço mensal cresce a cada tier", () => {
+    expect(PLANS.PROFISSIONAL.priceMonthlyBRL).toBeGreaterThan(PLANS.STARTER.priceMonthlyBRL);
+    expect(PLANS.ENTERPRISE.priceMonthlyBRL).toBeGreaterThan(PLANS.PROFISSIONAL.priceMonthlyBRL);
+  });
+});
+
+describe("getPlanByStripePriceId", () => {
+  it("encontra o plano certo pelo Price ID do Stripe", () => {
+    expect(getPlanByStripePriceId(PLANS.PROFISSIONAL.stripePriceId)).toBe(PLANS.PROFISSIONAL);
+  });
+
+  it("retorna null pra um Price ID desconhecido", () => {
+    expect(getPlanByStripePriceId("price_inexistente")).toBeNull();
   });
 });
