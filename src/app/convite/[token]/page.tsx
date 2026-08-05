@@ -78,7 +78,7 @@ export default async function ConvitePage({
                 type="password"
                 name="password"
                 required
-                minLength={6}
+                minLength={8}
                 className="rounded-[10px] border px-3.5 h-[44px] text-[13.5px] outline-none"
                 style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)" }}
               />

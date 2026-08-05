@@ -9,6 +9,8 @@ import { getPlan } from "@/lib/plans";
 import { SITE_URL } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 import { sendInviteEmail, INVITE_TTL_MS } from "@/lib/invite-email";
+import { logSecurityEvent } from "@/lib/audit/log";
+import { emailSchema, passwordSchema, firstIssueMessage } from "@/lib/validation";
 
 async function requireOwnerOrAdmin() {
   const membership = await getCurrentMembership();
@@ -21,10 +23,12 @@ async function requireOwnerOrAdmin() {
 
 export async function inviteMember(formData: FormData) {
   const membership = await requireOwnerOrAdmin();
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  if (!email) {
-    redirect("/settings/equipe?error=Informe um e-mail.");
+  const rawEmail = String(formData.get("email") ?? "").trim().toLowerCase();
+  const emailResult = emailSchema.safeParse(rawEmail);
+  if (!emailResult.success) {
+    redirect(`/settings/equipe?error=${encodeURIComponent(firstIssueMessage(emailResult.error))}`);
   }
+  const email = emailResult.data;
 
   const organization = await prisma.organization.findUnique({ where: { id: membership.organizationId } });
   if (!organization) redirect("/settings/equipe");
@@ -60,6 +64,12 @@ export async function inviteMember(formData: FormData) {
   });
 
   await sendInviteEmail(email, organization.name, token);
+  await logSecurityEvent({
+    type: "team.member_invited",
+    actorUserId: membership.userId,
+    organizationId: organization.id,
+    metadata: { email },
+  });
 
   revalidatePath("/settings/equipe");
   redirect("/settings/equipe?invited=1");
@@ -68,6 +78,12 @@ export async function inviteMember(formData: FormData) {
 export async function cancelInvite(inviteId: string) {
   const membership = await requireOwnerOrAdmin();
   await prisma.invite.deleteMany({ where: { id: inviteId, organizationId: membership.organizationId } });
+  await logSecurityEvent({
+    type: "team.invite_canceled",
+    actorUserId: membership.userId,
+    organizationId: membership.organizationId,
+    targetId: inviteId,
+  });
   revalidatePath("/settings/equipe");
 }
 
@@ -82,6 +98,12 @@ export async function removeMember(membershipId: string) {
   }
 
   await prisma.membership.delete({ where: { id: membershipId } });
+  await logSecurityEvent({
+    type: "team.member_removed",
+    actorUserId: userId,
+    organizationId: membership.organizationId,
+    targetId: membershipId,
+  });
   revalidatePath("/settings/equipe");
 }
 
@@ -96,8 +118,9 @@ export async function acceptInviteSignUp(token: string, formData: FormData) {
   if (!invite) redirect("/convite/invalido");
 
   const password = String(formData.get("password") ?? "");
-  if (!password) {
-    redirect(`/convite/${token}?error=Defina uma senha.`);
+  const passwordResult = passwordSchema.safeParse(password);
+  if (!passwordResult.success) {
+    redirect(`/convite/${token}?error=${encodeURIComponent(firstIssueMessage(passwordResult.error))}`);
   }
 
   const supabase = await createClient();
@@ -146,6 +169,13 @@ export async function finalizeInviteAcceptance(token: string) {
     }),
     prisma.invite.update({ where: { id: invite.id }, data: { acceptedAt: new Date() } }),
   ]);
+  await logSecurityEvent({
+    type: "team.invite_accepted",
+    actorUserId: userId,
+    actorEmail: invite.email,
+    organizationId: invite.organizationId,
+    metadata: { role: invite.role },
+  });
 
   // Se o usuário já tinha outra organização, sem isso ele cairia de volta
   // nela — a org do convite recém-aceito deve ser o que ele vê agora.

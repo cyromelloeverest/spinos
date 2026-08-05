@@ -156,6 +156,27 @@ model AuthAttempt {
   @@map("auth_attempts")
 }
 
+// Log de auditoria de eventos de segurança (login, mudança de permissão,
+// ações de admin) — "Everything Must Be Logged". Nunca grava senha, token ou
+// segredo em `metadata`; só contexto necessário pra reconstruir "quem fez o
+// quê, quando, de onde". Sem TTL/expurgo automático de propósito — é log de
+// auditoria, não cache.
+model SecurityEvent {
+  id             String   @id @default(cuid())
+  type           String
+  actorUserId    String?
+  actorEmail     String?
+  organizationId String?
+  targetId       String?
+  ip             String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([organizationId, createdAt])
+  @@map("security_events")
+}
+
 // ============================================================
 // ICP — critério de cliente ideal, define contra o que pontuamos
 // ============================================================

@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth/current-org";
 import { translateAuthError } from "@/lib/auth/error-messages";
 import { isRateLimited, recordAttempt } from "@/lib/auth/rate-limit";
+import { logSecurityEvent } from "@/lib/audit/log";
+import { emailSchema, passwordSchema, firstIssueMessage } from "@/lib/validation";
 import { SITE_URL } from "@/lib/site-url";
 
 // Mantém public.users.email sincronizado com auth.users.email — importante
@@ -54,12 +56,18 @@ export async function confirmAuthLink(formData: FormData) {
 }
 
 export async function signUp(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const rawEmail = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 
-  if (!email || !password) {
-    redirect("/signup?error=Preencha e-mail e senha.");
+  const emailResult = emailSchema.safeParse(rawEmail);
+  const passwordResult = passwordSchema.safeParse(password);
+  if (!emailResult.success) {
+    redirect(`/signup?error=${encodeURIComponent(firstIssueMessage(emailResult.error))}`);
   }
+  if (!passwordResult.success) {
+    redirect(`/signup?error=${encodeURIComponent(firstIssueMessage(passwordResult.error))}`);
+  }
+  const email = emailResult.data;
 
   if (await isRateLimited("signup")) {
     redirect("/signup?error=Muitas tentativas de cadastro. Aguarde um pouco e tente de novo.");
@@ -76,6 +84,8 @@ export async function signUp(formData: FormData) {
     await recordAttempt("signup");
     redirect(`/signup?error=${encodeURIComponent(translateAuthError(error.message))}`);
   }
+
+  await logSecurityEvent({ type: "auth.signup", actorUserId: data.user?.id, actorEmail: email });
 
   if (data.user) {
     // Por segurança contra enumeração de e-mails, o Supabase retorna um
@@ -116,8 +126,11 @@ export async function signIn(formData: FormData) {
 
   if (error) {
     await recordAttempt("signin");
+    await logSecurityEvent({ type: "auth.signin_failed", actorEmail: email });
     redirect(`/login?error=${encodeURIComponent(translateAuthError(error.message))}`);
   }
+
+  await logSecurityEvent({ type: "auth.signin_success", actorUserId: data.user.id, actorEmail: email });
 
   const next = String(formData.get("next") ?? "").trim();
   if (next.startsWith("/")) {
@@ -133,8 +146,10 @@ export async function signIn(formData: FormData) {
 }
 
 export async function signOut() {
+  const userId = await getCurrentUserId();
   const supabase = await createClient();
   await supabase.auth.signOut();
+  await logSecurityEvent({ type: "auth.signout", actorUserId: userId });
   redirect("/login");
 }
 
@@ -152,12 +167,18 @@ export async function requestPasswordReset(formData: FormData) {
     redirect("/login/esqueci-senha?sent=1");
   }
 
-  const supabase = await createClient();
-  // Sempre redireciona pra "enviamos o link" mesmo se o e-mail não existir —
-  // isso evita que alguém descubra quais e-mails têm conta só testando aqui.
-  await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${SITE_URL}/auth/confirm?next=/redefinir-senha`,
-  });
+  // Só valida formato (não bloqueia por "e-mail não existe", pelo mesmo
+  // motivo do comentário acima) — evita gastar uma tentativa do Supabase com
+  // lixo obviamente malformado.
+  if (emailSchema.safeParse(email).success) {
+    const supabase = await createClient();
+    // Sempre redireciona pra "enviamos o link" mesmo se o e-mail não existir —
+    // isso evita que alguém descubra quais e-mails têm conta só testando aqui.
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${SITE_URL}/auth/confirm?next=/redefinir-senha`,
+    });
+    await logSecurityEvent({ type: "auth.password_reset_requested", actorEmail: email });
+  }
   await recordAttempt("password-reset");
 
   redirect("/login/esqueci-senha?sent=1");
@@ -167,10 +188,12 @@ export async function requestEmailChange(formData: FormData) {
   const userId = await getCurrentUserId();
   if (!userId) redirect("/login");
 
-  const newEmail = String(formData.get("email") ?? "").trim().toLowerCase();
-  if (!newEmail) {
-    redirect("/settings/empresa?emailError=Informe o novo e-mail.");
+  const rawEmail = String(formData.get("email") ?? "").trim().toLowerCase();
+  const emailResult = emailSchema.safeParse(rawEmail);
+  if (!emailResult.success) {
+    redirect(`/settings/empresa?emailError=${encodeURIComponent(firstIssueMessage(emailResult.error))}`);
   }
+  const newEmail = emailResult.data;
 
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser(
@@ -192,8 +215,9 @@ export async function updatePassword(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
-  if (password.length < 8) {
-    redirect("/redefinir-senha?error=A senha precisa ter pelo menos 8 caracteres.");
+  const passwordResult = passwordSchema.safeParse(password);
+  if (!passwordResult.success) {
+    redirect(`/redefinir-senha?error=${encodeURIComponent(firstIssueMessage(passwordResult.error))}`);
   }
   if (password !== confirmPassword) {
     redirect("/redefinir-senha?error=As senhas não são iguais.");
@@ -204,6 +228,8 @@ export async function updatePassword(formData: FormData) {
   if (error) {
     redirect(`/redefinir-senha?error=${encodeURIComponent(translateAuthError(error.message))}`);
   }
+
+  await logSecurityEvent({ type: "auth.password_updated", actorUserId: userId });
 
   redirect("/?senhaAtualizada=1");
 }
