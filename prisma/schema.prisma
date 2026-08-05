@@ -141,6 +141,21 @@ model Invite {
   @@map("invites")
 }
 
+// Tentativa de autenticação malsucedida (login, cadastro, reset de senha),
+// usada só para rate limiting por IP contra brute-force/credential stuffing
+// e abuso de envio de e-mail. `identifier` carrega o prefixo da ação, ex.
+// "signin:203.0.113.7" — evita precisar de uma coluna extra. Linhas velhas
+// são podadas oportunisticamente a cada escrita (ver src/lib/auth/rate-limit.ts),
+// não precisa de cron.
+model AuthAttempt {
+  id         String   @id @default(cuid())
+  identifier String
+  createdAt  DateTime @default(now())
+
+  @@index([identifier, createdAt])
+  @@map("auth_attempts")
+}
+
 // ============================================================
 // ICP — critério de cliente ideal, define contra o que pontuamos
 // ============================================================

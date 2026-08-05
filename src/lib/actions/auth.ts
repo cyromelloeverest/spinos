@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth/current-org";
 import { translateAuthError } from "@/lib/auth/error-messages";
+import { isRateLimited, recordAttempt } from "@/lib/auth/rate-limit";
 import { SITE_URL } from "@/lib/site-url";
 
 // Mantém public.users.email sincronizado com auth.users.email — importante
@@ -60,6 +61,10 @@ export async function signUp(formData: FormData) {
     redirect("/signup?error=Preencha e-mail e senha.");
   }
 
+  if (await isRateLimited("signup")) {
+    redirect("/signup?error=Muitas tentativas de cadastro. Aguarde um pouco e tente de novo.");
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -68,6 +73,7 @@ export async function signUp(formData: FormData) {
   });
 
   if (error) {
+    await recordAttempt("signup");
     redirect(`/signup?error=${encodeURIComponent(translateAuthError(error.message))}`);
   }
 
@@ -101,10 +107,15 @@ export async function signIn(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 
+  if (await isRateLimited("signin")) {
+    redirect("/login?error=Muitas tentativas de login. Aguarde alguns minutos e tente de novo.");
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
+    await recordAttempt("signin");
     redirect(`/login?error=${encodeURIComponent(translateAuthError(error.message))}`);
   }
 
@@ -134,12 +145,20 @@ export async function requestPasswordReset(formData: FormData) {
     redirect("/login/esqueci-senha?error=Informe seu e-mail.");
   }
 
+  // Verifica o limite mas não grava tentativa aqui embaixo condicionada ao
+  // resultado do Supabase — sempre grava, sucesso ou não, porque o endpoint
+  // não deve revelar (por diferença de comportamento) quais e-mails existem.
+  if (await isRateLimited("password-reset")) {
+    redirect("/login/esqueci-senha?sent=1");
+  }
+
   const supabase = await createClient();
   // Sempre redireciona pra "enviamos o link" mesmo se o e-mail não existir —
   // isso evita que alguém descubra quais e-mails têm conta só testando aqui.
   await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${SITE_URL}/auth/confirm?next=/redefinir-senha`,
   });
+  await recordAttempt("password-reset");
 
   redirect("/login/esqueci-senha?sent=1");
 }
