@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SEARCH_COOLDOWN_MS } from "./constants";
+import { PLANS } from "@/lib/plans";
 
 const {
   organizationFindUnique,
@@ -148,9 +149,9 @@ describe("searchOpportunities — gating", () => {
 
   it("retorna plan_limit quando o número de oportunidades ativas atinge o limite do plano", async () => {
     organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "STARTER" });
-    opportunityScoreCount.mockResolvedValueOnce(25); // STARTER.maxActiveOpportunities = 25
+    opportunityScoreCount.mockResolvedValueOnce(PLANS.STARTER.maxActiveOpportunities);
     const result = await searchOpportunities("org-1");
-    expect(result).toEqual({ status: "plan_limit", limit: 25 });
+    expect(result).toEqual({ status: "plan_limit", limit: PLANS.STARTER.maxActiveOpportunities });
     expect(opportunityScoreCount).toHaveBeenCalledWith({
       where: { organizationId: "org-1", stage: null, status: { not: "DISMISSED" } },
     });
@@ -160,7 +161,7 @@ describe("searchOpportunities — gating", () => {
 
   it("não bloqueia por plan_limit quando está abaixo do teto", async () => {
     organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "STARTER" });
-    opportunityScoreCount.mockResolvedValueOnce(24);
+    opportunityScoreCount.mockResolvedValueOnce(PLANS.STARTER.maxActiveOpportunities! - 1);
     searchRunCount.mockResolvedValueOnce(0);
     parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
     const result = await searchOpportunities("org-1");
@@ -170,9 +171,9 @@ describe("searchOpportunities — gating", () => {
   it("retorna search_limit quando o número de buscas do mês atinge o teto do plano", async () => {
     organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "STARTER" });
     opportunityScoreCount.mockResolvedValueOnce(0);
-    searchRunCount.mockResolvedValueOnce(4); // STARTER.maxSearchesPerMonth = 4
+    searchRunCount.mockResolvedValueOnce(PLANS.STARTER.maxSearchesPerMonth);
     const result = await searchOpportunities("org-1");
-    expect(result).toEqual({ status: "search_limit", limit: 4 });
+    expect(result).toEqual({ status: "search_limit", limit: PLANS.STARTER.maxSearchesPerMonth });
     expect(organizationUpdate).not.toHaveBeenCalled(); // não deve gastar cooldown numa busca bloqueada
   });
 

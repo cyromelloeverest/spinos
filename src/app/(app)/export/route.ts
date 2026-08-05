@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
+import { getPlan } from "@/lib/plans";
 
 function csvEscape(value: string): string {
   if (/[",\n]/.test(value)) {
@@ -12,6 +13,15 @@ export async function GET() {
   const organizationId = await getCurrentOrganizationId();
   if (!organizationId) {
     return new Response("Nenhuma organização ativa.", { status: 400 });
+  }
+
+  const organization = await prisma.organization.findUnique({ where: { id: organizationId }, select: { plan: true } });
+  const plan = getPlan(organization?.plan ?? "STARTER");
+  if (!plan.features.crmExport) {
+    return new Response(
+      `Exportação disponível a partir do plano Profissional. Seu plano atual é ${plan.name}.`,
+      { status: 403 },
+    );
   }
 
   const opportunities = await prisma.opportunityScore.findMany({

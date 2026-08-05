@@ -128,14 +128,25 @@ export default async function OpportunitiesPage({
       </div>
 
       <div className="px-4 md:px-10 pt-4 flex justify-end">
-        <a
-          href="/export"
-          className="flex items-center gap-1.5 text-[12px] font-medium no-underline"
-          style={{ color: "var(--fg-faint)" }}
-        >
-          <Download size={13} strokeWidth={1.75} />
-          Exportar CSV
-        </a>
+        {plan.features.crmExport ? (
+          <a
+            href="/export"
+            className="flex items-center gap-1.5 text-[12px] font-medium no-underline"
+            style={{ color: "var(--fg-faint)" }}
+          >
+            <Download size={13} strokeWidth={1.75} />
+            Exportar CSV
+          </a>
+        ) : (
+          <span
+            title="Disponível a partir do plano Profissional"
+            className="flex items-center gap-1.5 text-[12px] font-medium cursor-not-allowed"
+            style={{ color: "var(--fg-faint)", opacity: 0.5 }}
+          >
+            <Download size={13} strokeWidth={1.75} />
+            Exportar CSV
+          </span>
+        )}
       </div>
 
       {params.search === "not_configured" && (

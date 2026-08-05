@@ -36,13 +36,25 @@ describe("PLANS", () => {
     for (let i = 1; i < tiers.length; i++) {
       const prev = tiers[i - 1];
       const curr = tiers[i];
-      for (const key of ["maxActiveOpportunities", "maxUsers", "maxSearchesPerMonth"] as const) {
+      for (const key of ["maxActiveOpportunities", "maxUsers", "maxSearchesPerMonth", "maxIcps"] as const) {
         const prevVal = prev[key];
         const currVal = curr[key];
         if (currVal === null) continue; // ilimitado sempre é "maior ou igual"
         expect(prevVal === null || currVal >= prevVal).toBe(true);
       }
     }
+  });
+
+  it("exportação CRM libera a partir do Profissional", () => {
+    expect(PLANS.STARTER.features.crmExport).toBe(false);
+    expect(PLANS.PROFISSIONAL.features.crmExport).toBe(true);
+    expect(PLANS.ENTERPRISE.features.crmExport).toBe(true);
+  });
+
+  it("inteligência competitiva é exclusiva do Enterprise", () => {
+    expect(PLANS.STARTER.features.inteligenciaCompetitiva).toBe(false);
+    expect(PLANS.PROFISSIONAL.features.inteligenciaCompetitiva).toBe(false);
+    expect(PLANS.ENTERPRISE.features.inteligenciaCompetitiva).toBe(true);
   });
 
   it("cada plano tem um stripePriceId único e um preço mensal positivo", () => {
