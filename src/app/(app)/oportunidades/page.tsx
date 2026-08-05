@@ -89,12 +89,12 @@ export default async function OpportunitiesPage({
   return (
     <div>
       <div
-        className="mx-4 md:mx-10 mt-6 rounded-[20px] border p-6 flex items-center justify-between gap-6 flex-wrap"
+        className="mx-4 md:mx-10 mt-6 rounded-[16px] border p-6 flex items-center justify-between gap-6 flex-wrap"
         style={{ background: "var(--card)", borderColor: "var(--primary-line)", boxShadow: "var(--shadow-card)" }}
       >
         <div className="flex items-center gap-4 min-w-0">
           <div
-            className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0"
+            className="w-12 h-12 rounded-[12px] flex items-center justify-center flex-shrink-0"
             style={{ background: "var(--primary-soft)", color: "var(--primary)" }}
           >
             <Target size={22} strokeWidth={1.75} />
@@ -181,7 +181,7 @@ export default async function OpportunitiesPage({
         </div>
       )}
       {params.search === "ok" && (
-        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--good)", color: "var(--good)" }}>
+        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>
           {params.count} oportunidade(s) encontrada(s) e adicionada(s).
         </div>
       )}
@@ -219,10 +219,10 @@ export default async function OpportunitiesPage({
                     {opp.signalsUsed.slice(0, 4).map(({ signal }) => (
                       <div
                         key={signal.id}
-                        className="text-[11.5px] rounded-[6px] border px-2 py-[3px] flex items-center gap-1 whitespace-nowrap"
+                        className="text-[11.5px] rounded-[8px] border px-2 py-[3px] flex items-center gap-1 whitespace-nowrap"
                         style={{ color: "var(--fg-muted)", borderColor: "var(--border)" }}
                       >
-                        <Check size={11} strokeWidth={2.25} style={{ color: "var(--good)" }} />
+                        <Check size={11} strokeWidth={2.25} style={{ color: "var(--primary)" }} />
                         {SIGNAL_CATEGORY_LABEL[signal.category] ?? signal.title}
                       </div>
                     ))}
@@ -235,7 +235,7 @@ export default async function OpportunitiesPage({
                   {isNew && (
                     <div
                       className="text-[10px] font-semibold rounded-full px-2 py-1"
-                      style={{ background: "var(--good-soft)", color: "var(--good)" }}
+                      style={{ background: "var(--primary-soft)", color: "var(--primary)" }}
                     >
                       NOVO
                     </div>
@@ -250,6 +250,7 @@ export default async function OpportunitiesPage({
                     <button
                       type="submit"
                       title="Mover para o pipeline"
+                      aria-label="Mover para o pipeline"
                       className="flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1 border cursor-pointer"
                       style={{ background: "var(--primary-soft)", color: "var(--primary)", borderColor: "transparent" }}
                     >
@@ -261,6 +262,7 @@ export default async function OpportunitiesPage({
                     <button
                       type="submit"
                       title="Descartar"
+                      aria-label="Descartar"
                       className="rounded-full w-[26px] h-[26px] border cursor-pointer flex items-center justify-center"
                       style={{ color: "var(--fg-faint)", borderColor: "var(--border)" }}
                     >

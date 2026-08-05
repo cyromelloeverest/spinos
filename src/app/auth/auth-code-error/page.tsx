@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 export default async function AuthCodeErrorPage({
   searchParams,
@@ -23,8 +24,9 @@ export default async function AuthCodeErrorPage({
           {params.reason}
         </p>
       )}
-      <Link href="/login" className="text-[13px] no-underline" style={{ color: "var(--primary)" }}>
-        Voltar para o login →
+      <Link href="/login" className="text-[13px] inline-flex items-center gap-1 no-underline" style={{ color: "var(--primary)" }}>
+        Voltar para o login
+        <ArrowRight size={13} strokeWidth={2} />
       </Link>
     </div>
   );

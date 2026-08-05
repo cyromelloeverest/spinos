@@ -67,8 +67,8 @@ export function ScriptCard({
               onClick={handleCopy}
               className="flex items-center gap-1.5 text-[12.5px] font-semibold rounded-full px-4 py-2 border cursor-pointer"
               style={{
-                background: copied ? "var(--good-soft)" : "var(--primary-soft)",
-                color: copied ? "var(--good)" : "var(--primary)",
+                background: "var(--primary-soft)",
+                color: "var(--primary)",
                 borderColor: "transparent",
               }}
             >

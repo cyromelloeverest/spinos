@@ -4,7 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { SpinosScore } from "@/components/SpinosScore";
+import { EmptyState } from "@/components/EmptyState";
 import { Target, Kanban, Trophy, Sparkles, TrendingUp, ArrowRight } from "lucide-react";
+import { PIPELINE_STAGE_ORDER, PIPELINE_STAGE_LABEL, pipelineStageColor } from "@/lib/pipeline-stages";
 
 function getGreeting(): string {
   const hour = Number(
@@ -21,13 +23,7 @@ function greetingName(userName: string | null | undefined, orgName: string | nul
   return "";
 }
 
-const FUNNEL_STAGES: { stage: string; label: string }[] = [
-  { stage: "CONTATO_FEITO", label: "Contato feito" },
-  { stage: "VISITA_AGENDADA", label: "Visita agendada" },
-  { stage: "PROPOSTA_ENVIADA", label: "Proposta enviada" },
-  { stage: "VENDIDO", label: "Vendido" },
-  { stage: "PERDIDO", label: "Perdido" },
-];
+const FUNNEL_STAGES = PIPELINE_STAGE_ORDER.map((stage) => ({ stage, label: PIPELINE_STAGE_LABEL[stage] }));
 
 const RECENT_WINDOW_MS = 10 * 24 * 60 * 60 * 1000;
 const HOT_SCORE_THRESHOLD = 85;
@@ -121,7 +117,7 @@ export default async function DashboardPage({
       </div>
 
       {params.senhaAtualizada && (
-        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--good)", color: "var(--good)" }}>
+        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>
           Senha atualizada com sucesso.
         </div>
       )}
@@ -129,7 +125,7 @@ export default async function DashboardPage({
       <div className="px-4 md:px-10 pt-6">
         {avgScoreRounded !== null ? (
           <div
-            className="rounded-[20px] border p-6 md:p-7 flex flex-col md:flex-row items-center gap-6 md:gap-8"
+            className="rounded-[16px] border p-6 md:p-7 flex flex-col md:flex-row items-center gap-6 md:gap-8"
             style={{ background: "var(--card)", borderColor: "var(--primary-line)", boxShadow: "var(--shadow-card)" }}
           >
             <SpinosScore value={avgScoreRounded} variant="hero" />
@@ -160,7 +156,7 @@ export default async function DashboardPage({
           </div>
         ) : (
           <div
-            className="rounded-[20px] border border-dashed p-8 text-center"
+            className="rounded-[16px] border border-dashed p-8 text-center"
             style={{ borderColor: "var(--border)" }}
           >
             <p className="text-[14px] m-0 mb-3" style={{ color: "var(--fg-muted)" }}>
@@ -209,16 +205,12 @@ export default async function DashboardPage({
             )}
           </div>
           <div className="flex flex-col gap-2.5">
-            {data.best.length === 0 && (
-              <div className="rounded-[10px] border border-dashed p-5 text-[12.5px] text-center" style={{ borderColor: "var(--border)", color: "var(--fg-faint)" }}>
-                Nenhuma oportunidade ativa ainda.
-              </div>
-            )}
+            {data.best.length === 0 && <EmptyState message="Nenhuma oportunidade ativa ainda." />}
             {data.best.map((opp) => (
               <Link
                 key={opp.id}
                 href={`/company/${opp.id}`}
-                className="flex items-center gap-4 rounded-[14px] border px-4 py-3 no-underline"
+                className="flex items-center gap-4 rounded-[16px] border px-4 py-3 no-underline"
                 style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)", boxShadow: "var(--shadow-card)" }}
               >
                 <SpinosScore value={opp.score} variant="compact" />
@@ -265,7 +257,7 @@ export default async function DashboardPage({
                     className="h-full rounded-full"
                     style={{
                       width: `${(f.count / maxFunnel) * 100}%`,
-                      background: f.stage === "VENDIDO" ? "var(--good)" : f.stage === "PERDIDO" ? "var(--critical)" : "var(--primary)",
+                      background: pipelineStageColor(f.stage, "var(--primary)"),
                     }}
                   />
                 </div>
@@ -299,7 +291,7 @@ function StatTile({
 }) {
   return (
     <div
-      className="rounded-[14px] border overflow-hidden"
+      className="rounded-[16px] border overflow-hidden"
       style={{ background: "var(--card)", borderColor: "var(--border)", boxShadow: "var(--shadow-card)" }}
     >
       <div style={{ height: 3, background: accent }} />

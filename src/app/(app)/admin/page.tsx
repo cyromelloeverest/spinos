@@ -132,13 +132,14 @@ export default async function AdminPage({
                                 <form action={adminToggleSearchBlock.bind(null, org.id, m.id)}>
                                   <button
                                     type="submit"
-                                    className="flex items-center justify-center w-6 h-6 rounded-[6px] border cursor-pointer"
+                                    className="flex items-center justify-center w-6 h-6 rounded-[8px] border cursor-pointer"
                                     style={{
                                       background: "transparent",
                                       borderColor: "var(--border)",
-                                      color: m.searchBlocked ? "var(--good)" : "var(--fg-faint)",
+                                      color: m.searchBlocked ? "var(--primary)" : "var(--fg-faint)",
                                     }}
                                     title={m.searchBlocked ? "Liberar busca" : "Bloquear busca temporariamente"}
+                                    aria-label={m.searchBlocked ? "Liberar busca" : "Bloquear busca temporariamente"}
                                   >
                                     {m.searchBlocked ? <Play size={12} strokeWidth={1.75} /> : <Ban size={12} strokeWidth={1.75} />}
                                   </button>
@@ -146,9 +147,10 @@ export default async function AdminPage({
                                 <form action={adminRemoveUser.bind(null, org.id, m.id)}>
                                   <button
                                     type="submit"
-                                    className="flex items-center justify-center w-6 h-6 rounded-[6px] border cursor-pointer"
+                                    className="flex items-center justify-center w-6 h-6 rounded-[8px] border cursor-pointer"
                                     style={{ background: "transparent", borderColor: "var(--border)", color: "var(--fg-faint)" }}
                                     title="Remover"
+                                    aria-label="Remover"
                                   >
                                     <X size={12} strokeWidth={1.75} />
                                   </button>
@@ -170,9 +172,10 @@ export default async function AdminPage({
                               <form action={adminCancelInvite.bind(null, org.id, inv.id)}>
                                 <button
                                   type="submit"
-                                  className="flex items-center justify-center w-6 h-6 rounded-[6px] border cursor-pointer flex-shrink-0"
+                                  className="flex items-center justify-center w-6 h-6 rounded-[8px] border cursor-pointer flex-shrink-0"
                                   style={{ background: "transparent", borderColor: "var(--border)", color: "var(--fg-faint)" }}
                                   title="Cancelar convite"
+                                  aria-label="Cancelar convite"
                                 >
                                   <X size={12} strokeWidth={1.75} />
                                 </button>
@@ -185,12 +188,12 @@ export default async function AdminPage({
                               name="email"
                               type="email"
                               placeholder="e-mail@empresa.com"
-                              className="min-w-0 flex-1 rounded-[6px] border px-2 py-1 text-[11.5px] outline-none"
+                              className="min-w-0 flex-1 rounded-[8px] border px-2 py-1 text-[11.5px] outline-none"
                               style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)" }}
                             />
                             <button
                               type="submit"
-                              className="text-[11px] font-medium px-2.5 py-1 rounded-[6px] border cursor-pointer flex-shrink-0"
+                              className="text-[11px] font-medium px-2.5 py-1 rounded-[8px] border cursor-pointer flex-shrink-0"
                               style={{ background: "var(--primary)", borderColor: "var(--primary)", color: "#ffffff" }}
                             >
                               + adicionar
@@ -220,7 +223,7 @@ export default async function AdminPage({
                             <form action={extendTrial.bind(null, org.id, 30)}>
                               <button
                                 type="submit"
-                                className="text-[11px] font-medium px-2 py-1 rounded-[6px] border cursor-pointer"
+                                className="text-[11px] font-medium px-2 py-1 rounded-[8px] border cursor-pointer"
                                 style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}
                               >
                                 +30 dias
@@ -230,7 +233,7 @@ export default async function AdminPage({
                               <form action={removeTrialLimit.bind(null, org.id)}>
                                 <button
                                   type="submit"
-                                  className="text-[11px] font-medium px-2 py-1 rounded-[6px] border cursor-pointer"
+                                  className="text-[11px] font-medium px-2 py-1 rounded-[8px] border cursor-pointer"
                                   style={{ background: "transparent", borderColor: "var(--border)", color: "var(--fg-faint)" }}
                                 >
                                   Sem limite

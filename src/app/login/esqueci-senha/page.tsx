@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requestPasswordReset } from "@/lib/actions/auth";
 import { FormField } from "@/components/FormField";
+import { ArrowLeft } from "lucide-react";
 
 export default async function EsqueciSenhaPage({
   searchParams,
@@ -39,7 +40,7 @@ export default async function EsqueciSenhaPage({
         {params.sent ? (
           <div
             className="rounded-[8px] border px-4 py-3 text-[12.5px] leading-[1.6]"
-            style={{ borderColor: "var(--good)", color: "var(--good)" }}
+            style={{ borderColor: "var(--primary)", color: "var(--primary)" }}
           >
             Se esse e-mail tiver uma conta, mandamos um link de redefinição pra ele. Confira sua caixa de entrada (e o spam).
           </div>
@@ -57,8 +58,9 @@ export default async function EsqueciSenhaPage({
         )}
 
         <p className="text-[12.5px] text-center mt-6" style={{ color: "var(--fg-muted)" }}>
-          <Link href="/login" style={{ color: "var(--primary)" }}>
-            ← Voltar pro login
+          <Link href="/login" className="inline-flex items-center gap-1" style={{ color: "var(--primary)" }}>
+            <ArrowLeft size={12} strokeWidth={2} />
+            Voltar pro login
           </Link>
         </p>
       </div>

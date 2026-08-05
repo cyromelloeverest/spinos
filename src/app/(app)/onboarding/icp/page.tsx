@@ -1,6 +1,7 @@
 import { createICP } from "@/lib/actions/onboarding";
 import { FormField } from "@/components/FormField";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
+import { ArrowRight } from "lucide-react";
 
 export default async function OnboardingICPPage({
   searchParams,
@@ -78,10 +79,11 @@ export default async function OnboardingICPPage({
 
         <button
           type="submit"
-          className="mt-2 self-start text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer"
+          className="mt-2 self-start flex items-center gap-1.5 text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer"
           style={{ background: "var(--primary)", borderColor: "var(--primary)", color: "#ffffff" }}
         >
-          Concluir cadastro →
+          Concluir cadastro
+          <ArrowRight size={14} strokeWidth={2} />
         </button>
       </form>
     </div>

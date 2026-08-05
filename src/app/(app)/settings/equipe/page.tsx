@@ -63,7 +63,7 @@ export default async function EquipeSettingsPage({
       </p>
 
       {params.invited && (
-        <div className="mb-6 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--good)", color: "var(--good)" }}>
+        <div className="mb-6 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>
           Convite enviado.
         </div>
       )}
@@ -95,6 +95,7 @@ export default async function EquipeSettingsPage({
                   className="flex items-center justify-center w-8 h-8 rounded-[8px] border cursor-pointer flex-shrink-0"
                   style={{ background: "transparent", borderColor: "var(--border)", color: "var(--fg-faint)" }}
                   title="Remover da equipe"
+                  aria-label="Remover da equipe"
                 >
                   <X size={14} strokeWidth={1.75} />
                 </button>
@@ -124,6 +125,7 @@ export default async function EquipeSettingsPage({
                   className="flex items-center justify-center w-8 h-8 rounded-[8px] border cursor-pointer flex-shrink-0"
                   style={{ background: "transparent", borderColor: "var(--border)", color: "var(--fg-faint)" }}
                   title="Cancelar convite"
+                  aria-label="Cancelar convite"
                 >
                   <X size={14} strokeWidth={1.75} />
                 </button>

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
+import { EmptyState } from "@/components/EmptyState";
 import { faviconUrl } from "@/lib/favicon";
 import { SIGNAL_CATEGORY_LABEL, SIGNAL_CATEGORY_ICON } from "@/lib/signal-categories";
 import { ExternalLink, Flame } from "lucide-react";
@@ -78,9 +79,7 @@ export default async function NewsPage() {
 
       <div className="px-4 md:px-10 pt-6 pb-16 max-w-[1080px]">
         {stories.length === 0 && (
-          <div className="rounded-[10px] border border-dashed p-6 text-[13px] text-center" style={{ borderColor: "var(--border)", color: "var(--fg-faint)" }}>
-            Nenhuma notícia ainda — rode uma busca de oportunidades pra começar a coletar sinais.
-          </div>
+          <EmptyState message="Nenhuma notícia ainda — rode uma busca de oportunidades pra começar a coletar sinais." />
         )}
 
         {hero && <HeroCard link={hero} />}
@@ -144,7 +143,7 @@ function HeroCard({ link }: { link: StoryLink }) {
   return (
     <a
       href={`/company/${opportunityScore.id}`}
-      className="block rounded-[20px] border p-6 md:p-7 no-underline"
+      className="block rounded-[16px] border p-6 md:p-7 no-underline"
       style={{ borderColor: "var(--primary-line)", background: "var(--card)", color: "var(--fg)", boxShadow: "var(--shadow-card)" }}
     >
       <div className="flex items-center gap-3 mb-4 flex-wrap">

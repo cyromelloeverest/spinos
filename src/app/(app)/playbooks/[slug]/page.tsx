@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { getPlaybook } from "@/lib/playbooks";
-import { Clock } from "lucide-react";
+import { Clock, ArrowLeft } from "lucide-react";
 
 export default async function PlaybookDetailPage({
   params,
@@ -18,8 +18,9 @@ export default async function PlaybookDetailPage({
 
   return (
     <div className="pt-6 px-4 md:px-10 pb-16 max-w-[680px]">
-      <Link href="/playbooks" className="text-[12.5px] mb-4.5 inline-block no-underline" style={{ color: "var(--fg-muted)" }}>
-        ← Playbooks
+      <Link href="/playbooks" className="text-[12.5px] mb-4.5 inline-flex items-center gap-1 no-underline" style={{ color: "var(--fg-muted)" }}>
+        <ArrowLeft size={13} strokeWidth={2} />
+        Playbooks
       </Link>
 
       <div

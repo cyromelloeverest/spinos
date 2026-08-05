@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
+import { EmptyState } from "@/components/EmptyState";
 import { ScriptCard } from "@/components/ScriptCard";
 import { buildSalesScript } from "@/lib/sales-script";
 
@@ -48,11 +49,7 @@ export default async function ScriptsPage() {
       </div>
 
       <div className="px-4 md:px-10 pt-6 pb-16 flex flex-col gap-2.5 max-w-[720px]">
-        {opportunities.length === 0 && (
-          <div className="rounded-[10px] border border-dashed p-6 text-[13px] text-center" style={{ borderColor: "var(--border)", color: "var(--fg-faint)" }}>
-            Nenhuma oportunidade ativa no momento.
-          </div>
-        )}
+        {opportunities.length === 0 && <EmptyState message="Nenhuma oportunidade ativa no momento." />}
 
         {opportunities.map((opp) => {
           const script = buildSalesScript({

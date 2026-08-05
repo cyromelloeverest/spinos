@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 export default function ConviteInvalidoPage() {
   return (
@@ -9,8 +10,9 @@ export default function ConviteInvalidoPage() {
       <p className="text-[13.5px] leading-[1.6] mb-3" style={{ color: "var(--fg-muted)" }}>
         Esse link de convite não é mais válido. Peça para quem te convidou enviar um novo.
       </p>
-      <Link href="/login" className="text-[13px] no-underline" style={{ color: "var(--primary)" }}>
-        Voltar para o login →
+      <Link href="/login" className="text-[13px] inline-flex items-center gap-1 no-underline" style={{ color: "var(--primary)" }}>
+        Voltar para o login
+        <ArrowRight size={13} strokeWidth={2} />
       </Link>
     </div>
   );

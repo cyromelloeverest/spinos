@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { setStage } from "@/lib/actions/pipeline";
 import { SpinosScore } from "./SpinosScore";
+import { PIPELINE_STAGE_ORDER, PIPELINE_STAGE_LABEL, pipelineStageColor } from "@/lib/pipeline-stages";
 
 export type PipelineCard = {
   id: string;
@@ -16,13 +17,7 @@ export type PipelineCard = {
   lastActionByName: string | null;
 };
 
-const COLUMNS: { stage: string; label: string }[] = [
-  { stage: "CONTATO_FEITO", label: "Contato feito" },
-  { stage: "VISITA_AGENDADA", label: "Visita agendada" },
-  { stage: "PROPOSTA_ENVIADA", label: "Proposta enviada" },
-  { stage: "VENDIDO", label: "Vendido" },
-  { stage: "PERDIDO", label: "Perdido" },
-];
+const COLUMNS = PIPELINE_STAGE_ORDER.map((stage) => ({ stage, label: PIPELINE_STAGE_LABEL[stage] }));
 
 export function PipelineBoard({ initialCards }: { initialCards: PipelineCard[] }) {
   const [cards, setCards] = useState(initialCards);
@@ -62,8 +57,7 @@ export function PipelineBoard({ initialCards }: { initialCards: PipelineCard[] }
               <div
                 className="text-[12px] font-semibold uppercase"
                 style={{
-                  color:
-                    col.stage === "VENDIDO" ? "var(--good)" : col.stage === "PERDIDO" ? "var(--critical)" : "var(--fg-muted)",
+                  color: pipelineStageColor(col.stage, "var(--fg-muted)"),
                   letterSpacing: "0.04em",
                 }}
               >

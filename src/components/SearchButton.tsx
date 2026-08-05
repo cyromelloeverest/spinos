@@ -101,7 +101,7 @@ function ConfirmPhase({
         <button
           type="button"
           onClick={onCancel}
-          className="flex items-center justify-center w-7 h-7 rounded-[6px] border-0"
+          className="flex items-center justify-center w-7 h-7 rounded-[8px] border-0"
           style={{ background: "transparent", color: "var(--fg-faint)", cursor: "pointer" }}
           aria-label="Fechar"
         >

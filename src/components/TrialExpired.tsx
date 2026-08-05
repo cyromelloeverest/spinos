@@ -21,7 +21,7 @@ export function TrialExpired({ signOutAction }: { signOutAction: () => Promise<v
           {Object.values(PLANS).map((plan) => (
             <div
               key={plan.id}
-              className="rounded-[14px] border p-4 flex flex-col gap-3"
+              className="rounded-[16px] border p-4 flex flex-col gap-3"
               style={{ background: "var(--card)", borderColor: "var(--border)" }}
             >
               <div>

@@ -4,13 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { SpinosScore } from "@/components/SpinosScore";
+import { EmptyState } from "@/components/EmptyState";
+import { PIPELINE_STAGE_LABEL } from "@/lib/pipeline-stages";
 
 const STATUS_LABEL: Record<string, { label: string; bg: string; color: string }> = {
-  CONTATO_FEITO: { label: "Contato feito", bg: "var(--primary-soft)", color: "var(--primary)" },
-  VISITA_AGENDADA: { label: "Visita agendada", bg: "var(--primary-soft)", color: "var(--primary)" },
-  PROPOSTA_ENVIADA: { label: "Proposta enviada", bg: "var(--primary-soft)", color: "var(--primary)" },
-  VENDIDO: { label: "Vendido", bg: "var(--good-soft)", color: "var(--good)" },
-  PERDIDO: { label: "Perdido", bg: "var(--card-hover)", color: "var(--critical)" },
+  CONTATO_FEITO: { label: PIPELINE_STAGE_LABEL.CONTATO_FEITO, bg: "var(--primary-soft)", color: "var(--primary)" },
+  VISITA_AGENDADA: { label: PIPELINE_STAGE_LABEL.VISITA_AGENDADA, bg: "var(--primary-soft)", color: "var(--primary)" },
+  PROPOSTA_ENVIADA: { label: PIPELINE_STAGE_LABEL.PROPOSTA_ENVIADA, bg: "var(--primary-soft)", color: "var(--primary)" },
+  VENDIDO: { label: PIPELINE_STAGE_LABEL.VENDIDO, bg: "var(--good-soft)", color: "var(--good)" },
+  PERDIDO: { label: PIPELINE_STAGE_LABEL.PERDIDO, bg: "var(--card-hover)", color: "var(--critical)" },
   DESCARTADA: { label: "Descartada", bg: "var(--card-hover)", color: "var(--fg-faint)" },
   ATIVA: { label: "Ativa", bg: "var(--card-hover)", color: "var(--fg-muted)" },
 };
@@ -58,11 +60,7 @@ export default async function HistoricoPage() {
       </div>
 
       <div className="px-4 md:px-10 pt-6 pb-16 flex flex-col gap-2 max-w-[880px]">
-        {opportunities.length === 0 && (
-          <div className="rounded-[10px] border border-dashed p-6 text-[13px] text-center" style={{ borderColor: "var(--border)", color: "var(--fg-faint)" }}>
-            Nenhuma oportunidade encontrada ainda.
-          </div>
-        )}
+        {opportunities.length === 0 && <EmptyState message="Nenhuma oportunidade encontrada ainda." />}
 
         {opportunities.map((opp) => {
           const key = statusKey(opp);

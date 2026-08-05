@@ -59,7 +59,7 @@ export default async function EmpresaSettingsPage({
       {params.saved && (
         <div
           className="mb-6 rounded-[8px] border px-4 py-3 text-[12.5px]"
-          style={{ borderColor: "var(--good)", color: "var(--good)" }}
+          style={{ borderColor: "var(--primary)", color: "var(--primary)" }}
         >
           Alterações salvas com sucesso.
         </div>
@@ -67,7 +67,7 @@ export default async function EmpresaSettingsPage({
 
       <Section title="Assinatura">
         {params.assinatura === "sucesso" && (
-          <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--good)", color: "var(--good)" }}>
+          <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>
             Assinatura confirmada! Seu plano foi atualizado.
           </div>
         )}
@@ -83,7 +83,7 @@ export default async function EmpresaSettingsPage({
         )}
 
         <div
-          className="rounded-[14px] border p-4 mb-4 flex items-center justify-between gap-4 flex-wrap"
+          className="rounded-[16px] border p-4 mb-4 flex items-center justify-between gap-4 flex-wrap"
           style={{ background: "var(--card)", borderColor: "var(--border)" }}
         >
           <div>
@@ -111,7 +111,7 @@ export default async function EmpresaSettingsPage({
             return (
               <div
                 key={plan.id}
-                className="rounded-[14px] border p-4 flex flex-col gap-3"
+                className="rounded-[16px] border p-4 flex flex-col gap-3"
                 style={{
                   borderColor: isCurrent ? "var(--primary-line)" : "var(--border)",
                   background: "var(--card)",
@@ -129,7 +129,7 @@ export default async function EmpresaSettingsPage({
                   </div>
                 </div>
                 {isCurrent ? (
-                  <div className="text-[12px] font-medium flex items-center gap-1.5" style={{ color: "var(--good)" }}>
+                  <div className="text-[12px] font-medium flex items-center gap-1.5" style={{ color: "var(--primary)" }}>
                     <Check size={14} strokeWidth={2} />
                     Plano atual
                   </div>
@@ -204,7 +204,7 @@ export default async function EmpresaSettingsPage({
           </div>
         )}
         {params.emailAtualizado && (
-          <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--good)", color: "var(--good)" }}>
+          <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>
             E-mail atualizado com sucesso.
           </div>
         )}

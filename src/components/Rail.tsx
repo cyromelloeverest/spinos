@@ -83,7 +83,7 @@ export function Rail({
         <button
           type="button"
           onClick={onNavigate}
-          className="md:hidden flex items-center justify-center w-7 h-7 rounded-[6px]"
+          className="md:hidden flex items-center justify-center w-7 h-7 rounded-[8px]"
           style={{ color: "var(--dark-fg-muted)", background: "transparent", border: "none" }}
           aria-label="Fechar menu"
         >
@@ -133,7 +133,7 @@ export function Rail({
           {roadmapItems.map((label) => (
             <div
               key={label}
-              className="flex items-start gap-2.5 px-2.5 py-[7px] rounded-[7px] text-[12.5px] leading-[1.4]"
+              className="flex items-start gap-2.5 px-2.5 py-[7px] rounded-[8px] text-[12.5px] leading-[1.4]"
               style={{ color: "var(--dark-fg-muted)", opacity: 0.65 }}
             >
               <span
@@ -161,7 +161,7 @@ export function Rail({
               return (
                 <div
                   key={item.label}
-                  className="flex items-center gap-2.5 px-2.5 py-[7px] rounded-[7px] text-[13.5px]"
+                  className="flex items-center gap-2.5 px-2.5 py-[7px] rounded-[8px] text-[13.5px]"
                   style={{ color: "var(--dark-fg-muted)", opacity: 0.5, cursor: "default" }}
                 >
                   <Icon size={16} strokeWidth={1.75} className="flex-shrink-0" />
@@ -174,7 +174,7 @@ export function Rail({
                 key={item.href}
                 href={item.href}
                 onClick={onNavigate}
-                className="flex items-center gap-2.5 px-2.5 py-[7px] rounded-[7px] text-[13.5px] no-underline"
+                className="flex items-center gap-2.5 px-2.5 py-[7px] rounded-[8px] text-[13.5px] no-underline"
                 style={{
                   color: active ? "#ffffff" : "var(--dark-fg-muted)",
                   background: active ? "var(--dark-hover)" : "transparent",
@@ -199,7 +199,7 @@ export function Rail({
           <Link
             href="/admin"
             onClick={onNavigate}
-            className="flex items-center gap-2.5 px-2.5 py-[7px] rounded-[7px] text-[13.5px] no-underline"
+            className="flex items-center gap-2.5 px-2.5 py-[7px] rounded-[8px] text-[13.5px] no-underline"
             style={{
               color: pathname === "/admin" ? "#ffffff" : "var(--dark-fg-muted)",
               background: pathname === "/admin" ? "var(--dark-hover)" : "transparent",
@@ -254,7 +254,7 @@ export function Rail({
             }}
           >
             <div
-              className="w-[26px] h-[26px] rounded-[6px] flex items-center justify-center text-[10.5px] flex-shrink-0 font-semibold"
+              className="w-[26px] h-[26px] rounded-[8px] flex items-center justify-center text-[10.5px] flex-shrink-0 font-semibold"
               style={{
                 background: "var(--primary)",
                 color: "#ffffff",

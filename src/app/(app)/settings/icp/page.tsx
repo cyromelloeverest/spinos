@@ -43,7 +43,7 @@ export default async function IcpSettingsPage({
       {params.saved && (
         <div
           className="mb-6 rounded-[8px] border px-4 py-3 text-[12.5px]"
-          style={{ borderColor: "var(--good)", color: "var(--good)" }}
+          style={{ borderColor: "var(--primary)", color: "var(--primary)" }}
         >
           ICP atualizado com sucesso.
         </div>

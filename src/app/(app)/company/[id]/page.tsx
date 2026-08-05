@@ -9,14 +9,8 @@ import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
 import { linkedinPersonSearchUrl, linkedinCompanySearchUrl } from "@/lib/linkedin";
 import { LinkedInButton } from "@/components/LinkedInButton";
 import { SpinosScore } from "@/components/SpinosScore";
-
-const STAGE_LABEL: Record<string, string> = {
-  CONTATO_FEITO: "Contato feito",
-  VISITA_AGENDADA: "Visita agendada",
-  PROPOSTA_ENVIADA: "Proposta enviada",
-  VENDIDO: "Vendido",
-  PERDIDO: "Perdido",
-};
+import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
+import { PIPELINE_STAGE_LABEL, type PipelineStage } from "@/lib/pipeline-stages";
 
 export default async function CompanyPage({
   params,
@@ -48,10 +42,11 @@ export default async function CompanyPage({
     <div className="pt-6 px-4 md:px-10 pb-16 max-w-[760px]">
       <Link
         href="/oportunidades"
-        className="text-[12.5px] mb-4.5 inline-block no-underline"
+        className="text-[12.5px] mb-4.5 inline-flex items-center gap-1 no-underline"
         style={{ color: "var(--fg-muted)" }}
       >
-        ← Oportunidades
+        <ArrowLeft size={13} strokeWidth={2} />
+        Oportunidades
       </Link>
 
       <div
@@ -122,7 +117,8 @@ export default async function CompanyPage({
                         className="rounded-[3px]"
                       />
                     )}
-                    Fonte ↗
+                    Fonte
+                    <ExternalLink size={11} strokeWidth={1.75} />
                   </a>
                 )}
               </div>
@@ -165,7 +161,7 @@ export default async function CompanyPage({
       </Section>
 
       <Section title="Argumentos comerciais">
-        <List items={opp.commercialArguments} markerColor="var(--good)" />
+        <List items={opp.commercialArguments} markerColor="var(--primary)" />
       </Section>
 
       <Section title="Possíveis objeções">
@@ -214,15 +210,16 @@ export default async function CompanyPage({
               className="text-[12.5px] font-semibold rounded-full px-3.5 py-2"
               style={{ background: "var(--primary-soft)", color: "var(--primary)" }}
             >
-              No pipeline: {STAGE_LABEL[opp.stage]}
+              No pipeline: {PIPELINE_STAGE_LABEL[opp.stage as PipelineStage]}
             </div>
             {opp.lastActionByUser && (
               <span className="text-[12px]" style={{ color: "var(--fg-faint)" }}>
                 por {opp.lastActionByUser.name || opp.lastActionByUser.email}
               </span>
             )}
-            <Link href="/pipeline" className="text-[13px] no-underline" style={{ color: "var(--fg-muted)" }}>
-              Ver no pipeline →
+            <Link href="/pipeline" className="text-[13px] inline-flex items-center gap-1 no-underline" style={{ color: "var(--fg-muted)" }}>
+              Ver no pipeline
+              <ArrowRight size={13} strokeWidth={2} />
             </Link>
           </>
         ) : (
