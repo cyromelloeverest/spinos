@@ -180,6 +180,11 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
     where: { state: { in: [...new Set(opportunities.map((o) => o.state))] } },
   });
 
+  // Uma missão por execução de busca — agrupa as oportunidades encontradas
+  // agora pra o Dashboard destacar "o resultado desta busca" como um todo.
+  const mission =
+    opportunities.length > 0 ? await prisma.mission.create({ data: { organizationId } }) : null;
+
   for (const opp of opportunities) {
     let company = findBestMatch(opp.companyName, opp.city, companyPool);
 
@@ -219,6 +224,7 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
         commercialArguments: opp.commercialArguments,
         objections: opp.objections,
         computedAt: runTimestamp,
+        missionId: mission?.id,
       },
       create: {
         organizationId,
@@ -236,24 +242,35 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
         commercialArguments: opp.commercialArguments,
         objections: opp.objections,
         computedAt: runTimestamp,
+        missionId: mission?.id,
       },
     });
 
     for (const signal of opp.signals) {
-      const created = await prisma.signal.create({
-        data: {
-          companyId: company.id,
-          category: signal.category,
-          sourceType: "ai_web_search",
-          sourceUrl: signal.sourceUrl,
-          imageUrl: imageUrlBySource.get(signal.sourceUrl) ?? null,
-          title: SIGNAL_CATEGORY_LABEL[signal.category] ?? signal.category,
-          description: signal.text,
-          detectedAt: runTimestamp,
-        },
+      // Reaproveita um sinal já existente pra mesma empresa+fonte em vez de
+      // recriar — sem isso, uma notícia que continua "no ar" entre buscas
+      // virava um card duplicado no Radar a cada execução.
+      const existingSignal = await prisma.signal.findFirst({
+        where: { companyId: company.id, sourceUrl: signal.sourceUrl },
       });
-      await prisma.opportunityScoreSignal.create({
-        data: { opportunityScoreId: score.id, signalId: created.id },
+      const signalRecord =
+        existingSignal ??
+        (await prisma.signal.create({
+          data: {
+            companyId: company.id,
+            category: signal.category,
+            sourceType: "ai_web_search",
+            sourceUrl: signal.sourceUrl,
+            imageUrl: imageUrlBySource.get(signal.sourceUrl) ?? null,
+            title: SIGNAL_CATEGORY_LABEL[signal.category] ?? signal.category,
+            description: signal.text,
+            detectedAt: runTimestamp,
+          },
+        }));
+      await prisma.opportunityScoreSignal.upsert({
+        where: { opportunityScoreId_signalId: { opportunityScoreId: score.id, signalId: signalRecord.id } },
+        update: {},
+        create: { opportunityScoreId: score.id, signalId: signalRecord.id },
       });
     }
   }

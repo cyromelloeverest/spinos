@@ -4,6 +4,7 @@ import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { EmptyState } from "@/components/EmptyState";
 import { SignalImage } from "@/components/SignalImage";
+import { SpinosScore } from "@/components/SpinosScore";
 import { faviconUrl } from "@/lib/favicon";
 import { SIGNAL_CATEGORY_LABEL, SIGNAL_CATEGORY_ICON } from "@/lib/signal-categories";
 import { ExternalLink, Flame } from "lucide-react";
@@ -30,7 +31,7 @@ function fetchStories(organizationId: string) {
     where: { opportunityScore: { organizationId, status: { not: "DISMISSED" } } },
     include: {
       signal: { include: { company: true } },
-      opportunityScore: { select: { id: true, urgency: true } },
+      opportunityScore: { select: { id: true, urgency: true, score: true } },
     },
     orderBy: { signal: { detectedAt: "desc" } },
   });
@@ -49,14 +50,15 @@ export default async function NewsPage() {
   }
   if (dbError) return <DbSetupNotice />;
 
+  // Um sinal global pode estar ligado a mais de uma oportunidade desta
+  // organização (ex: dois ICPs diferentes casando com a mesma empresa) — o
+  // feed mostra cada sinal uma única vez.
   const seen = new Set<string>();
   const stories = links.filter((l) => {
     if (seen.has(l.signal.id)) return false;
     seen.add(l.signal.id);
     return true;
   });
-
-  const [hero, ...rest] = stories;
 
   return (
     <div>
@@ -69,20 +71,14 @@ export default async function NewsPage() {
         </p>
       </div>
 
-      <div className="px-4 md:px-10 pt-6 pb-16 max-w-[1080px]">
+      <div className="px-4 md:px-10 pt-6 pb-16 max-w-[640px] mx-auto flex flex-col gap-4">
         {stories.length === 0 && (
           <EmptyState message="Nenhuma notícia ainda — rode uma busca de oportunidades pra começar a coletar sinais." />
         )}
 
-        {hero && <HeroCard link={hero} />}
-
-        {rest.length > 0 && (
-          <div className="grid gap-4 mt-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
-            {rest.map((link) => (
-              <StoryCard key={link.id} link={link} />
-            ))}
-          </div>
-        )}
+        {stories.map((link) => (
+          <FeedCard key={link.id} link={link} />
+        ))}
       </div>
     </div>
   );
@@ -127,94 +123,70 @@ function UrgencyFlag({ urgency }: { urgency: string }) {
   return <Flame size={12} strokeWidth={2} style={{ color: "var(--primary)" }} className="flex-shrink-0" />;
 }
 
-function HeroCard({ link }: { link: StoryLink }) {
+function FeedCard({ link }: { link: StoryLink }) {
   const { signal, opportunityScore } = link;
   const favicon = signal.sourceUrl ? faviconUrl(signal.sourceUrl) : null;
   const headline = headlineFor(signal, SIGNAL_CATEGORY_LABEL[signal.category] ?? SIGNAL_CATEGORY_LABEL.OTHER);
 
   return (
-    <a
-      href={`/company/${opportunityScore.id}`}
-      className="block rounded-[16px] border overflow-hidden no-underline"
-      style={{ borderColor: "var(--primary-line)", background: "var(--card)", color: "var(--fg)", boxShadow: "var(--shadow-card)" }}
+    <article
+      className="rounded-[16px] border overflow-hidden"
+      style={{ borderColor: "var(--border)", background: "var(--card)", boxShadow: "var(--shadow-card)" }}
     >
-      {signal.imageUrl && (
-        <SignalImage
-          src={signal.imageUrl}
-          alt=""
-          className="w-full object-cover"
-          style={{ height: "260px", background: "var(--card-hover)" }}
-        />
-      )}
-      <div className="p-6 md:p-7">
-        <div className="flex items-center gap-3 mb-4 flex-wrap">
-          <CompanyAvatar name={signal.company.name} size={44} />
-          <div className="min-w-0">
+      <a href={`/company/${opportunityScore.id}`} className="block no-underline" style={{ color: "var(--fg)" }}>
+        <div className="flex items-center gap-3 p-4 pb-3">
+          <CompanyAvatar name={signal.company.name} size={40} />
+          <div className="min-w-0 flex-1">
             <div className="text-[13.5px] font-semibold truncate">{signal.company.name}</div>
             <div className="flex items-center gap-1.5 text-[11.5px]" style={{ color: "var(--fg-faint)" }}>
               <UrgencyFlag urgency={opportunityScore.urgency} />
               {formatRelativeDate(signal.detectedAt)}
             </div>
           </div>
-          <div className="ml-auto">
-            <CategoryBadge category={signal.category} />
-          </div>
+          <CategoryBadge category={signal.category} />
         </div>
-        <div className="text-[22px] font-bold leading-[1.3] mb-3" style={{ textWrap: "balance" }}>
+
+        {signal.imageUrl && (
+          <SignalImage
+            src={signal.imageUrl}
+            alt=""
+            className="w-full object-cover"
+            style={{ height: "220px", background: "var(--card-hover)" }}
+          />
+        )}
+
+        <p className="text-[14.5px] font-semibold leading-[1.45] m-0 px-4 pt-3.5" style={{ textWrap: "balance" }}>
           {headline}
+        </p>
+      </a>
+
+      <div
+        className="flex items-center justify-between gap-3 px-4 py-3 mt-3.5 border-t"
+        style={{ borderColor: "var(--border)" }}
+      >
+        <div className="flex items-center gap-2">
+          <SpinosScore value={opportunityScore.score} variant="compact" />
+          <span className="text-[10.5px] font-semibold uppercase" style={{ color: "var(--fg-faint)", letterSpacing: "0.05em" }}>
+            Spinos Score
+          </span>
         </div>
         {signal.sourceUrl && (
-          <span className="text-[12px] inline-flex items-center gap-1.5 font-medium" style={{ color: "var(--primary)" }}>
+          <a
+            href={signal.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[12px] inline-flex items-center gap-1.5 font-medium no-underline flex-shrink-0"
+            style={{ color: "var(--primary)" }}
+          >
             {favicon && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={favicon} alt="" width={14} height={14} className="rounded-[3px]" />
             )}
             Ver fonte
             <ExternalLink size={12} strokeWidth={1.75} />
-          </span>
+          </a>
         )}
       </div>
-    </a>
-  );
-}
-
-function StoryCard({ link }: { link: StoryLink }) {
-  const { signal, opportunityScore } = link;
-  const headline = headlineFor(signal, SIGNAL_CATEGORY_LABEL[signal.category] ?? SIGNAL_CATEGORY_LABEL.OTHER);
-  const trimmedHeadline = headline.length > 150 ? headline.slice(0, 150) + "…" : headline;
-  const favicon = signal.sourceUrl ? faviconUrl(signal.sourceUrl) : null;
-
-  return (
-    <a
-      href={`/company/${opportunityScore.id}`}
-      className="rounded-[16px] border overflow-hidden flex flex-col no-underline"
-      style={{ borderColor: "var(--border)", color: "var(--fg)", background: "var(--card)", boxShadow: "var(--shadow-card)" }}
-    >
-      {signal.imageUrl && (
-        <SignalImage
-          src={signal.imageUrl}
-          alt=""
-          className="w-full object-cover flex-shrink-0"
-          style={{ height: "130px", background: "var(--card-hover)" }}
-        />
-      )}
-      <div className="p-4.5 flex flex-col gap-3 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <CategoryBadge category={signal.category} />
-          <span className="flex items-center gap-1.5 text-[11px] flex-shrink-0" style={{ color: "var(--fg-faint)" }}>
-            <UrgencyFlag urgency={opportunityScore.urgency} />
-            {formatRelativeDate(signal.detectedAt)}
-          </span>
-        </div>
-        <p className="text-[13.5px] font-semibold leading-[1.45] m-0 flex-1">{trimmedHeadline}</p>
-        <div className="flex items-center justify-between text-[11px]" style={{ color: "var(--fg-faint)" }}>
-          <span className="truncate">{signal.company.name}</span>
-          {favicon && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={favicon} alt="" width={13} height={13} className="rounded-[3px] flex-shrink-0" />
-          )}
-        </div>
-      </div>
-    </a>
+    </article>
   );
 }

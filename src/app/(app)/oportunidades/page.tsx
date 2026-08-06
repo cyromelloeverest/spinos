@@ -49,12 +49,14 @@ export default async function OpportunitiesPage({
   let opportunities: Awaited<ReturnType<typeof fetchOpportunities>> = [];
   let organization: Awaited<ReturnType<typeof prisma.organization.findUnique>> = null;
   let searchesThisMonth = 0;
+  let latestMission: Awaited<ReturnType<typeof prisma.mission.findFirst>> = null;
   let dbError = false;
   try {
-    [opportunities, organization, searchesThisMonth] = await Promise.all([
+    [opportunities, organization, searchesThisMonth, latestMission] = await Promise.all([
       fetchOpportunities(organizationId),
       prisma.organization.findUnique({ where: { id: organizationId } }),
       prisma.searchRun.count({ where: { organizationId, createdAt: { gte: startOfCurrentMonth() } } }),
+      prisma.mission.findFirst({ where: { organizationId }, orderBy: { createdAt: "desc" } }),
     ]);
   } catch {
     dbError = true;
@@ -100,6 +102,11 @@ export default async function OpportunitiesPage({
             <Target size={22} strokeWidth={1.75} />
           </div>
           <div className="min-w-0">
+            {latestMission && (
+              <div className="text-[11px] uppercase font-semibold mb-1" style={{ color: "var(--primary)", letterSpacing: "0.06em" }}>
+                Missão de {latestMission.createdAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })}
+              </div>
+            )}
             <h1 className="text-[20px] font-bold m-0 mb-0.5" style={{ textWrap: "balance" }}>
               Empresas que você deveria abordar esta semana
             </h1>

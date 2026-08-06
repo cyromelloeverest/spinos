@@ -13,8 +13,10 @@ const {
   searchRunDelete,
   companyFindMany,
   companyCreate,
+  signalFindFirst,
   signalCreate,
-  opportunityScoreSignalCreate,
+  opportunityScoreSignalUpsert,
+  missionCreate,
   parseMock,
 } = vi.hoisted(() => ({
   organizationFindUnique: vi.fn(),
@@ -27,8 +29,10 @@ const {
   searchRunDelete: vi.fn(),
   companyFindMany: vi.fn(),
   companyCreate: vi.fn(),
+  signalFindFirst: vi.fn(),
   signalCreate: vi.fn(),
-  opportunityScoreSignalCreate: vi.fn(),
+  opportunityScoreSignalUpsert: vi.fn(),
+  missionCreate: vi.fn(),
   parseMock: vi.fn(),
 }));
 
@@ -39,10 +43,13 @@ vi.mock("@/lib/prisma", () => ({
     opportunityScore: { count: opportunityScoreCount, upsert: opportunityScoreUpsert },
     searchRun: { count: searchRunCount, create: searchRunCreate, delete: searchRunDelete },
     company: { findMany: companyFindMany, create: companyCreate },
-    signal: { create: signalCreate },
-    opportunityScoreSignal: { create: opportunityScoreSignalCreate },
+    signal: { findFirst: signalFindFirst, create: signalCreate },
+    opportunityScoreSignal: { upsert: opportunityScoreSignalUpsert },
+    mission: { create: missionCreate },
   },
 }));
+
+vi.mock("@/lib/og-image", () => ({ fetchOgImage: vi.fn().mockResolvedValue(null) }));
 
 vi.mock("@anthropic-ai/sdk", () => {
   class MockAPIError extends Error {}
@@ -103,6 +110,10 @@ beforeEach(() => {
   searchRunDelete.mockResolvedValue(undefined);
   companyFindMany.mockResolvedValue([]);
   icpFindFirst.mockResolvedValue(baseIcp);
+  signalFindFirst.mockResolvedValue(null);
+  signalCreate.mockResolvedValue({ id: "signal-1" });
+  opportunityScoreSignalUpsert.mockResolvedValue({});
+  missionCreate.mockResolvedValue({ id: "mission-1" });
 });
 
 afterEach(() => {
@@ -339,5 +350,91 @@ describe("searchOpportunities — falha da IA reverte o estado da organização"
       where: { id: "org-1" },
       data: { lastSearchAt: previousLastSearchAt },
     });
+  });
+});
+
+describe("searchOpportunities — missão e dedup de sinais", () => {
+  const baseOpportunity = {
+    companyName: "Vetnil Nutrição Animal",
+    city: "Louveira",
+    state: "SP",
+    score: 88,
+    urgency: "ALTA",
+    headline: "Abriu vaga de gerente comercial",
+    execSummary: "Resumo.",
+    reasoning: "Racional.",
+    buyerArea: "Comercial",
+    decisionMaker: "Gerente Comercial",
+    decisionMakerName: null,
+    approach: "Abordagem.",
+    commercialArguments: [],
+    objections: [],
+    signals: [
+      {
+        category: "HIRING",
+        text: "Abriu vaga de gerente comercial",
+        sourceUrl: "https://exemplo.com/vaga",
+        sourceLabel: "Exemplo",
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    organizationFindUnique.mockResolvedValue({ ...baseOrg, plan: "ENTERPRISE" });
+    companyFindMany.mockResolvedValue([]);
+    companyCreate.mockResolvedValue({ id: "company-1", name: "Vetnil Nutrição Animal", city: "Louveira", state: "SP" });
+    opportunityScoreUpsert.mockResolvedValue({ id: "score-1" });
+  });
+
+  it("cria uma Mission e associa às oportunidades da busca quando há resultados", async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [baseOpportunity] } });
+
+    await searchOpportunities("org-1");
+
+    expect(missionCreate).toHaveBeenCalledWith({ data: { organizationId: "org-1" } });
+    expect(opportunityScoreUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({ missionId: "mission-1" }),
+        create: expect.objectContaining({ missionId: "mission-1" }),
+      }),
+    );
+  });
+
+  it("não cria Mission quando a busca não retorna oportunidades", async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
+
+    await searchOpportunities("org-1");
+
+    expect(missionCreate).not.toHaveBeenCalled();
+  });
+
+  it("reaproveita um Signal existente (mesma empresa+sourceUrl) em vez de duplicar", async () => {
+    signalFindFirst.mockResolvedValueOnce({ id: "signal-existente" });
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [baseOpportunity] } });
+
+    await searchOpportunities("org-1");
+
+    expect(signalFindFirst).toHaveBeenCalledWith({
+      where: { companyId: "company-1", sourceUrl: "https://exemplo.com/vaga" },
+    });
+    expect(signalCreate).not.toHaveBeenCalled();
+    expect(opportunityScoreSignalUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: { opportunityScoreId: "score-1", signalId: "signal-existente" },
+      }),
+    );
+  });
+
+  it("cria um Signal novo quando não existe um com a mesma empresa+sourceUrl", async () => {
+    signalFindFirst.mockResolvedValueOnce(null);
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [baseOpportunity] } });
+
+    await searchOpportunities("org-1");
+
+    expect(signalCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ companyId: "company-1", sourceUrl: "https://exemplo.com/vaga" }),
+      }),
+    );
   });
 });

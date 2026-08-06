@@ -5,7 +5,7 @@ import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-o
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { SpinosScore } from "@/components/SpinosScore";
 import { EmptyState } from "@/components/EmptyState";
-import { Target, Kanban, Trophy, Sparkles, TrendingUp, ArrowRight } from "lucide-react";
+import { Target, Kanban, Trophy, Sparkles, TrendingUp, ArrowRight, Rocket } from "lucide-react";
 import { PIPELINE_STAGE_ORDER, PIPELINE_STAGE_LABEL, pipelineStageColor } from "@/lib/pipeline-stages";
 
 function getGreeting(): string {
@@ -62,6 +62,21 @@ async function fetchDashboardData(organizationId: string) {
   const closedTotal = won + lost;
   const conversionRate = closedTotal > 0 ? Math.round((won / closedTotal) * 100) : null;
 
+  const latestMission = await prisma.mission.findFirst({
+    where: { organizationId },
+    orderBy: { createdAt: "desc" },
+    include: { opportunityScores: { select: { status: true, stage: true } } },
+  });
+  const mission =
+    latestMission && latestMission.opportunityScores.length > 0
+      ? {
+          createdAt: latestMission.createdAt,
+          total: latestMission.opportunityScores.length,
+          worked: latestMission.opportunityScores.filter((o) => o.status !== "NEW" || o.stage !== null).length,
+          won: latestMission.opportunityScores.filter((o) => o.stage === "VENDIDO").length,
+        }
+      : null;
+
   return {
     active,
     staged,
@@ -72,6 +87,7 @@ async function fetchDashboardData(organizationId: string) {
     hotCount,
     conversionRate,
     funnel: FUNNEL_STAGES.map((s, i) => ({ ...s, count: funnelCounts[i] })),
+    mission,
   };
 }
 
@@ -147,6 +163,8 @@ export default async function DashboardPage({
           <ArrowRight size={18} strokeWidth={1.75} style={{ color: "var(--fg-faint)" }} className="flex-shrink-0" />
         </Link>
       </div>
+
+      {data.mission && <MissionCard mission={data.mission} />}
 
       <div className="px-4 md:px-10 pt-4">
         {avgScoreRounded !== null ? (
@@ -299,6 +317,69 @@ export default async function DashboardPage({
             </Link>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function MissionCard({
+  mission,
+}: {
+  mission: { createdAt: Date; total: number; worked: number; won: number };
+}) {
+  const pct = Math.round((mission.worked / mission.total) * 100);
+  const dateLabel = mission.createdAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
+
+  return (
+    <div className="px-4 md:px-10 pt-4">
+      <div
+        className="rounded-[16px] border p-5 sm:p-6"
+        style={{ background: "var(--card)", borderColor: "var(--border)", boxShadow: "var(--shadow-card)" }}
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div
+            className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0"
+            style={{ background: "var(--primary-soft)", color: "var(--primary)" }}
+          >
+            <Rocket size={18} strokeWidth={1.75} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] uppercase font-semibold" style={{ color: "var(--fg-faint)", letterSpacing: "0.08em" }}>
+              Missão ativa
+            </div>
+            <div className="text-[14.5px] font-semibold">Missão de {dateLabel}</div>
+          </div>
+          {mission.won > 0 && (
+            <div
+              className="flex items-center gap-1.5 text-[11.5px] font-semibold rounded-full px-2.5 py-1 flex-shrink-0"
+              style={{ background: "var(--good-soft)", color: "var(--good)" }}
+            >
+              <Trophy size={12} strokeWidth={2} />
+              {mission.won} vendida{mission.won === 1 ? "" : "s"}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[12.5px]" style={{ color: "var(--fg-muted)" }}>
+            {mission.worked} de {mission.total} oportunidades já em ação
+          </span>
+          <span className="text-[12.5px] font-semibold" style={{ fontFamily: "var(--font-mono)" }}>
+            {pct}%
+          </span>
+        </div>
+        <div className="h-[6px] rounded-full mb-4" style={{ background: "var(--card-hover)" }}>
+          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "var(--primary)" }} />
+        </div>
+
+        <Link
+          href="/oportunidades"
+          className="inline-flex items-center gap-1 text-[12.5px] font-semibold no-underline"
+          style={{ color: "var(--primary)" }}
+        >
+          Ver oportunidades da missão
+          <ArrowRight size={13} strokeWidth={2} />
+        </Link>
       </div>
     </div>
   );

@@ -69,6 +69,7 @@ model Organization {
   crmExports        CrmExport[]
   invites           Invite[]
   searchRuns        SearchRun[]
+  missions          Mission[]
 
   @@map("organizations")
 }
@@ -329,6 +330,7 @@ model OpportunityScore {
   organizationId      String
   companyId           String
   icpId               String
+  missionId           String?
   score               Int
   urgency             Urgency
   headline            String
@@ -357,6 +359,7 @@ model OpportunityScore {
   organization     Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   company          Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   icp              ICP                      @relation(fields: [icpId], references: [id], onDelete: Cascade)
+  mission          Mission?                 @relation(fields: [missionId], references: [id], onDelete: SetNull)
   lastActionByUser User?                    @relation(fields: [lastActionByUserId], references: [id], onDelete: SetNull)
   signalsUsed      OpportunityScoreSignal[]
   feedback         Feedback?
@@ -364,7 +367,28 @@ model OpportunityScore {
 
   @@unique([organizationId, companyId, icpId])
   @@index([organizationId, score])
+  @@index([missionId])
   @@map("opportunity_scores")
+}
+
+// ============================================================
+// MISSÃO COMERCIAL — resultado de uma execução de busca no Radar
+// ============================================================
+
+// Cada busca de oportunidades pode gerar uma nova missão, agrupando as
+// oportunidades criadas/atualizadas naquela execução. A missão ativa de uma
+// organização é simplesmente a mais recente (createdAt desc) — não precisa
+// de um campo de status explícito pra isso.
+model Mission {
+  id             String   @id @default(cuid())
+  organizationId String
+  createdAt      DateTime @default(now())
+
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  opportunityScores OpportunityScore[]
+
+  @@index([organizationId, createdAt])
+  @@map("missions")
 }
 
 model OpportunityScoreSignal {
