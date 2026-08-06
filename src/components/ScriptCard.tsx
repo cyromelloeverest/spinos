@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Check, Copy } from "lucide-react";
-import { linkedinPersonSearchUrl } from "@/lib/linkedin";
+import { linkedinPersonSearchUrl, linkedinTitleSearchUrl } from "@/lib/linkedin";
 import { LinkedInButton } from "./LinkedInButton";
 import { SpinosScore } from "./SpinosScore";
 
@@ -13,6 +13,7 @@ export function ScriptCard({
   score,
   script,
   personName,
+  personTitle,
 }: {
   companyName: string;
   city: string | null;
@@ -20,7 +21,14 @@ export function ScriptCard({
   score: number;
   script: string;
   personName?: string | null;
+  personTitle?: string | null;
 }) {
+  const linkedinHref = personName
+    ? linkedinPersonSearchUrl(personName, companyName)
+    : personTitle
+      ? linkedinTitleSearchUrl(personTitle, companyName)
+      : null;
+
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -75,7 +83,9 @@ export function ScriptCard({
               {copied ? <Check size={13} strokeWidth={2} /> : <Copy size={13} strokeWidth={1.75} />}
               {copied ? "Copiado" : "Copiar script"}
             </button>
-            <LinkedInButton href={linkedinPersonSearchUrl(personName || "", companyName)} label="Buscar no LinkedIn" />
+            {linkedinHref && (
+              <LinkedInButton href={linkedinHref} label={personName ? "Buscar no LinkedIn" : "Buscar por cargo"} />
+            )}
           </div>
         </div>
       )}

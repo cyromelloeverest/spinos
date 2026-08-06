@@ -26,7 +26,11 @@ export const SignalSchema = z.object({
 });
 
 export const OpportunitySchema = z.object({
-  companyName: z.string(),
+  companyName: z
+    .string()
+    .describe(
+      "Nome oficial da empresa, limpo — sem parênteses, sigla de unidade/planta ou descrição do que ela faz (isso vai em execSummary/headline, não aqui). Ex: \"Sigvaris Group\", não \"Sigvaris Group (unidade Jundiaí)\".",
+    ),
   city: z.string(),
   state: z.string(),
   score: z.number().describe("Opportunity Score de 0 a 100"),

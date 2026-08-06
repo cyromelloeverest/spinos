@@ -147,9 +147,12 @@ function ConfirmPhase({
   );
 }
 
+const SLOW_WARNING_MS = 75_000;
+
 function SearchingPhase() {
   const [started, setStarted] = useState(false);
   const [messageIndex, setMessageIndex] = useState(0);
+  const [slow, setSlow] = useState(false);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setStarted(true));
@@ -161,6 +164,11 @@ function SearchingPhase() {
       setMessageIndex((i) => Math.min(i + 1, PROGRESS_MESSAGES.length - 1));
     }, 4200);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setSlow(true), SLOW_WARNING_MS);
+    return () => clearTimeout(timeout);
   }, []);
 
   return (
@@ -185,9 +193,26 @@ function SearchingPhase() {
           }}
         />
       </div>
-      <p className="text-[11.5px] mt-3" style={{ color: "var(--fg-faint)" }}>
-        Isso leva até 1 minuto — não feche esta página.
-      </p>
+      {slow ? (
+        <div className="mt-4 rounded-[10px] border px-3.5 py-3 text-left" style={{ background: "var(--card-hover)", borderColor: "var(--border)" }}>
+          <p className="text-[12.5px] leading-[1.55] m-0 mb-2.5" style={{ color: "var(--fg-muted)" }}>
+            Isso está demorando mais que o esperado. A busca pode já ter terminado do nosso lado — atualize a
+            página pra conferir.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="text-[12.5px] font-semibold rounded-[10px] px-3.5 py-2 border-0"
+            style={{ background: "var(--primary)", color: "#ffffff", cursor: "pointer" }}
+          >
+            Atualizar página
+          </button>
+        </div>
+      ) : (
+        <p className="text-[11.5px] mt-3" style={{ color: "var(--fg-faint)" }}>
+          Isso leva até 1 minuto — não feche esta página.
+        </p>
+      )}
     </div>
   );
 }

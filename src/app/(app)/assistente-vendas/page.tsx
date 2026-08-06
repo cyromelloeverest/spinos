@@ -73,7 +73,8 @@ export default async function ScriptsPage() {
               state={opp.company.state}
               score={opp.score}
               script={script}
-              personName={opp.contactName || opp.decisionMaker}
+              personName={opp.contactName || opp.decisionMakerName}
+              personTitle={opp.decisionMaker}
             />
           );
         })}

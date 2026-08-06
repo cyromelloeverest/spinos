@@ -6,7 +6,7 @@ import { moveToPipeline, dismissOpportunity } from "@/lib/actions/pipeline";
 import { updateContactInfo } from "@/lib/actions/contact";
 import { faviconUrl } from "@/lib/favicon";
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
-import { linkedinPersonSearchUrl, linkedinCompanySearchUrl } from "@/lib/linkedin";
+import { linkedinPersonSearchUrl, linkedinTitleSearchUrl, linkedinCompanySearchUrl } from "@/lib/linkedin";
 import { LinkedInButton } from "@/components/LinkedInButton";
 import { SpinosScore } from "@/components/SpinosScore";
 import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
@@ -152,12 +152,18 @@ export default async function CompanyPage({
                 Encontrado pela IA
               </span>
             )}
-            {(opp.contactName || opp.decisionMakerName || opp.decisionMaker) && (
+            {opp.contactName || opp.decisionMakerName ? (
               <LinkedInButton
-                href={linkedinPersonSearchUrl(opp.contactName || opp.decisionMakerName || opp.decisionMaker || "", opp.company.name)}
+                href={linkedinPersonSearchUrl(opp.contactName || opp.decisionMakerName || "", opp.company.name)}
                 size="sm"
               />
-            )}
+            ) : opp.decisionMaker ? (
+              <LinkedInButton
+                href={linkedinTitleSearchUrl(opp.decisionMaker, opp.company.name)}
+                label="Buscar por cargo"
+                size="sm"
+              />
+            ) : null}
           </div>
         </div>
       </div>
