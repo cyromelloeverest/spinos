@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Spinos — Inteligência Comercial",
+  title: "Spinos Decisões Comerciais",
   description: "Inteligência comercial para equipes de vendas B2B, alimentada por IA.",
 };
 

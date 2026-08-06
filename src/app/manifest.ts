@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Spinos — Inteligência Comercial",
+    name: "Spinos Decisões Comerciais",
     short_name: "Spinos",
     description: "Inteligência comercial para equipes de vendas B2B, alimentada por IA.",
     start_url: "/",
