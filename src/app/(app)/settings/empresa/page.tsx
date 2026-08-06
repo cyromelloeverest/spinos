@@ -1,13 +1,15 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-org";
+import { getCurrentOrganizationId, getCurrentUserId, getCurrentMembership } from "@/lib/auth/current-org";
 import { updateOrganizationProfile, updateUserProfile } from "@/lib/actions/settings";
 import { requestEmailChange } from "@/lib/actions/auth";
 import { createCheckoutSession, createPortalSession } from "@/lib/actions/billing";
+import { requestAccountDeletion } from "@/lib/actions/privacy";
 import { PLANS } from "@/lib/plans";
 import { FormField } from "@/components/FormField";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
-import { Check } from "lucide-react";
+import { Check, Download, ShieldAlert } from "lucide-react";
 
 function subscriptionStatusLabel(org: { subscriptionStatus: string | null; trialEndsAt: Date | null }): string {
   if (org.subscriptionStatus === "active") return "Assinatura ativa";
@@ -28,10 +30,16 @@ export default async function EmpresaSettingsPage({
     emailError?: string;
     assinatura?: string;
     error?: string;
+    privacidadeError?: string;
+    exclusaoSolicitada?: string;
   }>;
 }) {
   const params = await searchParams;
-  const [organizationId, userId] = await Promise.all([getCurrentOrganizationId(), getCurrentUserId()]);
+  const [organizationId, userId, membership] = await Promise.all([
+    getCurrentOrganizationId(),
+    getCurrentUserId(),
+    getCurrentMembership(),
+  ]);
   if (!organizationId || !userId) redirect("/onboarding");
 
   let organization;
@@ -234,6 +242,75 @@ export default async function EmpresaSettingsPage({
             Trocar e-mail
           </button>
         </form>
+      </Section>
+
+      <Section title="Privacidade e Dados">
+        <div className="flex items-center gap-4 text-[12.5px] mb-5" style={{ color: "var(--fg-muted)" }}>
+          <Link href="/privacidade" target="_blank" style={{ color: "var(--primary)" }}>
+            Política de Privacidade
+          </Link>
+          <Link href="/termos" target="_blank" style={{ color: "var(--primary)" }}>
+            Termos de Uso
+          </Link>
+        </div>
+
+        <div
+          className="rounded-[16px] border p-4 mb-4 flex items-center justify-between gap-4 flex-wrap"
+          style={{ background: "var(--card)", borderColor: "var(--border)" }}
+        >
+          <div>
+            <div className="text-[13.5px] font-semibold">Baixar meus dados</div>
+            <div className="text-[12.5px] mt-0.5" style={{ color: "var(--fg-muted)" }}>
+              Exporta um arquivo com os dados da sua empresa, equipe e oportunidades.
+            </div>
+          </div>
+          <a
+            href="/api/account/export"
+            className="flex items-center gap-1.5 text-[13px] font-semibold px-4 py-2 rounded-[10px] border cursor-pointer"
+            style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}
+          >
+            <Download size={14} strokeWidth={1.75} />
+            Baixar dados
+          </a>
+        </div>
+
+        {membership?.role === "OWNER" && (
+          <div className="rounded-[16px] border p-4" style={{ background: "var(--critical-soft)", borderColor: "var(--critical)" }}>
+            <div className="flex items-center gap-1.5 text-[13.5px] font-semibold" style={{ color: "var(--critical)" }}>
+              <ShieldAlert size={15} strokeWidth={1.75} />
+              Excluir conta e organização
+            </div>
+            <p className="text-[12.5px] mt-1.5 mb-3" style={{ color: "var(--fg-muted)" }}>
+              Envia um pedido de exclusão para nossa equipe, que confirma e apaga permanentemente os dados da{" "}
+              {organization.name} (LGPD, art. 18). Um dono confirma a exclusão manualmente — não é instantâneo.
+            </p>
+
+            {params.privacidadeError && (
+              <div className="mb-3 rounded-[8px] border px-3.5 py-2.5 text-[12px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }}>
+                {params.privacidadeError}
+              </div>
+            )}
+            {params.exclusaoSolicitada && (
+              <div className="mb-3 rounded-[8px] border px-3.5 py-2.5 text-[12px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }}>
+                Pedido enviado. Nossa equipe vai confirmar por e-mail antes de excluir qualquer dado.
+              </div>
+            )}
+
+            <form action={requestAccountDeletion} className="flex flex-col gap-2.5 items-start">
+              <label className="flex items-start gap-2 text-[12px]" style={{ color: "var(--fg-muted)" }}>
+                <input type="checkbox" required className="mt-0.5" />
+                Entendo que essa ação é irreversível e apaga todos os dados da organização.
+              </label>
+              <button
+                type="submit"
+                className="text-[13px] font-semibold px-4 py-2 rounded-[10px] border-0 cursor-pointer"
+                style={{ background: "var(--critical)", color: "#ffffff" }}
+              >
+                Solicitar exclusão da conta
+              </button>
+            </form>
+          </div>
+        )}
       </Section>
     </div>
   );

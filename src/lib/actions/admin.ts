@@ -163,3 +163,28 @@ export async function adminToggleSearchBlock(organizationId: string, membershipI
 
   revalidatePath("/admin");
 }
+
+// Confirma um pedido de exclusão (LGPD, art. 18) já revisado manualmente:
+// apaga a organização de fato (cascade via Prisma cuida de memberships,
+// ICPs, opportunity scores, feedbacks, chats, invites e search runs — ver
+// onDelete: Cascade no schema). Company/Signal não são tocados, são
+// entidades globais. O SecurityEvent do pedido original continua existindo
+// depois (organizationId vira uma referência "morta", intencional — é o
+// próprio registro de auditoria de que o pedido foi atendido).
+export async function confirmOrganizationDeletion(organizationId: string) {
+  const actorUserId = await requireSuperAdmin();
+
+  const organization = await prisma.organization.findUnique({ where: { id: organizationId } });
+  if (!organization) redirect("/admin");
+
+  await prisma.organization.delete({ where: { id: organizationId } });
+
+  await logSecurityEvent({
+    type: "privacy.deletion_completed",
+    actorUserId,
+    targetId: organizationId,
+    metadata: { organizationName: organization.name },
+  });
+
+  revalidatePath("/admin");
+}

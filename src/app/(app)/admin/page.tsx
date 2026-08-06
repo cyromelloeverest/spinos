@@ -6,7 +6,8 @@ import { isTrialExpired, trialDaysLeft } from "@/lib/trial";
 import { extendTrial, removeTrialLimit, adminInviteUser, adminRemoveUser, adminCancelInvite, adminToggleSearchBlock } from "@/lib/actions/admin";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { PlanSelect } from "@/components/PlanSelect";
-import { ShieldCheck, X, Ban, Play, UserX } from "lucide-react";
+import { ConfirmDeleteOrgButton } from "@/components/ConfirmDeleteOrgButton";
+import { ShieldCheck, X, Ban, Play, UserX, ShieldAlert } from "lucide-react";
 
 const ROLE_LABEL: Record<string, string> = { OWNER: "Dono", ADMIN: "Admin", MEMBER: "Membro" };
 
@@ -38,6 +39,37 @@ function fetchOrphanUsers() {
   });
 }
 
+// Pedidos de exclusão (LGPD, art. 18) ainda não atendidos: um evento de
+// auditoria "privacy.deletion_requested" cuja organização ainda existe —
+// depois que confirmOrganizationDeletion() apaga a org, ela some
+// naturalmente desta lista (o evento continua no log, só não referencia
+// mais uma organização viva).
+async function fetchPendingDeletionRequests() {
+  const events = await prisma.securityEvent.findMany({
+    where: { type: "privacy.deletion_requested" },
+    orderBy: { createdAt: "desc" },
+  });
+  if (events.length === 0) return [];
+
+  const orgIds = [...new Set(events.map((e) => e.organizationId).filter((id): id is string => !!id))];
+  const stillExisting = await prisma.organization.findMany({
+    where: { id: { in: orgIds } },
+    select: { id: true, name: true },
+  });
+  const existingMap = new Map(stillExisting.map((o) => [o.id, o.name]));
+
+  return events
+    .filter((e) => e.organizationId && existingMap.has(e.organizationId))
+    .map((e) => ({
+      id: e.id,
+      organizationId: e.organizationId!,
+      organizationName: existingMap.get(e.organizationId!)!,
+      requesterEmail: e.actorEmail,
+      requestedAt: e.createdAt,
+      metadata: e.metadata as { requesterName?: string } | null,
+    }));
+}
+
 export default async function AdminPage({
   searchParams,
 }: {
@@ -50,8 +82,13 @@ export default async function AdminPage({
 
   let organizations: Awaited<ReturnType<typeof fetchOrganizations>>;
   let orphanUsers: Awaited<ReturnType<typeof fetchOrphanUsers>> = [];
+  let deletionRequests: Awaited<ReturnType<typeof fetchPendingDeletionRequests>> = [];
   try {
-    [organizations, orphanUsers] = await Promise.all([fetchOrganizations(), fetchOrphanUsers()]);
+    [organizations, orphanUsers, deletionRequests] = await Promise.all([
+      fetchOrganizations(),
+      fetchOrphanUsers(),
+      fetchPendingDeletionRequests(),
+    ]);
   } catch {
     return <DbSetupNotice />;
   }
@@ -251,6 +288,37 @@ export default async function AdminPage({
             </table>
           </div>
         </div>
+
+        {deletionRequests.length > 0 && (
+          <div className="mt-8">
+            <div className="flex items-center gap-2 mb-2.5">
+              <ShieldAlert size={16} strokeWidth={1.75} style={{ color: "var(--critical)" }} />
+              <h2 className="text-[13px] font-semibold m-0">Solicitações de exclusão (LGPD)</h2>
+            </div>
+            <p className="text-[12.5px] mb-3" style={{ color: "var(--fg-muted)" }}>
+              Pedidos de exclusão de conta feitos pelo dono da organização. Confirme só depois de revisar — a ação é
+              irreversível e apaga todos os dados da organização.
+            </p>
+            <div className="rounded-[12px] border overflow-hidden" style={{ borderColor: "var(--critical)" }}>
+              {deletionRequests.map((req, i) => (
+                <div
+                  key={req.id}
+                  className="flex items-center justify-between gap-4 px-4 py-3 text-[13px] flex-wrap"
+                  style={{ borderTop: i > 0 ? "1px solid var(--border)" : undefined, background: "var(--critical-soft)" }}
+                >
+                  <div>
+                    <div className="font-semibold">{req.organizationName}</div>
+                    <div className="text-[11.5px]" style={{ color: "var(--fg-faint)" }}>
+                      Solicitado por {req.metadata?.requesterName || req.requesterEmail || "—"} em{" "}
+                      {req.requestedAt.toLocaleDateString("pt-BR")}
+                    </div>
+                  </div>
+                  <ConfirmDeleteOrgButton organizationId={req.organizationId} organizationName={req.organizationName} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {orphanUsers.length > 0 && (
           <div className="mt-8">
