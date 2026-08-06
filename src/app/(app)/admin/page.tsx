@@ -134,6 +134,7 @@ export default async function AdminPage({
                   <Th>Plano</Th>
                   <Th>Teste grátis</Th>
                   <Th>Criada em</Th>
+                  <Th>Ações</Th>
                 </tr>
               </thead>
               <tbody>
@@ -287,6 +288,9 @@ export default async function AdminPage({
                         </div>
                       </Td>
                       <Td>{org.createdAt.toLocaleDateString("pt-BR")}</Td>
+                      <Td>
+                        <ConfirmDeleteOrgButton organizationId={org.id} organizationName={org.name} />
+                      </Td>
                     </tr>
                   );
                 })}
