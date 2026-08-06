@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isCurrentUserSuperAdmin } from "@/lib/auth/current-org";
@@ -96,11 +97,16 @@ export default async function AdminPage({
   return (
     <div>
       <div className="pt-6 px-4 md:px-10">
-        <div className="flex items-center gap-2 mb-1">
-          <ShieldCheck size={20} strokeWidth={1.75} style={{ color: "var(--primary)" }} />
-          <h1 className="text-[25px] font-medium m-0" style={{ fontFamily: "var(--font-display)" }}>
-            Painel administrador
-          </h1>
+        <div className="flex items-center justify-between gap-4 flex-wrap mb-1">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={20} strokeWidth={1.75} style={{ color: "var(--primary)" }} />
+            <h1 className="text-[25px] font-medium m-0" style={{ fontFamily: "var(--font-display)" }}>
+              Painel administrador
+            </h1>
+          </div>
+          <Link href="/admin/privacidade" className="text-[12.5px] font-medium" style={{ color: "var(--primary)" }}>
+            Dados de terceiros (LGPD) →
+          </Link>
         </div>
         <p className="m-0 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
           {organizations.length} empresa(s) cliente(s) no Spinos.

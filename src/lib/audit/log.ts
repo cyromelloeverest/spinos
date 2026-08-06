@@ -20,6 +20,7 @@ export type SecurityEventType =
   | "privacy.data_exported"
   | "privacy.deletion_requested"
   | "privacy.deletion_completed"
+  | "privacy.third_party_data_redacted"
   | "team.member_invited"
   | "team.member_removed"
   | "team.invite_canceled"

@@ -188,3 +188,34 @@ export async function confirmOrganizationDeletion(organizationId: string) {
 
   revalidatePath("/admin");
 }
+
+// Atende um pedido de remoção feito por um TERCEIRO (um decisor encontrado
+// pela IA ou cadastrado manualmente por algum cliente — não o dono da
+// conta). Apaga só os campos que identificam essa pessoa num
+// OpportunityScore específico; o sinal comercial em si (score, empresa,
+// urgência, argumentos) continua existindo, porque isso é fato de mercado
+// sobre a empresa-alvo, não dado pessoal do indivíduo.
+export async function redactThirdPartyData(opportunityScoreId: string) {
+  const actorUserId = await requireSuperAdmin();
+
+  const opportunity = await prisma.opportunityScore.findUnique({
+    where: { id: opportunityScoreId },
+    include: { organization: { select: { name: true } }, company: { select: { name: true } } },
+  });
+  if (!opportunity) redirect("/admin/privacidade");
+
+  await prisma.opportunityScore.update({
+    where: { id: opportunityScoreId },
+    data: { decisionMakerName: null, contactName: null, contactPhone: null, contactEmail: null },
+  });
+
+  await logSecurityEvent({
+    type: "privacy.third_party_data_redacted",
+    actorUserId,
+    organizationId: opportunity.organizationId,
+    targetId: opportunityScoreId,
+    metadata: { organizationName: opportunity.organization.name, companyName: opportunity.company.name },
+  });
+
+  revalidatePath("/admin/privacidade");
+}
