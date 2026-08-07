@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { prismaAdmin } from "@/lib/prisma-admin";
 import { isCurrentUserSuperAdmin } from "@/lib/auth/current-org";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { isTrialExpired, trialDaysLeft } from "@/lib/trial";
@@ -14,7 +14,7 @@ import { ShieldCheck, X, Ban, Play, UserX, ShieldAlert } from "lucide-react";
 const ROLE_LABEL: Record<string, string> = { OWNER: "Dono", ADMIN: "Admin", MEMBER: "Membro" };
 
 async function fetchOrganizations() {
-  const organizations = await prisma.organization.findMany({
+  const organizations = await prismaAdmin.organization.findMany({
     orderBy: { createdAt: "desc" },
     include: {
       users: { orderBy: { createdAt: "asc" }, include: { user: { select: { email: true, name: true } } } },
@@ -24,7 +24,7 @@ async function fetchOrganizations() {
 
   const withCounts = await Promise.all(
     organizations.map(async (org) => {
-      const activeOpportunities = await prisma.opportunityScore.count({
+      const activeOpportunities = await prismaAdmin.opportunityScore.count({
         where: { organizationId: org.id, stage: null, status: { not: "DISMISSED" } },
       });
       return { ...org, activeOpportunities };
@@ -35,7 +35,7 @@ async function fetchOrganizations() {
 }
 
 function fetchOrphanUsers() {
-  return prisma.user.findMany({
+  return prismaAdmin.user.findMany({
     where: { memberships: { none: {} } },
     orderBy: { createdAt: "desc" },
   });
@@ -47,14 +47,14 @@ function fetchOrphanUsers() {
 // naturalmente desta lista (o evento continua no log, só não referencia
 // mais uma organização viva).
 async function fetchPendingDeletionRequests() {
-  const events = await prisma.securityEvent.findMany({
+  const events = await prismaAdmin.securityEvent.findMany({
     where: { type: "privacy.deletion_requested" },
     orderBy: { createdAt: "desc" },
   });
   if (events.length === 0) return [];
 
   const orgIds = [...new Set(events.map((e) => e.organizationId).filter((id): id is string => !!id))];
-  const stillExisting = await prisma.organization.findMany({
+  const stillExisting = await prismaAdmin.organization.findMany({
     where: { id: { in: orgIds } },
     select: { id: true, name: true },
   });

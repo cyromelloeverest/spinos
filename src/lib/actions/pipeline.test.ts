@@ -9,10 +9,19 @@ const { opportunityScoreUpdate, feedbackUpsert, feedbackDeleteMany, getCurrentOr
     getCurrentUserId: vi.fn(),
   }));
 
+// withOrgContext abre uma transação e passa "tx" pra callback — no mock,
+// "tx" é o mesmo objeto que "prisma", com os mesmos métodos mockados, mais
+// $executeRaw (usado só pro set_config do contexto de RLS, sem efeito aqui).
+const mockDb = {
+  opportunityScore: { update: opportunityScoreUpdate },
+  feedback: { upsert: feedbackUpsert, deleteMany: feedbackDeleteMany },
+  $executeRaw: vi.fn(),
+};
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    opportunityScore: { update: opportunityScoreUpdate },
-    feedback: { upsert: feedbackUpsert, deleteMany: feedbackDeleteMany },
+    ...mockDb,
+    $transaction: vi.fn((cb: (tx: typeof mockDb) => unknown) => cb(mockDb)),
   },
 }));
 

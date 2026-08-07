@@ -2,8 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-org";
+import { withOrgContext } from "@/lib/db/with-org-context";
 
 async function requireOrgId(): Promise<string> {
   const orgId = await getCurrentOrganizationId();
@@ -14,10 +14,12 @@ async function requireOrgId(): Promise<string> {
 export async function moveToPipeline(opportunityScoreId: string) {
   const organizationId = await requireOrgId();
   const userId = await getCurrentUserId();
-  await prisma.opportunityScore.update({
-    where: { id: opportunityScoreId, organizationId },
-    data: { stage: "CONTATO_FEITO", stageUpdatedAt: new Date(), lastActionByUserId: userId, lastActionAt: new Date() },
-  });
+  await withOrgContext(organizationId, (tx) =>
+    tx.opportunityScore.update({
+      where: { id: opportunityScoreId, organizationId },
+      data: { stage: "CONTATO_FEITO", stageUpdatedAt: new Date(), lastActionByUserId: userId, lastActionAt: new Date() },
+    }),
+  );
   revalidatePath("/");
   revalidatePath("/oportunidades");
   revalidatePath("/pipeline");
@@ -38,46 +40,48 @@ export async function setStage(
   const organizationId = await requireOrgId();
   const userId = await getCurrentUserId();
 
-  const updated = await prisma.opportunityScore.update({
-    where: { id: opportunityScoreId, organizationId },
-    data: {
-      stage: stage as "CONTATO_FEITO" | "VISITA_AGENDADA" | "PROPOSTA_ENVIADA" | "VENDIDO" | "PERDIDO",
-      stageUpdatedAt: new Date(),
-      lastActionByUserId: userId,
-      lastActionAt: new Date(),
-    },
-    select: { id: true, companyId: true },
-  });
+  await withOrgContext(organizationId, async (tx) => {
+    const updated = await tx.opportunityScore.update({
+      where: { id: opportunityScoreId, organizationId },
+      data: {
+        stage: stage as "CONTATO_FEITO" | "VISITA_AGENDADA" | "PROPOSTA_ENVIADA" | "VENDIDO" | "PERDIDO",
+        stageUpdatedAt: new Date(),
+        lastActionByUserId: userId,
+        lastActionAt: new Date(),
+      },
+      select: { id: true, companyId: true },
+    });
 
-  if (stage === "VENDIDO") {
-    await prisma.feedback.upsert({
-      where: { opportunityScoreId: updated.id },
-      update: { outcome: "CONVERTED", notes: null },
-      create: {
-        organizationId,
-        companyId: updated.companyId,
-        opportunityScoreId: updated.id,
-        outcome: "CONVERTED",
-      },
-    });
-  } else if (stage === "PERDIDO") {
-    const outcome = lossReason ?? "NOT_INTERESTED";
-    await prisma.feedback.upsert({
-      where: { opportunityScoreId: updated.id },
-      update: { outcome, notes: lossNotes?.trim() || null },
-      create: {
-        organizationId,
-        companyId: updated.companyId,
-        opportunityScoreId: updated.id,
-        outcome,
-        notes: lossNotes?.trim() || null,
-      },
-    });
-  } else {
-    // Voltou de um estágio terminal pra um não-terminal — o Feedback antigo
-    // não reflete mais a realidade dessa oportunidade.
-    await prisma.feedback.deleteMany({ where: { opportunityScoreId: updated.id } });
-  }
+    if (stage === "VENDIDO") {
+      await tx.feedback.upsert({
+        where: { opportunityScoreId: updated.id },
+        update: { outcome: "CONVERTED", notes: null },
+        create: {
+          organizationId,
+          companyId: updated.companyId,
+          opportunityScoreId: updated.id,
+          outcome: "CONVERTED",
+        },
+      });
+    } else if (stage === "PERDIDO") {
+      const outcome = lossReason ?? "NOT_INTERESTED";
+      await tx.feedback.upsert({
+        where: { opportunityScoreId: updated.id },
+        update: { outcome, notes: lossNotes?.trim() || null },
+        create: {
+          organizationId,
+          companyId: updated.companyId,
+          opportunityScoreId: updated.id,
+          outcome,
+          notes: lossNotes?.trim() || null,
+        },
+      });
+    } else {
+      // Voltou de um estágio terminal pra um não-terminal — o Feedback antigo
+      // não reflete mais a realidade dessa oportunidade.
+      await tx.feedback.deleteMany({ where: { opportunityScoreId: updated.id } });
+    }
+  });
 
   revalidatePath("/");
   revalidatePath("/pipeline");
@@ -86,10 +90,12 @@ export async function setStage(
 export async function dismissOpportunity(opportunityScoreId: string) {
   const organizationId = await requireOrgId();
   const userId = await getCurrentUserId();
-  await prisma.opportunityScore.update({
-    where: { id: opportunityScoreId, organizationId },
-    data: { status: "DISMISSED", lastActionByUserId: userId, lastActionAt: new Date() },
-  });
+  await withOrgContext(organizationId, (tx) =>
+    tx.opportunityScore.update({
+      where: { id: opportunityScoreId, organizationId },
+      data: { status: "DISMISSED", lastActionByUserId: userId, lastActionAt: new Date() },
+    }),
+  );
   revalidatePath("/");
   revalidatePath("/oportunidades");
   redirect("/oportunidades");

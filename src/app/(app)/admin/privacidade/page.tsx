@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { prismaAdmin } from "@/lib/prisma-admin";
 import { isCurrentUserSuperAdmin } from "@/lib/auth/current-org";
 import { RedactThirdPartyButton } from "@/components/RedactThirdPartyButton";
 import { ArrowLeft, Search, ShieldAlert } from "lucide-react";
@@ -13,7 +13,7 @@ import { ArrowLeft, Search, ShieldAlert } from "lucide-react";
 async function searchThirdPartyData(query: string) {
   if (query.trim().length < 3) return [];
 
-  return prisma.opportunityScore.findMany({
+  return prismaAdmin.opportunityScore.findMany({
     where: {
       OR: [
         { decisionMakerName: { contains: query, mode: "insensitive" } },

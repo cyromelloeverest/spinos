@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { prismaAdmin } from "@/lib/prisma-admin";
 import { isCurrentUserSuperAdmin, getCurrentUserId } from "@/lib/auth/current-org";
 import { newTrialEndsAt } from "@/lib/trial";
 import { sendInviteEmail, INVITE_TTL_MS } from "@/lib/invite-email";
@@ -26,7 +26,7 @@ export async function updateOrganizationPlan(organizationId: string, formData: F
 
   const plan = String(formData.get("plan") ?? "STARTER");
 
-  await prisma.organization.update({
+  await prismaAdmin.organization.update({
     where: { id: organizationId },
     data: { plan: plan as Plan },
   });
@@ -44,7 +44,7 @@ export async function updateOrganizationPlan(organizationId: string, formData: F
 export async function extendTrial(organizationId: string, days: number) {
   const actorUserId = await requireSuperAdmin();
 
-  await prisma.organization.update({
+  await prismaAdmin.organization.update({
     where: { id: organizationId },
     data: { trialEndsAt: newTrialEndsAt(days) },
   });
@@ -62,7 +62,7 @@ export async function extendTrial(organizationId: string, days: number) {
 export async function removeTrialLimit(organizationId: string) {
   const actorUserId = await requireSuperAdmin();
 
-  await prisma.organization.update({
+  await prismaAdmin.organization.update({
     where: { id: organizationId },
     data: { trialEndsAt: null },
   });
@@ -86,16 +86,16 @@ export async function adminInviteUser(organizationId: string, formData: FormData
   }
   const email = emailResult.data;
 
-  const organization = await prisma.organization.findUnique({ where: { id: organizationId } });
+  const organization = await prismaAdmin.organization.findUnique({ where: { id: organizationId } });
   if (!organization) redirect("/admin");
 
-  const existingMember = await prisma.membership.findFirst({ where: { organizationId, user: { email } } });
+  const existingMember = await prismaAdmin.membership.findFirst({ where: { organizationId, user: { email } } });
   if (existingMember) {
     redirect("/admin?error=Essa pessoa já faz parte dessa equipe.");
   }
 
   const token = crypto.randomUUID();
-  await prisma.invite.create({
+  await prismaAdmin.invite.create({
     data: { organizationId, email, token, expiresAt: new Date(Date.now() + INVITE_TTL_MS) },
   });
 
@@ -113,12 +113,12 @@ export async function adminInviteUser(organizationId: string, formData: FormData
 export async function adminRemoveUser(organizationId: string, membershipId: string) {
   const actorUserId = await requireSuperAdmin();
 
-  const memberCount = await prisma.membership.count({ where: { organizationId } });
+  const memberCount = await prismaAdmin.membership.count({ where: { organizationId } });
   if (memberCount <= 1) {
     redirect("/admin?error=Não é possível remover o único usuário de uma empresa.");
   }
 
-  await prisma.membership.deleteMany({ where: { id: membershipId, organizationId } });
+  await prismaAdmin.membership.deleteMany({ where: { id: membershipId, organizationId } });
   await logSecurityEvent({
     type: "admin.user_removed",
     actorUserId,
@@ -132,7 +132,7 @@ export async function adminRemoveUser(organizationId: string, membershipId: stri
 export async function adminCancelInvite(organizationId: string, inviteId: string) {
   const actorUserId = await requireSuperAdmin();
 
-  await prisma.invite.deleteMany({ where: { id: inviteId, organizationId } });
+  await prismaAdmin.invite.deleteMany({ where: { id: inviteId, organizationId } });
   await logSecurityEvent({
     type: "admin.invite_canceled",
     actorUserId,
@@ -146,10 +146,10 @@ export async function adminCancelInvite(organizationId: string, inviteId: string
 export async function adminToggleSearchBlock(organizationId: string, membershipId: string) {
   const actorUserId = await requireSuperAdmin();
 
-  const membership = await prisma.membership.findUnique({ where: { id: membershipId } });
+  const membership = await prismaAdmin.membership.findUnique({ where: { id: membershipId } });
   if (!membership || membership.organizationId !== organizationId) redirect("/admin");
 
-  await prisma.membership.update({
+  await prismaAdmin.membership.update({
     where: { id: membershipId },
     data: { searchBlocked: !membership.searchBlocked },
   });
@@ -174,10 +174,10 @@ export async function adminToggleSearchBlock(organizationId: string, membershipI
 export async function confirmOrganizationDeletion(organizationId: string) {
   const actorUserId = await requireSuperAdmin();
 
-  const organization = await prisma.organization.findUnique({ where: { id: organizationId } });
+  const organization = await prismaAdmin.organization.findUnique({ where: { id: organizationId } });
   if (!organization) redirect("/admin");
 
-  await prisma.organization.delete({ where: { id: organizationId } });
+  await prismaAdmin.organization.delete({ where: { id: organizationId } });
 
   await logSecurityEvent({
     type: "privacy.deletion_completed",
@@ -198,13 +198,13 @@ export async function confirmOrganizationDeletion(organizationId: string) {
 export async function redactThirdPartyData(opportunityScoreId: string) {
   const actorUserId = await requireSuperAdmin();
 
-  const opportunity = await prisma.opportunityScore.findUnique({
+  const opportunity = await prismaAdmin.opportunityScore.findUnique({
     where: { id: opportunityScoreId },
     include: { organization: { select: { name: true } }, company: { select: { name: true } } },
   });
   if (!opportunity) redirect("/admin/privacidade");
 
-  await prisma.opportunityScore.update({
+  await prismaAdmin.opportunityScore.update({
     where: { id: opportunityScoreId },
     data: { decisionMakerName: null, contactName: null, contactPhone: null, contactEmail: null },
   });
