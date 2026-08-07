@@ -15,7 +15,7 @@ export function LegalPageLayout({
         <div className="max-w-[760px] mx-auto px-6 py-5 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-preto.svg" alt="Spinos" style={{ height: "22px", width: "auto" }} />
+            <img src="/logo-preto.svg" alt="Spinos" style={{ height: "26px", width: "auto" }} />
           </Link>
           <Link href="/login" className="text-[12.5px] font-medium" style={{ color: "var(--primary)" }}>
             Entrar

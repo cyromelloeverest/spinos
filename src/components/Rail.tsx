@@ -72,7 +72,7 @@ export function Rail({
       <div className="flex items-center justify-between px-1.5">
         <Link href="/" onClick={onNavigate} className="flex items-center no-underline" style={{ color: "var(--dark-fg)" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-branco.svg" alt="Spinos" height={20} style={{ height: "20px", width: "auto" }} />
+          <img src="/logo-branco.svg" alt="Spinos" height={24} style={{ height: "24px", width: "auto" }} />
         </Link>
         <button
           type="button"
