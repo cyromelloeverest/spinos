@@ -11,6 +11,7 @@ import { SpinosScore } from "@/components/SpinosScore";
 import { ArrowRight, X, Check, Flame, TrendingUp, Minus, Target, Download } from "lucide-react";
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
 import { getPlan } from "@/lib/plans";
+import { logError } from "@/lib/log-error";
 
 const URGENCY_CONFIG: Record<string, { label: string; icon: typeof Flame; color: string }> = {
   ALTA: { label: "Alta", icon: Flame, color: "var(--primary)" },
@@ -58,7 +59,8 @@ export default async function OpportunitiesPage({
       prisma.searchRun.count({ where: { organizationId, createdAt: { gte: startOfCurrentMonth() } } }),
       prisma.mission.findFirst({ where: { organizationId }, orderBy: { createdAt: "desc" } }),
     ]);
-  } catch {
+  } catch (err) {
+    logError("oportunidades: falha ao carregar oportunidades", err, { organizationId });
     dbError = true;
   }
 

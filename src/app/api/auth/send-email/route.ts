@@ -1,5 +1,6 @@
 import { Webhook } from "standardwebhooks";
 import { SITE_URL } from "@/lib/site-url";
+import { logError } from "@/lib/log-error";
 
 type EmailActionType = "signup" | "recovery" | "invite" | "magiclink" | "email_change" | "reauthentication";
 
@@ -60,7 +61,8 @@ export async function POST(req: Request) {
   try {
     const wh = new Webhook(hookSecret.replace("v1,whsec_", ""));
     parsed = wh.verify(payload, headers) as HookPayload;
-  } catch {
+  } catch (err) {
+    logError("send-email hook: assinatura inválida", err);
     return Response.json({ error: "Assinatura inválida." }, { status: 401 });
   }
 
@@ -85,6 +87,7 @@ export async function POST(req: Request) {
 
   if (!sendResult.ok) {
     const errorText = await sendResult.text();
+    logError("send-email hook: Resend recusou o envio", errorText, { actionType: email_data.email_action_type });
     return Response.json({ error: `Falha ao enviar via Resend: ${errorText}` }, { status: 500 });
   }
 

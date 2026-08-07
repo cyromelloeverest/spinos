@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { PipelineBoard, type PipelineCard } from "@/components/PipelineBoard";
+import { logError } from "@/lib/log-error";
 
 function daysInStage(stageUpdatedAt: Date | null): string {
   if (!stageUpdatedAt) return "";
@@ -28,7 +29,8 @@ export default async function PipelinePage() {
   let dbError = false;
   try {
     opportunities = await fetchPipelineOpportunities(organizationId);
-  } catch {
+  } catch (err) {
+    logError("pipeline: falha ao carregar pipeline", err, { organizationId });
     dbError = true;
   }
   if (dbError) return <DbSetupNotice />;

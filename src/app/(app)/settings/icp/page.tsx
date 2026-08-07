@@ -5,6 +5,7 @@ import { updateICP } from "@/lib/actions/settings";
 import { FormField } from "@/components/FormField";
 import { TextAreaField } from "@/components/TextAreaField";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
+import { logError } from "@/lib/log-error";
 import { SIGNAL_CATEGORY_LABEL, SIGNAL_CATEGORIES } from "@/lib/signal-categories";
 import type { SignalCategory } from "@/generated/prisma/enums";
 
@@ -23,7 +24,8 @@ export default async function IcpSettingsPage({
       where: { organizationId, isActive: true },
       orderBy: { createdAt: "desc" },
     });
-  } catch {
+  } catch (err) {
+    logError("settings/icp: falha ao carregar ICP", err, { organizationId });
     return <DbSetupNotice />;
   }
 

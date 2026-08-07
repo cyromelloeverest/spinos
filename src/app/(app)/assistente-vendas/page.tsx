@@ -5,6 +5,7 @@ import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { EmptyState } from "@/components/EmptyState";
 import { ScriptCard } from "@/components/ScriptCard";
 import { buildSalesScript } from "@/lib/sales-script";
+import { logError } from "@/lib/log-error";
 
 function fetchActiveOpportunities(organizationId: string) {
   return prisma.opportunityScore.findMany({
@@ -30,7 +31,8 @@ export default async function ScriptsPage() {
       fetchActiveOpportunities(organizationId),
       prisma.organization.findUnique({ where: { id: organizationId } }),
     ]);
-  } catch {
+  } catch (err) {
+    logError("assistente-vendas: falha ao carregar oportunidades", err, { organizationId });
     dbError = true;
   }
   if (dbError) return <DbSetupNotice />;

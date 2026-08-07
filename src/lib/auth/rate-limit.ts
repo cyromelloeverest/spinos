@@ -1,6 +1,7 @@
 import "server-only";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { logError } from "@/lib/log-error";
 
 // Chance de podar tentativas com mais de 24h a cada chamada, em vez de um
 // cron dedicado — mantém a tabela pequena sem precisar de infra extra.
@@ -38,7 +39,8 @@ export async function isRateLimited(action: RateLimitAction): Promise<boolean> {
       where: { identifier, createdAt: { gte: new Date(Date.now() - windowMs) } },
     });
     return count >= maxAttempts;
-  } catch {
+  } catch (err) {
+    logError("rate-limit: falha ao checar tentativas (fail-open, deixando passar)", err, { action });
     return false;
   }
 }
@@ -55,7 +57,8 @@ export async function recordAttempt(action: RateLimitAction): Promise<void> {
     if (Math.random() < PRUNE_PROBABILITY) {
       await prisma.authAttempt.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - PRUNE_AGE_MS) } } });
     }
-  } catch {
+  } catch (err) {
     // Rate limiting é defesa em profundidade, não pode derrubar o fluxo de auth.
+    logError("rate-limit: falha ao gravar tentativa", err, { action });
   }
 }

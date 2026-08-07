@@ -9,6 +9,7 @@ import { requestAccountDeletion } from "@/lib/actions/privacy";
 import { PLANS } from "@/lib/plans";
 import { FormField } from "@/components/FormField";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
+import { logError } from "@/lib/log-error";
 import { Check, Download, ShieldAlert } from "lucide-react";
 
 function subscriptionStatusLabel(org: { subscriptionStatus: string | null; trialEndsAt: Date | null }): string {
@@ -49,7 +50,8 @@ export default async function EmpresaSettingsPage({
       prisma.organization.findUnique({ where: { id: organizationId } }),
       prisma.user.findUnique({ where: { id: userId } }),
     ]);
-  } catch {
+  } catch (err) {
+    logError("settings/empresa: falha ao carregar organização/usuário", err, { organizationId, userId });
     return <DbSetupNotice />;
   }
 

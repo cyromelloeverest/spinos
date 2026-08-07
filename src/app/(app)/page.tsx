@@ -6,6 +6,7 @@ import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { SpinosScore } from "@/components/SpinosScore";
 import { EmptyState } from "@/components/EmptyState";
 import { Target, Kanban, Trophy, Sparkles, TrendingUp, ArrowRight, Rocket } from "lucide-react";
+import { logError } from "@/lib/log-error";
 import { PIPELINE_STAGE_ORDER, PIPELINE_STAGE_LABEL, pipelineStageColor } from "@/lib/pipeline-stages";
 
 function getGreeting(): string {
@@ -109,7 +110,8 @@ export default async function DashboardPage({
       userId ? prisma.user.findUnique({ where: { id: userId }, select: { name: true } }) : Promise.resolve(null),
       prisma.organization.findUnique({ where: { id: organizationId }, select: { name: true } }),
     ]);
-  } catch {
+  } catch (err) {
+    logError("dashboard: falha ao carregar dados", err, { organizationId });
     return <DbSetupNotice />;
   }
 

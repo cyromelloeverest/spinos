@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { splitList } from "@/lib/form-utils";
 import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-org";
 import { newTrialEndsAt } from "@/lib/trial";
+import { logError } from "@/lib/log-error";
 
 export async function createOrganization(formData: FormData) {
   const userId = await getCurrentUserId();
@@ -29,7 +30,8 @@ export async function createOrganization(formData: FormData) {
     await prisma.membership.create({
       data: { userId, organizationId: organization.id, role: "OWNER" },
     });
-  } catch {
+  } catch (err) {
+    logError("onboarding: falha ao criar organização/membership", err, { userId });
     redirect("/onboarding?dbError=1");
   }
 
@@ -68,7 +70,8 @@ export async function createICP(formData: FormData) {
         saleModel: saleModelRaw === "PONTUAL" || saleModelRaw === "RECORRENTE" ? saleModelRaw : null,
       },
     });
-  } catch {
+  } catch (err) {
+    logError("onboarding: falha ao criar ICP", err, { organizationId });
     redirect("/onboarding/icp?dbError=1");
   }
 

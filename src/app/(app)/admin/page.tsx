@@ -8,6 +8,7 @@ import { extendTrial, removeTrialLimit, adminInviteUser, adminRemoveUser, adminC
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { PlanSelect } from "@/components/PlanSelect";
 import { ConfirmDeleteOrgButton } from "@/components/ConfirmDeleteOrgButton";
+import { logError } from "@/lib/log-error";
 import { ShieldCheck, X, Ban, Play, UserX, ShieldAlert } from "lucide-react";
 
 const ROLE_LABEL: Record<string, string> = { OWNER: "Dono", ADMIN: "Admin", MEMBER: "Membro" };
@@ -90,7 +91,8 @@ export default async function AdminPage({
       fetchOrphanUsers(),
       fetchPendingDeletionRequests(),
     ]);
-  } catch {
+  } catch (err) {
+    logError("admin: falha ao carregar painel", err);
     return <DbSetupNotice />;
   }
 

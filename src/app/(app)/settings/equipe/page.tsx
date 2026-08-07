@@ -5,6 +5,7 @@ import { getPlan } from "@/lib/plans";
 import { inviteMember, cancelInvite, removeMember } from "@/lib/actions/team";
 import { FormField } from "@/components/FormField";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
+import { logError } from "@/lib/log-error";
 import { X } from "lucide-react";
 
 function formatDate(date: Date): string {
@@ -40,7 +41,8 @@ export default async function EquipeSettingsPage({
         orderBy: { createdAt: "desc" },
       }),
     ]);
-  } catch {
+  } catch (err) {
+    logError("settings/equipe: falha ao carregar equipe", err, { organizationId: membership.organizationId });
     return <DbSetupNotice />;
   }
 

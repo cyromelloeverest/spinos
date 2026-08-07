@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentMembership, getUserMemberships, isCurrentUserSuperAdmin } from "@/lib/auth/current-org";
 import { signOut } from "@/lib/actions/auth";
 import { isTrialExpired, trialDaysLeft } from "@/lib/trial";
+import { logError } from "@/lib/log-error";
 
 async function getOrganizationProfile(
   organizationId: string | null,
@@ -16,7 +17,8 @@ async function getOrganizationProfile(
       select: { name: true, segment: true, city: true, state: true, trialEndsAt: true },
     });
     return org ?? null;
-  } catch {
+  } catch (err) {
+    logError("layout: falha ao carregar perfil da organização", err, { organizationId });
     return null;
   }
 }

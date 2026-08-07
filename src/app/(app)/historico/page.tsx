@@ -6,6 +6,7 @@ import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { SpinosScore } from "@/components/SpinosScore";
 import { EmptyState } from "@/components/EmptyState";
 import { PIPELINE_STAGE_LABEL } from "@/lib/pipeline-stages";
+import { logError } from "@/lib/log-error";
 
 const STATUS_LABEL: Record<string, { label: string; bg: string; color: string }> = {
   CONTATO_FEITO: { label: PIPELINE_STAGE_LABEL.CONTATO_FEITO, bg: "var(--primary-soft)", color: "var(--primary)" },
@@ -43,7 +44,8 @@ export default async function HistoricoPage() {
   let dbError = false;
   try {
     opportunities = await fetchHistory(organizationId);
-  } catch {
+  } catch (err) {
+    logError("historico: falha ao carregar histórico", err, { organizationId });
     dbError = true;
   }
   if (dbError) return <DbSetupNotice />;

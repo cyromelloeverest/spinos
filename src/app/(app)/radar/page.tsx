@@ -9,6 +9,7 @@ import { faviconUrl } from "@/lib/favicon";
 import { SIGNAL_CATEGORY_LABEL, SIGNAL_CATEGORY_ICON } from "@/lib/signal-categories";
 import { ExternalLink, Flame } from "lucide-react";
 import { initials } from "@/lib/initials";
+import { logError } from "@/lib/log-error";
 
 function formatRelativeDate(date: Date): string {
   const diffDays = Math.floor((Date.now() - date.getTime()) / (24 * 60 * 60 * 1000));
@@ -45,7 +46,8 @@ export default async function NewsPage() {
   let dbError = false;
   try {
     links = await fetchStories(organizationId);
-  } catch {
+  } catch (err) {
+    logError("radar: falha ao carregar sinais", err, { organizationId });
     dbError = true;
   }
   if (dbError) return <DbSetupNotice />;
