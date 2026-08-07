@@ -312,7 +312,7 @@ describe("searchOpportunities — falha da IA reverte o estado da organização"
   it("desfaz lastSearchAt e apaga o SearchRun quando a chamada à IA lança um erro genérico", async () => {
     parseMock.mockRejectedValueOnce(new Error("network down"));
     const result = await searchOpportunities("org-1");
-    expect(result).toEqual({ status: "error", message: "Busca falhou: Erro inesperado ao chamar a IA." });
+    expect(result).toEqual({ status: "error", message: "Não foi possível completar a busca agora. Tente novamente em instantes." });
     expect(organizationUpdate).toHaveBeenNthCalledWith(1, {
       where: { id: "org-1" },
       data: { lastSearchAt: expect.any(Date) },
@@ -324,10 +324,14 @@ describe("searchOpportunities — falha da IA reverte o estado da organização"
     expect(searchRunDelete).toHaveBeenCalledWith({ where: { id: "run-1" } });
   });
 
-  it("repassa a mensagem original quando o erro é um Anthropic.APIError", async () => {
+  // Não repassa err.message pro cliente mesmo quando é um Anthropic.APIError
+  // (OWASP A10) — pode conter detalhe interno tipo "credit balance too low",
+  // que é estado de billing nosso, não do cliente. Mensagem genérica sempre,
+  // o detalhe real vai só pro log do servidor.
+  it("não repassa a mensagem original quando o erro é um Anthropic.APIError", async () => {
     parseMock.mockRejectedValueOnce(makeApiError("Rate limit exceeded"));
     const result = await searchOpportunities("org-1");
-    expect(result).toEqual({ status: "error", message: "Busca falhou: Rate limit exceeded" });
+    expect(result).toEqual({ status: "error", message: "Não foi possível completar a busca agora. Tente novamente em instantes." });
   });
 
   it("desfaz lastSearchAt e apaga o SearchRun quando a IA não retorna saída estruturada", async () => {

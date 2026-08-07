@@ -9,6 +9,7 @@ import { SEARCH_COOLDOWN_MS, startOfCurrentMonth } from "./constants";
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
 import { getPlan } from "@/lib/plans";
 import { fetchOgImage } from "@/lib/og-image";
+import { logError } from "@/lib/log-error";
 
 export type SearchOutcome =
   | { status: "not_configured" }
@@ -149,8 +150,11 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
       data: { lastSearchAt: previousLastSearchAt },
     });
     await prisma.searchRun.delete({ where: { id: searchRun.id } }).catch(() => {});
-    const message = err instanceof Anthropic.APIError ? err.message : "Erro inesperado ao chamar a IA.";
-    return { status: "error", message: `Busca falhou: ${message}` };
+    // Não repassa err.message pro cliente (OWASP A10) — mensagem da API da
+    // Anthropic pode conter detalhe interno (ex: "credit balance too low",
+    // que é estado de billing nosso, não do cliente). Log fica só no server.
+    logError("search: falha ao chamar a IA", err, { organizationId });
+    return { status: "error", message: "Não foi possível completar a busca agora. Tente novamente em instantes." };
   }
 
   if (!response.parsed_output) {
