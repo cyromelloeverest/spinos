@@ -1,3 +1,5 @@
+import { escapeHtml } from "@/lib/html-escape";
+
 const PRIVACY_CONTACT_EMAIL = "contato@spinos.com.br";
 
 export async function sendDeletionRequestEmail(input: {
@@ -8,6 +10,10 @@ export async function sendDeletionRequestEmail(input: {
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return; // sem chave configurada — o pedido ainda fica registrado no log de auditoria, só não dispara e-mail
+
+  const safeOrgName = escapeHtml(input.organizationName);
+  const safeRequesterName = input.requesterName ? escapeHtml(input.requesterName) : "—";
+  const safeRequesterEmail = escapeHtml(input.requesterEmail);
 
   await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -21,8 +27,8 @@ export async function sendDeletionRequestEmail(input: {
       subject: `Solicitação de exclusão de conta — ${input.organizationName}`,
       html: `<p>Uma solicitação de exclusão de conta (LGPD, art. 18) foi registrada.</p>
 <ul>
-<li><strong>Organização:</strong> ${input.organizationName} (${input.organizationId})</li>
-<li><strong>Solicitado por:</strong> ${input.requesterName ?? "—"} — ${input.requesterEmail}</li>
+<li><strong>Organização:</strong> ${safeOrgName} (${input.organizationId})</li>
+<li><strong>Solicitado por:</strong> ${safeRequesterName} — ${safeRequesterEmail}</li>
 </ul>
 <p>Revise e, se procedente, confirme a exclusão no painel administrador (/admin).</p>`,
     }),
