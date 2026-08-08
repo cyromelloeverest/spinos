@@ -11,12 +11,16 @@ import { logError } from "@/lib/log-error";
 const PRUNE_PROBABILITY = 0.02;
 const PRUNE_AGE_MS = 24 * 60 * 60 * 1000;
 
-type RateLimitAction = "signin" | "signup" | "password-reset";
+type RateLimitAction = "signin" | "signup" | "password-reset" | "mfa-challenge";
 
 const LIMITS: Record<RateLimitAction, { windowMs: number; maxAttempts: number }> = {
   signin: { windowMs: 15 * 60 * 1000, maxAttempts: 10 },
   signup: { windowMs: 60 * 60 * 1000, maxAttempts: 8 },
   "password-reset": { windowMs: 60 * 60 * 1000, maxAttempts: 5 },
+  // Código de 6 dígitos tem só 1M combinações — sem isso, dá pra tentar
+  // força bruta num intervalo de 30s. 10 tentativas em 15min é generoso o
+  // bastante pra um usuário real errar de vez em quando sem travar.
+  "mfa-challenge": { windowMs: 15 * 60 * 1000, maxAttempts: 10 },
 };
 
 export async function getClientIp(): Promise<string> {

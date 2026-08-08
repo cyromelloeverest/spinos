@@ -28,7 +28,11 @@ export type SecurityEventType =
   | "team.member_invited"
   | "team.member_removed"
   | "team.invite_canceled"
-  | "team.invite_accepted";
+  | "team.invite_accepted"
+  | "auth.mfa_enrolled"
+  | "auth.mfa_disabled"
+  | "auth.mfa_challenge_succeeded"
+  | "auth.mfa_challenge_failed";
 
 type LogInput = {
   type: SecurityEventType;

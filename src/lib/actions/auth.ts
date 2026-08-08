@@ -144,6 +144,16 @@ export async function signIn(formData: FormData) {
   await logSecurityEvent({ type: "auth.signin_success", actorUserId: data.user.id, actorEmail: email });
 
   const next = String(formData.get("next") ?? "").trim();
+
+  // Senha certa só dá aal1. Se o usuário tem um fator MFA verificado, a
+  // sessão só sobe pra aal2 depois do desafio — o proxy.ts também checa
+  // isso em toda rota protegida, mas checar aqui evita um passo a mais de
+  // redirect logo após o login.
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal && aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+    redirect(`/login/mfa${next.startsWith("/") ? `?next=${encodeURIComponent(next)}` : ""}`);
+  }
+
   if (next.startsWith("/")) {
     redirect(next);
   }

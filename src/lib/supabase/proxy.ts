@@ -86,5 +86,21 @@ export async function updateSession(request: NextRequest) {
     return applySecurityHeaders(NextResponse.redirect(url), nonce);
   }
 
+  // Reforça o desafio de MFA em toda rota protegida, não só no momento do
+  // login — sem isso, alguém com a senha e o cookie de sessão (mas sem o
+  // segundo fator) podia simplesmente navegar direto pra uma URL protegida
+  // e pular a etapa. "/login/mfa" já cai em isPublicPath (prefixo "/login"),
+  // então não entra nesse bloco — sem risco de loop de redirect.
+  if (user && !isPublicPath) {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal && aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login/mfa";
+      url.search = "";
+      url.searchParams.set("next", request.nextUrl.pathname);
+      return applySecurityHeaders(NextResponse.redirect(url), nonce);
+    }
+  }
+
   return applySecurityHeaders(supabaseResponse, nonce);
 }

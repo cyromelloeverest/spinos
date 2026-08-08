@@ -6,9 +6,11 @@ import { updateOrganizationProfile, updateUserProfile } from "@/lib/actions/sett
 import { requestEmailChange } from "@/lib/actions/auth";
 import { createCheckoutSession, createPortalSession } from "@/lib/actions/billing";
 import { requestAccountDeletion } from "@/lib/actions/privacy";
+import { listVerifiedMfaFactors } from "@/lib/actions/mfa";
 import { PLANS } from "@/lib/plans";
 import { FormField } from "@/components/FormField";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
+import { MfaSettings } from "@/components/MfaSettings";
 import { logError } from "@/lib/log-error";
 import { Check, Download, ShieldAlert } from "lucide-react";
 
@@ -58,6 +60,9 @@ export default async function EmpresaSettingsPage({
   }
 
   if (!organization || !user) redirect("/onboarding");
+
+  const mfaFactors = await listVerifiedMfaFactors();
+  const mfaFactor = mfaFactors[0] ?? null;
 
   return (
     <div className="pt-10 px-4 md:px-10 pb-16 max-w-[560px]">
@@ -204,6 +209,10 @@ export default async function EmpresaSettingsPage({
             Salvar conta
           </button>
         </form>
+      </Section>
+
+      <Section title="Segurança">
+        <MfaSettings hasMfa={Boolean(mfaFactor)} factorId={mfaFactor?.id ?? null} />
       </Section>
 
       <Section title="E-mail de login">
