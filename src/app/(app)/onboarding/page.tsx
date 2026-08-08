@@ -30,16 +30,16 @@ export default async function OnboardingCompanyPage({
       </p>
 
       <form action={createOrganization} className="flex flex-col gap-4">
-        <FormField label="Nome da empresa" name="name" placeholder="Ex: Sakatec" required />
+        <FormField label="Nome da empresa" name="name" placeholder="Ex: Minha Empresa Ltda" required />
         <FormField label="Site" name="site" placeholder="https://" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField label="Cidade" name="city" placeholder="Ex: Sumaré" />
+          <FormField label="Cidade" name="city" placeholder="Ex: São Paulo" />
           <FormField label="Estado" name="state" placeholder="Ex: SP" />
         </div>
         <FormField
           label="Segmento"
           name="segment"
-          placeholder="Ex: Usinagem, metalização e caldeiraria"
+          placeholder="Ex: Tecnologia, Indústria, Serviços"
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField label="Número de funcionários" name="employeeRange" placeholder="Ex: 11-50" />

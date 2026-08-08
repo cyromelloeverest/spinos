@@ -34,7 +34,7 @@ export default async function OnboardingICPPage({
         <FormField
           label="Segmentos-alvo"
           name="segments"
-          placeholder="Ex: Metalúrgica, Fabricante de equipamentos"
+          placeholder="Ex: Indústria, Varejo, Tecnologia"
           hint="separados por vírgula"
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -43,13 +43,13 @@ export default async function OnboardingICPPage({
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField label="Estados" name="states" placeholder="Ex: SP, MG" hint="separados por vírgula" />
-          <FormField label="Cidades prioritárias" name="cities" placeholder="Ex: Campinas, Piracicaba" hint="separadas por vírgula" />
+          <FormField label="Cidades prioritárias" name="cities" placeholder="Ex: São Paulo, Belo Horizonte" hint="separadas por vírgula" />
         </div>
         <FormField label="Raio de atuação (km)" name="radiusKm" placeholder="Ex: 70" />
         <FormField
           label="Cargo do decisor"
           name="decisionMakerTitles"
-          placeholder="Ex: Diretor Industrial, Gerente de Compras"
+          placeholder="Ex: Diretor Comercial, Gerente de Compras"
           hint="separados por vírgula"
         />
         <FormField
@@ -61,19 +61,19 @@ export default async function OnboardingICPPage({
         <FormField
           label="Palavras-chave"
           name="keywords"
-          placeholder="Ex: estruturas metálicas, corte sob medida"
+          placeholder="Ex: expansão, nova unidade, contratação"
           hint="separadas por vírgula"
         />
         <FormField
           label="Produtos que você vende"
           name="productsSold"
-          placeholder="Ex: peças usinadas, chapas cortadas a laser"
+          placeholder="Ex: software de gestão, equipamentos industriais"
           hint="separados por vírgula"
         />
         <FormField
           label="Serviços que você vende"
           name="servicesSold"
-          placeholder="Ex: usinagem, metalização, caldeiraria, corte a laser"
+          placeholder="Ex: consultoria, instalação, manutenção"
           hint="separados por vírgula"
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -10,6 +10,7 @@ import { isRateLimited, recordAttempt } from "@/lib/auth/rate-limit";
 import { logSecurityEvent } from "@/lib/audit/log";
 import { emailSchema, passwordSchema, firstIssueMessage } from "@/lib/validation";
 import { SITE_URL } from "@/lib/site-url";
+import { logError } from "@/lib/log-error";
 
 // Mantém public.users.email sincronizado com auth.users.email — importante
 // depois de uma troca de e-mail confirmada, senão o app mostra o e-mail antigo.
@@ -40,6 +41,7 @@ export async function confirmAuthLink(formData: FormData) {
       await syncUserEmail(supabase);
       redirect(next);
     }
+    logError("auth: exchangeCodeForSession falhou", error.message, { type });
     redirect(`/auth/auth-code-error?reason=${encodeURIComponent(translateAuthError(error.message))}`);
   }
 
@@ -49,6 +51,7 @@ export async function confirmAuthLink(formData: FormData) {
       await syncUserEmail(supabase);
       redirect(next);
     }
+    logError("auth: verifyOtp falhou", error.message, { type });
     redirect(`/auth/auth-code-error?reason=${encodeURIComponent(translateAuthError(error.message))}`);
   }
 
@@ -58,6 +61,7 @@ export async function confirmAuthLink(formData: FormData) {
 export async function signUp(formData: FormData) {
   const rawEmail = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const acceptedTerms = formData.get("acceptTerms") === "on";
 
   const emailResult = emailSchema.safeParse(rawEmail);
   const passwordResult = passwordSchema.safeParse(password);
@@ -66,6 +70,9 @@ export async function signUp(formData: FormData) {
   }
   if (!passwordResult.success) {
     redirect(`/signup?error=${encodeURIComponent(firstIssueMessage(passwordResult.error))}`);
+  }
+  if (!acceptedTerms) {
+    redirect(`/signup?error=${encodeURIComponent("Você precisa aceitar os Termos de Uso e a Política de Privacidade.")}`);
   }
   const email = emailResult.data;
 
