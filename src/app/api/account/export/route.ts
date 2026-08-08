@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentUserId, getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { logSecurityEvent } from "@/lib/audit/log";
 
@@ -13,18 +13,20 @@ export async function GET() {
     return new Response("Não autenticado.", { status: 401 });
   }
 
-  const [organization, icps, memberships, opportunityScores] = await Promise.all([
-    prisma.organization.findUnique({ where: { id: organizationId } }),
-    prisma.iCP.findMany({ where: { organizationId } }),
-    prisma.membership.findMany({
-      where: { organizationId },
-      include: { user: { select: { name: true, email: true, role: true, phone: true } } },
-    }),
-    prisma.opportunityScore.findMany({
-      where: { organizationId },
-      include: { company: { select: { name: true, city: true, state: true, site: true } } },
-    }),
-  ]);
+  const [organization, icps, memberships, opportunityScores] = await withOrgContext(organizationId, (tx) =>
+    Promise.all([
+      tx.organization.findUnique({ where: { id: organizationId } }),
+      tx.iCP.findMany({ where: { organizationId } }),
+      tx.membership.findMany({
+        where: { organizationId },
+        include: { user: { select: { name: true, email: true, role: true, phone: true } } },
+      }),
+      tx.opportunityScore.findMany({
+        where: { organizationId },
+        include: { company: { select: { name: true, city: true, state: true, site: true } } },
+      }),
+    ]),
+  );
 
   if (!organization) {
     return new Response("Organização não encontrada.", { status: 404 });

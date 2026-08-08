@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { SpinosScore } from "@/components/SpinosScore";
@@ -19,11 +19,13 @@ const STATUS_LABEL: Record<string, { label: string; bg: string; color: string }>
 };
 
 function fetchHistory(organizationId: string) {
-  return prisma.opportunityScore.findMany({
-    where: { organizationId },
-    include: { company: true },
-    orderBy: [{ stageUpdatedAt: "desc" }, { computedAt: "desc" }],
-  });
+  return withOrgContext(organizationId, (tx) =>
+    tx.opportunityScore.findMany({
+      where: { organizationId },
+      include: { company: true },
+      orderBy: [{ stageUpdatedAt: "desc" }, { computedAt: "desc" }],
+    }),
+  );
 }
 
 function statusKey(opp: { stage: string | null; status: string }): string {

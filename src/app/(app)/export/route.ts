@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { getPlan } from "@/lib/plans";
 
@@ -15,20 +15,26 @@ export async function GET() {
     return new Response("Nenhuma organização ativa.", { status: 400 });
   }
 
-  const organization = await prisma.organization.findUnique({ where: { id: organizationId }, select: { plan: true } });
-  const plan = getPlan(organization?.plan ?? "STARTER");
-  if (!plan.features.crmExport) {
+  const result = await withOrgContext(organizationId, async (tx) => {
+    const organization = await tx.organization.findUnique({ where: { id: organizationId }, select: { plan: true } });
+    const plan = getPlan(organization?.plan ?? "STARTER");
+    if (!plan.features.crmExport) return { allowed: false as const, plan };
+
+    const opportunities = await tx.opportunityScore.findMany({
+      where: { organizationId },
+      include: { company: true },
+      orderBy: { score: "desc" },
+    });
+    return { allowed: true as const, opportunities };
+  });
+
+  if (!result.allowed) {
     return new Response(
-      `Exportação disponível a partir do plano Profissional. Seu plano atual é ${plan.name}.`,
+      `Exportação disponível a partir do plano Profissional. Seu plano atual é ${result.plan.name}.`,
       { status: 403 },
     );
   }
-
-  const opportunities = await prisma.opportunityScore.findMany({
-    where: { organizationId },
-    include: { company: true },
-    orderBy: { score: "desc" },
-  });
+  const { opportunities } = result;
 
   const header = [
     "Empresa",

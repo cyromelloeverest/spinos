@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentMembership } from "@/lib/auth/current-org";
 import { getPlan } from "@/lib/plans";
 import { inviteMember, cancelInvite, removeMember } from "@/lib/actions/team";
@@ -29,18 +29,20 @@ export default async function EquipeSettingsPage({
   let members;
   let invites;
   try {
-    [organization, members, invites] = await Promise.all([
-      prisma.organization.findUnique({ where: { id: membership.organizationId } }),
-      prisma.membership.findMany({
-        where: { organizationId: membership.organizationId },
-        include: { user: true },
-        orderBy: { createdAt: "asc" },
-      }),
-      prisma.invite.findMany({
-        where: { organizationId: membership.organizationId, acceptedAt: null },
-        orderBy: { createdAt: "desc" },
-      }),
-    ]);
+    [organization, members, invites] = await withOrgContext(membership.organizationId, (tx) =>
+      Promise.all([
+        tx.organization.findUnique({ where: { id: membership.organizationId } }),
+        tx.membership.findMany({
+          where: { organizationId: membership.organizationId },
+          include: { user: true },
+          orderBy: { createdAt: "asc" },
+        }),
+        tx.invite.findMany({
+          where: { organizationId: membership.organizationId, acceptedAt: null },
+          orderBy: { createdAt: "desc" },
+        }),
+      ]),
+    );
   } catch (err) {
     logError("settings/equipe: falha ao carregar equipe", err, { organizationId: membership.organizationId });
     return <DbSetupNotice />;

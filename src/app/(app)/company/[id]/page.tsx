@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { moveToPipeline, dismissOpportunity } from "@/lib/actions/pipeline";
 import { updateContactInfo } from "@/lib/actions/contact";
@@ -19,22 +19,28 @@ export default async function CompanyPage({
 }) {
   const { id } = await params;
   const organizationId = await getCurrentOrganizationId();
+  if (!organizationId) notFound();
 
-  const opp = await prisma.opportunityScore.findUnique({
-    where: { id },
-    include: {
-      company: true,
-      lastActionByUser: true,
-      signalsUsed: { include: { signal: true }, orderBy: { signal: { detectedAt: "desc" } } },
-    },
+  const { opp, icp } = await withOrgContext(organizationId, async (tx) => {
+    const opp = await tx.opportunityScore.findUnique({
+      where: { id },
+      include: {
+        company: true,
+        lastActionByUser: true,
+        signalsUsed: { include: { signal: true }, orderBy: { signal: { detectedAt: "desc" } } },
+      },
+    });
+
+    if (!opp || opp.organizationId !== organizationId) return { opp: null, icp: null };
+
+    const icp = await tx.iCP.findFirst({
+      where: { organizationId: opp.organizationId, isActive: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return { opp, icp };
   });
 
-  if (!opp || opp.organizationId !== organizationId) notFound();
-
-  const icp = await prisma.iCP.findFirst({
-    where: { organizationId: opp.organizationId, isActive: true },
-    orderBy: { createdAt: "desc" },
-  });
+  if (!opp) notFound();
   const offeringOptions = [...new Set([...(icp?.servicesSold ?? []), ...(icp?.productsSold ?? [])])];
   const updateContactWithId = updateContactInfo.bind(null, opp.id);
 

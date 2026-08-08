@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { updateICP } from "@/lib/actions/settings";
 import { FormField } from "@/components/FormField";
@@ -20,10 +20,12 @@ export default async function IcpSettingsPage({
 
   let icp;
   try {
-    icp = await prisma.iCP.findFirst({
-      where: { organizationId, isActive: true },
-      orderBy: { createdAt: "desc" },
-    });
+    icp = await withOrgContext(organizationId, (tx) =>
+      tx.iCP.findFirst({
+        where: { organizationId, isActive: true },
+        orderBy: { createdAt: "desc" },
+      }),
+    );
   } catch (err) {
     logError("settings/icp: falha ao carregar ICP", err, { organizationId });
     return <DbSetupNotice />;

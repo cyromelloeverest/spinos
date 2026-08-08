@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId, getCurrentMembership } from "@/lib/auth/current-org";
 import { runSearchAction } from "@/lib/actions/search";
 import { SEARCH_COOLDOWN_MS, startOfCurrentMonth } from "@/lib/opportunity-engine/constants";
@@ -22,8 +23,8 @@ const URGENCY_CONFIG: Record<string, { label: string; icon: typeof Flame; color:
   BAIXA: { label: "Baixa", icon: Minus, color: "var(--fg-faint)" },
 };
 
-function fetchOpportunities(organizationId: string) {
-  return prisma.opportunityScore.findMany({
+function fetchOpportunities(tx: Prisma.TransactionClient, organizationId: string) {
+  return tx.opportunityScore.findMany({
     where: { organizationId, stage: null, status: { not: "DISMISSED" } },
     include: { company: true, signalsUsed: { include: { signal: true } } },
     orderBy: { score: "desc" },
@@ -58,22 +59,26 @@ export default async function OpportunitiesPage({
   }
 
   let opportunities: Awaited<ReturnType<typeof fetchOpportunities>> = [];
-  let organization: Awaited<ReturnType<typeof prisma.organization.findUnique>> = null;
+  let organization: Prisma.OrganizationModel | null = null;
   let searchesThisMonth = 0;
   let searchesAllTime = 0;
-  let latestMission: Awaited<ReturnType<typeof prisma.mission.findFirst>> = null;
+  let latestMission: Prisma.MissionModel | null = null;
   let dbError = false;
   try {
-    [opportunities, organization, searchesThisMonth, searchesAllTime, latestMission] = await Promise.all([
-      fetchOpportunities(organizationId),
-      prisma.organization.findUnique({ where: { id: organizationId } }),
-      prisma.searchRun.count({ where: { organizationId, createdAt: { gte: startOfCurrentMonth() } } }),
-      // Usado só se a org estiver em trial (teto é pros 7 dias inteiros, não
-      // "por mês") — barato o bastante pra sempre buscar em paralelo em vez
-      // de encadear depois de saber se está em trial.
-      prisma.searchRun.count({ where: { organizationId } }),
-      prisma.mission.findFirst({ where: { organizationId }, orderBy: { createdAt: "desc" } }),
-    ]);
+    [opportunities, organization, searchesThisMonth, searchesAllTime, latestMission] = await withOrgContext(
+      organizationId,
+      (tx) =>
+        Promise.all([
+          fetchOpportunities(tx, organizationId),
+          tx.organization.findUnique({ where: { id: organizationId } }),
+          tx.searchRun.count({ where: { organizationId, createdAt: { gte: startOfCurrentMonth() } } }),
+          // Usado só se a org estiver em trial (teto é pros 7 dias inteiros,
+          // não "por mês") — barato o bastante pra sempre buscar em paralelo
+          // em vez de encadear depois de saber se está em trial.
+          tx.searchRun.count({ where: { organizationId } }),
+          tx.mission.findFirst({ where: { organizationId }, orderBy: { createdAt: "desc" } }),
+        ]),
+    );
   } catch (err) {
     logError("oportunidades: falha ao carregar oportunidades", err, { organizationId });
     dbError = true;

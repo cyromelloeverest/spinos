@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { PipelineBoard, type PipelineCard } from "@/components/PipelineBoard";
@@ -14,11 +14,13 @@ function daysInStage(stageUpdatedAt: Date | null): string {
 }
 
 function fetchPipelineOpportunities(organizationId: string) {
-  return prisma.opportunityScore.findMany({
-    where: { organizationId, stage: { not: null } },
-    include: { company: true, lastActionByUser: true },
-    orderBy: { stageUpdatedAt: "desc" },
-  });
+  return withOrgContext(organizationId, (tx) =>
+    tx.opportunityScore.findMany({
+      where: { organizationId, stage: { not: null } },
+      include: { company: true, lastActionByUser: true },
+      orderBy: { stageUpdatedAt: "desc" },
+    }),
+  );
 }
 
 export default async function PipelinePage() {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { SpinosScore } from "@/components/SpinosScore";
@@ -29,41 +30,41 @@ const FUNNEL_STAGES = PIPELINE_STAGE_ORDER.map((stage) => ({ stage, label: PIPEL
 const RECENT_WINDOW_MS = 10 * 24 * 60 * 60 * 1000;
 const HOT_SCORE_THRESHOLD = 85;
 
-async function fetchDashboardData(organizationId: string) {
+async function fetchDashboardData(tx: Prisma.TransactionClient, organizationId: string) {
   const since = new Date(Date.now() - RECENT_WINDOW_MS);
   const activeFilter = { organizationId, stage: null, status: { not: "DISMISSED" } } as const;
 
   const [active, staged, won, lost, recentSignals, best, avgScoreResult, hotCount] = await Promise.all([
-    prisma.opportunityScore.count({ where: activeFilter }),
-    prisma.opportunityScore.count({
+    tx.opportunityScore.count({ where: activeFilter }),
+    tx.opportunityScore.count({
       where: { organizationId, stage: { notIn: ["VENDIDO", "PERDIDO"] } },
     }),
-    prisma.opportunityScore.count({ where: { organizationId, stage: "VENDIDO" } }),
-    prisma.opportunityScore.count({ where: { organizationId, stage: "PERDIDO" } }),
-    prisma.opportunityScoreSignal.count({
+    tx.opportunityScore.count({ where: { organizationId, stage: "VENDIDO" } }),
+    tx.opportunityScore.count({ where: { organizationId, stage: "PERDIDO" } }),
+    tx.opportunityScoreSignal.count({
       where: {
         opportunityScore: { organizationId, status: { not: "DISMISSED" } },
         signal: { detectedAt: { gte: since } },
       },
     }),
-    prisma.opportunityScore.findMany({
+    tx.opportunityScore.findMany({
       where: activeFilter,
       include: { company: true },
       orderBy: { score: "desc" },
       take: 5,
     }),
-    prisma.opportunityScore.aggregate({ where: activeFilter, _avg: { score: true } }),
-    prisma.opportunityScore.count({ where: { ...activeFilter, score: { gte: HOT_SCORE_THRESHOLD } } }),
+    tx.opportunityScore.aggregate({ where: activeFilter, _avg: { score: true } }),
+    tx.opportunityScore.count({ where: { ...activeFilter, score: { gte: HOT_SCORE_THRESHOLD } } }),
   ]);
 
   const funnelCounts = await Promise.all(
-    FUNNEL_STAGES.map(({ stage }) => prisma.opportunityScore.count({ where: { organizationId, stage: stage as never } })),
+    FUNNEL_STAGES.map(({ stage }) => tx.opportunityScore.count({ where: { organizationId, stage: stage as never } })),
   );
 
   const closedTotal = won + lost;
   const conversionRate = closedTotal > 0 ? Math.round((won / closedTotal) * 100) : null;
 
-  const latestMission = await prisma.mission.findFirst({
+  const latestMission = await tx.mission.findFirst({
     where: { organizationId },
     orderBy: { createdAt: "desc" },
     include: { opportunityScores: { select: { status: true, stage: true } } },
@@ -105,11 +106,13 @@ export default async function DashboardPage({
   let user: { name: string | null } | null = null;
   let organization: { name: string } | null = null;
   try {
-    [data, user, organization] = await Promise.all([
-      fetchDashboardData(organizationId),
-      userId ? prisma.user.findUnique({ where: { id: userId }, select: { name: true } }) : Promise.resolve(null),
-      prisma.organization.findUnique({ where: { id: organizationId }, select: { name: true } }),
-    ]);
+    [data, user, organization] = await withOrgContext(organizationId, (tx) =>
+      Promise.all([
+        fetchDashboardData(tx, organizationId),
+        userId ? tx.user.findUnique({ where: { id: userId }, select: { name: true } }) : Promise.resolve(null),
+        tx.organization.findUnique({ where: { id: organizationId }, select: { name: true } }),
+      ]),
+    );
   } catch (err) {
     logError("dashboard: falha ao carregar dados", err, { organizationId });
     return <DbSetupNotice />;

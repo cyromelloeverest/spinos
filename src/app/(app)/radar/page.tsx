@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { EmptyState } from "@/components/EmptyState";
@@ -28,14 +28,16 @@ function headlineFor(signal: { title: string; category: string; description: str
 }
 
 function fetchStories(organizationId: string) {
-  return prisma.opportunityScoreSignal.findMany({
-    where: { opportunityScore: { organizationId, status: { not: "DISMISSED" } } },
-    include: {
-      signal: { include: { company: true } },
-      opportunityScore: { select: { id: true, urgency: true, score: true } },
-    },
-    orderBy: { signal: { detectedAt: "desc" } },
-  });
+  return withOrgContext(organizationId, (tx) =>
+    tx.opportunityScoreSignal.findMany({
+      where: { opportunityScore: { organizationId, status: { not: "DISMISSED" } } },
+      include: {
+        signal: { include: { company: true } },
+        opportunityScore: { select: { id: true, urgency: true, score: true } },
+      },
+      orderBy: { signal: { detectedAt: "desc" } },
+    }),
+  );
 }
 
 export default async function NewsPage() {

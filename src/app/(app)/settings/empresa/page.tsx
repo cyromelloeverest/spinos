@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId, getCurrentUserId, getCurrentMembership } from "@/lib/auth/current-org";
 import { updateOrganizationProfile, updateUserProfile } from "@/lib/actions/settings";
 import { requestEmailChange } from "@/lib/actions/auth";
@@ -46,10 +46,12 @@ export default async function EmpresaSettingsPage({
   let organization;
   let user;
   try {
-    [organization, user] = await Promise.all([
-      prisma.organization.findUnique({ where: { id: organizationId } }),
-      prisma.user.findUnique({ where: { id: userId } }),
-    ]);
+    [organization, user] = await withOrgContext(organizationId, (tx) =>
+      Promise.all([
+        tx.organization.findUnique({ where: { id: organizationId } }),
+        tx.user.findUnique({ where: { id: userId } }),
+      ]),
+    );
   } catch (err) {
     logError("settings/empresa: falha ao carregar organização/usuário", err, { organizationId, userId });
     return <DbSetupNotice />;

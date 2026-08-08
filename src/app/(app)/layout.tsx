@@ -1,7 +1,7 @@
 import { type OrgProfile, type OrgMembership } from "@/components/Rail";
 import { AppShell } from "@/components/AppShell";
 import { TrialExpired } from "@/components/TrialExpired";
-import { prisma } from "@/lib/prisma";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentMembership, getUserMemberships, isCurrentUserSuperAdmin } from "@/lib/auth/current-org";
 import { signOut } from "@/lib/actions/auth";
 import { isTrialExpired, trialDaysLeft } from "@/lib/trial";
@@ -12,10 +12,12 @@ async function getOrganizationProfile(
 ): Promise<(OrgProfile & { trialEndsAt: Date | null }) | null> {
   if (!organizationId) return null;
   try {
-    const org = await prisma.organization.findUnique({
-      where: { id: organizationId },
-      select: { name: true, segment: true, city: true, state: true, trialEndsAt: true },
-    });
+    const org = await withOrgContext(organizationId, (tx) =>
+      tx.organization.findUnique({
+        where: { id: organizationId },
+        select: { name: true, segment: true, city: true, state: true, trialEndsAt: true },
+      }),
+    );
     return org ?? null;
   } catch (err) {
     logError("layout: falha ao carregar perfil da organização", err, { organizationId });

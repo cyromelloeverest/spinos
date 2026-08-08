@@ -1,6 +1,10 @@
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
-import { prisma } from "@/lib/prisma";
+// prismaAdmin de propósito: webhook do Stripe não tem sessão de usuário —
+// os lookups são por stripeCustomerId/checkout session, não por
+// organizationId conhecido de antemão (exceto fulfillSearchCreditPurchase,
+// que usa prismaAdmin também só por consistência com o resto do arquivo).
+import { prismaAdmin } from "@/lib/prisma-admin";
 import { getPlanByStripePriceId } from "@/lib/plans";
 import { sendTrialCreditPurchaseAlert } from "@/lib/credit-alert-email";
 import { logError } from "@/lib/log-error";
@@ -15,14 +19,14 @@ async function fulfillSearchCreditPurchase(session: Stripe.Checkout.Session) {
   const quantity = Number(session.metadata?.quantity ?? 0);
   if (!organizationId || !quantity) return;
 
-  const already = await prisma.searchCreditPurchase.findUnique({
+  const already = await prismaAdmin.searchCreditPurchase.findUnique({
     where: { stripeCheckoutSessionId: session.id },
   });
   if (already) return;
 
   const amountBRL = Math.round((session.amount_total ?? 0) / 100);
 
-  const organization = await prisma.organization.update({
+  const organization = await prismaAdmin.organization.update({
     where: { id: organizationId },
     data: {
       searchCreditBalance: { increment: quantity },
@@ -49,7 +53,7 @@ async function syncSubscription(customerId: string, subscriptionId: string) {
   const priceId = subscription.items.data[0]?.price.id;
   const plan = priceId ? getPlanByStripePriceId(priceId) : null;
 
-  await prisma.organization.update({
+  await prismaAdmin.organization.update({
     where: { stripeCustomerId: customerId },
     data: {
       stripeSubscriptionId: subscription.id,
@@ -103,7 +107,7 @@ export async function POST(req: Request) {
     case "customer.subscription.deleted": {
       const subscription = event.data.object;
       const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
-      await prisma.organization.update({
+      await prismaAdmin.organization.update({
         where: { stripeCustomerId: customerId },
         data: { subscriptionStatus: "canceled", stripeSubscriptionId: null },
       });
@@ -113,7 +117,7 @@ export async function POST(req: Request) {
       const invoice = event.data.object;
       const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
       if (customerId) {
-        await prisma.organization.update({
+        await prismaAdmin.organization.update({
           where: { stripeCustomerId: customerId },
           data: { subscriptionStatus: "past_due" },
         });

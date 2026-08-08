@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { EmptyState } from "@/components/EmptyState";
@@ -7,8 +8,8 @@ import { ScriptCard } from "@/components/ScriptCard";
 import { buildSalesScript } from "@/lib/sales-script";
 import { logError } from "@/lib/log-error";
 
-function fetchActiveOpportunities(organizationId: string) {
-  return prisma.opportunityScore.findMany({
+function fetchActiveOpportunities(tx: Prisma.TransactionClient, organizationId: string) {
+  return tx.opportunityScore.findMany({
     where: {
       organizationId,
       status: { not: "DISMISSED" },
@@ -24,13 +25,15 @@ export default async function ScriptsPage() {
   if (!organizationId) redirect("/onboarding");
 
   let opportunities: Awaited<ReturnType<typeof fetchActiveOpportunities>> = [];
-  let organization: Awaited<ReturnType<typeof prisma.organization.findUnique>> = null;
+  let organization: Prisma.OrganizationModel | null = null;
   let dbError = false;
   try {
-    [opportunities, organization] = await Promise.all([
-      fetchActiveOpportunities(organizationId),
-      prisma.organization.findUnique({ where: { id: organizationId } }),
-    ]);
+    [opportunities, organization] = await withOrgContext(organizationId, (tx) =>
+      Promise.all([
+        fetchActiveOpportunities(tx, organizationId),
+        tx.organization.findUnique({ where: { id: organizationId } }),
+      ]),
+    );
   } catch (err) {
     logError("assistente-vendas: falha ao carregar oportunidades", err, { organizationId });
     dbError = true;
