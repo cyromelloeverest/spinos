@@ -1,5 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { isTrialExpired, newTrialEndsAt, trialDaysLeft, TRIAL_DAYS } from "./trial";
+import {
+  isTrialExpired,
+  newTrialEndsAt,
+  trialDaysLeft,
+  effectiveLimits,
+  TRIAL_DAYS,
+  TRIAL_MAX_SEARCHES,
+  TRIAL_MAX_ACTIVE_OPPORTUNITIES,
+} from "./trial";
+import { PLANS } from "@/lib/plans";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -59,5 +68,36 @@ describe("trialDaysLeft", () => {
   it("retorna negativo quando já passou do prazo (trial expirado)", () => {
     const endsAt = new Date(Date.now() - 2 * DAY_MS);
     expect(trialDaysLeft(endsAt)).toBe(-2);
+  });
+});
+
+describe("effectiveLimits", () => {
+  it("trial usa o teto fixo do trial, mesmo escolhendo testar o plano Enterprise (ilimitado)", () => {
+    const result = effectiveLimits({ plan: "ENTERPRISE", trialEndsAt: new Date(Date.now() + DAY_MS) });
+    expect(result).toEqual({
+      maxActiveOpportunities: TRIAL_MAX_ACTIVE_OPPORTUNITIES,
+      maxSearches: TRIAL_MAX_SEARCHES,
+      isTrialing: true,
+    });
+  });
+
+  it("trial usa o teto fixo do trial também nos planos Starter/Profissional", () => {
+    const result = effectiveLimits({ plan: "STARTER", trialEndsAt: new Date(Date.now() + DAY_MS) });
+    expect(result.maxActiveOpportunities).toBe(TRIAL_MAX_ACTIVE_OPPORTUNITIES);
+    expect(result.maxSearches).toBe(TRIAL_MAX_SEARCHES);
+  });
+
+  it("sem trial (trialEndsAt null), usa o limite real do plano", () => {
+    const result = effectiveLimits({ plan: "STARTER", trialEndsAt: null });
+    expect(result).toEqual({
+      maxActiveOpportunities: PLANS.STARTER.maxActiveOpportunities,
+      maxSearches: PLANS.STARTER.maxSearchesPerMonth,
+      isTrialing: false,
+    });
+  });
+
+  it("sem trial e no Enterprise, os limites voltam a ser ilimitados de verdade", () => {
+    const result = effectiveLimits({ plan: "ENTERPRISE", trialEndsAt: null });
+    expect(result).toEqual({ maxActiveOpportunities: null, maxSearches: null, isTrialing: false });
   });
 });

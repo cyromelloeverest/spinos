@@ -11,6 +11,7 @@ import { SpinosScore } from "@/components/SpinosScore";
 import { ArrowRight, X, Check, Flame, TrendingUp, Minus, Target, Download } from "lucide-react";
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
 import { getPlan } from "@/lib/plans";
+import { effectiveLimits } from "@/lib/trial";
 import { logError } from "@/lib/log-error";
 
 const URGENCY_CONFIG: Record<string, { label: string; icon: typeof Flame; color: string }> = {
@@ -50,13 +51,18 @@ export default async function OpportunitiesPage({
   let opportunities: Awaited<ReturnType<typeof fetchOpportunities>> = [];
   let organization: Awaited<ReturnType<typeof prisma.organization.findUnique>> = null;
   let searchesThisMonth = 0;
+  let searchesAllTime = 0;
   let latestMission: Awaited<ReturnType<typeof prisma.mission.findFirst>> = null;
   let dbError = false;
   try {
-    [opportunities, organization, searchesThisMonth, latestMission] = await Promise.all([
+    [opportunities, organization, searchesThisMonth, searchesAllTime, latestMission] = await Promise.all([
       fetchOpportunities(organizationId),
       prisma.organization.findUnique({ where: { id: organizationId } }),
       prisma.searchRun.count({ where: { organizationId, createdAt: { gte: startOfCurrentMonth() } } }),
+      // Usado só se a org estiver em trial (teto é pros 7 dias inteiros, não
+      // "por mês") — barato o bastante pra sempre buscar em paralelo em vez
+      // de encadear depois de saber se está em trial.
+      prisma.searchRun.count({ where: { organizationId } }),
       prisma.mission.findFirst({ where: { organizationId }, orderBy: { createdAt: "desc" } }),
     ]);
   } catch (err) {
@@ -72,10 +78,13 @@ export default async function OpportunitiesPage({
   const nextAvailableAt = lastSearchAt ? new Date(lastSearchAt.getTime() + SEARCH_COOLDOWN_MS) : null;
   const onCooldown = Boolean(nextAvailableAt && isInFuture(nextAvailableAt));
   const plan = getPlan(organization?.plan ?? "STARTER");
-  const atPlanLimit = plan.maxActiveOpportunities !== null && opportunities.length >= plan.maxActiveOpportunities;
-  const atSearchLimit = plan.maxSearchesPerMonth !== null && searchesThisMonth >= plan.maxSearchesPerMonth;
-  const remainingSearches =
-    plan.maxSearchesPerMonth !== null ? Math.max(plan.maxSearchesPerMonth - searchesThisMonth - 1, 0) : null;
+  const { maxActiveOpportunities, maxSearches, isTrialing } = effectiveLimits(
+    organization ?? { plan: "STARTER", trialEndsAt: null },
+  );
+  const searchesUsed = isTrialing ? searchesAllTime : searchesThisMonth;
+  const atPlanLimit = maxActiveOpportunities !== null && opportunities.length >= maxActiveOpportunities;
+  const atSearchLimit = maxSearches !== null && searchesUsed >= maxSearches;
+  const remainingSearches = maxSearches !== null ? Math.max(maxSearches - searchesUsed - 1, 0) : null;
   const userBlocked = Boolean(membership?.searchBlocked);
   const searchDisabled = !anthropicConfigured || onCooldown || atPlanLimit || atSearchLimit || userBlocked;
   const disabledTitle = !anthropicConfigured
@@ -83,9 +92,13 @@ export default async function OpportunitiesPage({
     : userBlocked
       ? "Sua conta está temporariamente impedida de fazer buscas"
       : atPlanLimit
-        ? `Limite de ${plan.maxActiveOpportunities} oportunidades ativas do plano ${plan.name} atingido`
+        ? isTrialing
+          ? `Limite de ${maxActiveOpportunities} oportunidades ativas do teste grátis atingido`
+          : `Limite de ${maxActiveOpportunities} oportunidades ativas do plano ${plan.name} atingido`
         : atSearchLimit
-          ? `Limite de ${plan.maxSearchesPerMonth} buscas/mês do plano ${plan.name} atingido`
+          ? isTrialing
+            ? `Limite de ${maxSearches} buscas do teste grátis atingido`
+            : `Limite de ${maxSearches} buscas/mês do plano ${plan.name} atingido`
           : onCooldown && nextAvailableAt
             ? `Próxima busca disponível em ${formatDateTime(nextAvailableAt)}`
             : undefined;
@@ -116,23 +129,28 @@ export default async function OpportunitiesPage({
               {opportunities.length === 0
                 ? "Nenhuma oportunidade ainda — rode uma busca pra encontrar sinais reais pro seu ICP."
                 : `${opportunities.length} oportunidades calculadas a partir do seu ICP.`}
-              {plan.maxActiveOpportunities !== null && (
+              {maxActiveOpportunities !== null && (
                 <span style={{ color: atPlanLimit ? "var(--warn)" : "var(--fg-faint)" }}>
                   {" "}
-                  ({opportunities.length}/{plan.maxActiveOpportunities} do plano {plan.name})
+                  ({opportunities.length}/{maxActiveOpportunities}{isTrialing ? " do teste grátis" : ` do plano ${plan.name}`})
                 </span>
               )}
-              {plan.maxSearchesPerMonth !== null && (
+              {maxSearches !== null && (
                 <span style={{ color: atSearchLimit ? "var(--warn)" : "var(--fg-faint)" }}>
                   {" "}
-                  · {searchesThisMonth}/{plan.maxSearchesPerMonth} buscas este mês
+                  · {searchesUsed}/{maxSearches} {isTrialing ? "buscas do teste grátis" : "buscas este mês"}
                 </span>
               )}
             </p>
           </div>
         </div>
         <form action={runSearchAction} className="flex-shrink-0 w-full sm:w-auto">
-          <SearchButton disabled={searchDisabled} disabledTitle={disabledTitle} remainingSearches={remainingSearches} />
+          <SearchButton
+            disabled={searchDisabled}
+            disabledTitle={disabledTitle}
+            remainingSearches={remainingSearches}
+            isTrialing={isTrialing}
+          />
         </form>
       </div>
 
@@ -171,12 +189,16 @@ export default async function OpportunitiesPage({
       )}
       {params.search === "plan_limit" && (
         <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
-          Seu plano permite até {params.limit ?? plan.maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no pipeline para liberar espaço, ou fale com a gente para evoluir de plano.
+          {isTrialing
+            ? `Seu teste grátis permite até ${params.limit ?? maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no pipeline para liberar espaço, ou assine um plano pago pra continuar sem esse teto.`
+            : `Seu plano permite até ${params.limit ?? maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no pipeline para liberar espaço, ou fale com a gente para evoluir de plano.`}
         </div>
       )}
       {params.search === "search_limit" && (
         <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
-          Seu plano permite até {params.limit ?? plan.maxSearchesPerMonth} buscas por mês, e o limite já foi atingido. O contador reseta no início do próximo mês, ou fale com a gente para evoluir de plano.
+          {isTrialing
+            ? `Seu teste grátis permite até ${params.limit ?? maxSearches} buscas nos 7 dias, e o limite já foi atingido. Assine um plano pago pra continuar buscando.`
+            : `Seu plano permite até ${params.limit ?? maxSearches} buscas por mês, e o limite já foi atingido. O contador reseta no início do próximo mês, ou fale com a gente para evoluir de plano.`}
         </div>
       )}
       {params.search === "user_blocked" && (

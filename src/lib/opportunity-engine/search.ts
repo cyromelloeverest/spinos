@@ -3,11 +3,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { prisma } from "@/lib/prisma";
+import type { Organization, ICP } from "@/generated/prisma/client";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { OpportunitySearchResultSchema } from "./schema";
 import { findBestMatch } from "./company-matching";
 import { SEARCH_COOLDOWN_MS, startOfCurrentMonth } from "./constants";
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
-import { getPlan } from "@/lib/plans";
+import { effectiveLimits } from "@/lib/trial";
 import { fetchOgImage } from "@/lib/og-image";
 import { logError } from "@/lib/log-error";
 
@@ -77,55 +79,69 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
     return { status: "not_configured" };
   }
 
-  const organization = await prisma.organization.findUnique({ where: { id: organizationId } });
-  if (!organization) {
-    return { status: "error", message: "Organização não encontrada." };
-  }
+  // Leituras de checagem (cooldown, ICP, limites de plano) — tudo dentro do
+  // contexto da org, numa transação curta só de leitura.
+  type PreCheck = { outcome: SearchOutcome } | { organization: Organization; icp: ICP };
+  const preCheck = await withOrgContext(organizationId, async (tx): Promise<PreCheck> => {
+    const organization = await tx.organization.findUnique({ where: { id: organizationId } });
+    if (!organization) return { outcome: { status: "error", message: "Organização não encontrada." } };
 
-  if (organization.lastSearchAt) {
-    const nextAvailableAt = new Date(organization.lastSearchAt.getTime() + SEARCH_COOLDOWN_MS);
-    if (nextAvailableAt.getTime() > Date.now()) {
-      return { status: "rate_limited", nextAvailableAt: nextAvailableAt.toISOString() };
+    if (organization.lastSearchAt) {
+      const nextAvailableAt = new Date(organization.lastSearchAt.getTime() + SEARCH_COOLDOWN_MS);
+      if (nextAvailableAt.getTime() > Date.now()) {
+        return { outcome: { status: "rate_limited", nextAvailableAt: nextAvailableAt.toISOString() } };
+      }
     }
-  }
 
-  const icp = await prisma.iCP.findFirst({
-    where: { organizationId, isActive: true },
-    orderBy: { createdAt: "desc" },
+    const icp = await tx.iCP.findFirst({
+      where: { organizationId, isActive: true },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!icp) return { outcome: { status: "error", message: "Cadastre um ICP antes de buscar oportunidades." } };
+
+    // Trial nunca herda o limite do plano selecionado pra testar — mesmo
+    // "testando" o Enterprise (limites ilimitados), o teto do trial vale.
+    const { maxActiveOpportunities, maxSearches, isTrialing } = effectiveLimits(organization);
+    if (maxActiveOpportunities !== null) {
+      const activeCount = await tx.opportunityScore.count({
+        where: { organizationId, stage: null, status: { not: "DISMISSED" } },
+      });
+      if (activeCount >= maxActiveOpportunities) {
+        return { outcome: { status: "plan_limit", limit: maxActiveOpportunities } };
+      }
+    }
+
+    if (maxSearches !== null) {
+      // Trial é um teto total pros 7 dias inteiros, não "por mês" — a janela
+      // de um mês não faz sentido pra um período que já é mais curto que isso.
+      const searchesUsed = await tx.searchRun.count({
+        where: isTrialing ? { organizationId } : { organizationId, createdAt: { gte: startOfCurrentMonth() } },
+      });
+      if (searchesUsed >= maxSearches) {
+        return { outcome: { status: "search_limit", limit: maxSearches } };
+      }
+    }
+
+    return { organization, icp };
   });
-  if (!icp) {
-    return { status: "error", message: "Cadastre um ICP antes de buscar oportunidades." };
-  }
 
-  const plan = getPlan(organization.plan);
-  if (plan.maxActiveOpportunities !== null) {
-    const activeCount = await prisma.opportunityScore.count({
-      where: { organizationId, stage: null, status: { not: "DISMISSED" } },
-    });
-    if (activeCount >= plan.maxActiveOpportunities) {
-      return { status: "plan_limit", limit: plan.maxActiveOpportunities };
-    }
-  }
-
-  if (plan.maxSearchesPerMonth !== null) {
-    const searchesThisMonth = await prisma.searchRun.count({
-      where: { organizationId, createdAt: { gte: startOfCurrentMonth() } },
-    });
-    if (searchesThisMonth >= plan.maxSearchesPerMonth) {
-      return { status: "search_limit", limit: plan.maxSearchesPerMonth };
-    }
-  }
+  if ("outcome" in preCheck) return preCheck.outcome;
+  const { organization, icp } = preCheck;
 
   const runTimestamp = new Date();
   const previousLastSearchAt = organization.lastSearchAt;
 
   // Grava o horário já aqui, antes de chamar a IA — evita que um segundo
   // clique durante os 30-90s de espera dispare outra busca (e outro custo).
-  await prisma.organization.update({
-    where: { id: organizationId },
-    data: { lastSearchAt: runTimestamp },
+  // Transação curta e separada da chamada à IA de propósito: não dá pra
+  // segurar uma transação do Postgres aberta por 30-90s esperando rede.
+  const searchRun = await withOrgContext(organizationId, async (tx) => {
+    await tx.organization.update({
+      where: { id: organizationId },
+      data: { lastSearchAt: runTimestamp },
+    });
+    return tx.searchRun.create({ data: { organizationId } });
   });
-  const searchRun = await prisma.searchRun.create({ data: { organizationId } });
 
   const client = new Anthropic({ apiKey });
 
@@ -145,11 +161,13 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
     // A busca falhou antes de produzir resultado — não deve consumir o
     // limite de 1 busca a cada 2 dias nem o limite de buscas/mês, então
     // desfazemos os dois registros acima.
-    await prisma.organization.update({
-      where: { id: organizationId },
-      data: { lastSearchAt: previousLastSearchAt },
+    await withOrgContext(organizationId, async (tx) => {
+      await tx.organization.update({
+        where: { id: organizationId },
+        data: { lastSearchAt: previousLastSearchAt },
+      });
+      await tx.searchRun.delete({ where: { id: searchRun.id } }).catch(() => {});
     });
-    await prisma.searchRun.delete({ where: { id: searchRun.id } }).catch(() => {});
     // Não repassa err.message pro cliente (OWASP A10) — mensagem da API da
     // Anthropic pode conter detalhe interno (ex: "credit balance too low",
     // que é estado de billing nosso, não do cliente). Log fica só no server.
@@ -158,11 +176,13 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
   }
 
   if (!response.parsed_output) {
-    await prisma.organization.update({
-      where: { id: organizationId },
-      data: { lastSearchAt: previousLastSearchAt },
+    await withOrgContext(organizationId, async (tx) => {
+      await tx.organization.update({
+        where: { id: organizationId },
+        data: { lastSearchAt: previousLastSearchAt },
+      });
+      await tx.searchRun.delete({ where: { id: searchRun.id } }).catch(() => {});
     });
-    await prisma.searchRun.delete({ where: { id: searchRun.id } }).catch(() => {});
     return { status: "error", message: "A IA não retornou um resultado estruturado válido." };
   }
 
@@ -177,9 +197,10 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
     await Promise.all(uniqueSourceUrls.map(async (url) => [url, await fetchOgImage(url)] as const)),
   );
 
-  // Pool em memória de empresas candidatas a match — carregado uma vez e
-  // atualizado a cada criação nesta execução, para que candidatas repetidas
-  // dentro do mesmo batch (não só entre execuções) também sejam mescladas.
+  // Company/Signal são tabelas globais (fato objetivo, não pertence a um
+  // tenant) — usam o client normal direto, sem contexto de org: a policy
+  // delas libera leitura/escrita pra qualquer conexão, não filtra por
+  // organizationId (não existe essa coluna nelas).
   const companyPool = await prisma.company.findMany({
     where: { state: { in: [...new Set(opportunities.map((o) => o.state))] } },
   });
@@ -187,7 +208,9 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
   // Uma missão por execução de busca — agrupa as oportunidades encontradas
   // agora pra o Dashboard destacar "o resultado desta busca" como um todo.
   const mission =
-    opportunities.length > 0 ? await prisma.mission.create({ data: { organizationId } }) : null;
+    opportunities.length > 0
+      ? await withOrgContext(organizationId, (tx) => tx.mission.create({ data: { organizationId } }))
+      : null;
 
   for (const opp of opportunities) {
     let company = findBestMatch(opp.companyName, opp.city, companyPool);
@@ -204,79 +227,91 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
       companyPool.push(company);
     }
 
-    const score = await prisma.opportunityScore.upsert({
-      where: {
-        organizationId_companyId_icpId: {
+    // Resolve os sinais (tabela global) fora do contexto de org, igual à
+    // company acima.
+    const signalRecords = await Promise.all(
+      opp.signals.map(async (signal) => {
+        // Reaproveita um sinal já existente pra mesma empresa+fonte em vez de
+        // recriar — sem isso, uma notícia que continua "no ar" entre buscas
+        // virava um card duplicado no Radar a cada execução.
+        const existingSignal = await prisma.signal.findFirst({
+          where: { companyId: company.id, sourceUrl: signal.sourceUrl },
+        });
+        return (
+          existingSignal ??
+          (await prisma.signal.create({
+            data: {
+              companyId: company.id,
+              category: signal.category,
+              sourceType: "ai_web_search",
+              sourceUrl: signal.sourceUrl,
+              imageUrl: imageUrlBySource.get(signal.sourceUrl) ?? null,
+              title: SIGNAL_CATEGORY_LABEL[signal.category] ?? signal.category,
+              description: signal.text,
+              detectedAt: runTimestamp,
+            },
+          }))
+        );
+      }),
+    );
+
+    // O OpportunityScore e seus vínculos com Signal são dado de tenant — de
+    // volta ao contexto de org, numa transação curta por oportunidade.
+    await withOrgContext(organizationId, async (tx) => {
+      const score = await tx.opportunityScore.upsert({
+        where: {
+          organizationId_companyId_icpId: {
+            organizationId,
+            companyId: company.id,
+            icpId: icp.id,
+          },
+        },
+        update: {
+          score: opp.score,
+          urgency: opp.urgency,
+          headline: opp.headline,
+          execSummary: opp.execSummary,
+          reasoning: opp.reasoning,
+          buyerArea: opp.buyerArea,
+          decisionMaker: opp.decisionMaker,
+          // undefined (não null) quando a IA não achou nome dessa vez — Prisma
+          // ignora o campo no update, preservando um nome já achado antes em
+          // vez de apagar informação boa por causa de uma busca menos sortuda.
+          decisionMakerName: opp.decisionMakerName ?? undefined,
+          suggestedApproach: opp.approach,
+          commercialArguments: opp.commercialArguments,
+          objections: opp.objections,
+          computedAt: runTimestamp,
+          missionId: mission?.id,
+        },
+        create: {
           organizationId,
           companyId: company.id,
           icpId: icp.id,
+          score: opp.score,
+          urgency: opp.urgency,
+          headline: opp.headline,
+          execSummary: opp.execSummary,
+          reasoning: opp.reasoning,
+          buyerArea: opp.buyerArea,
+          decisionMaker: opp.decisionMaker,
+          decisionMakerName: opp.decisionMakerName,
+          suggestedApproach: opp.approach,
+          commercialArguments: opp.commercialArguments,
+          objections: opp.objections,
+          computedAt: runTimestamp,
+          missionId: mission?.id,
         },
-      },
-      update: {
-        score: opp.score,
-        urgency: opp.urgency,
-        headline: opp.headline,
-        execSummary: opp.execSummary,
-        reasoning: opp.reasoning,
-        buyerArea: opp.buyerArea,
-        decisionMaker: opp.decisionMaker,
-        // undefined (não null) quando a IA não achou nome dessa vez — Prisma
-        // ignora o campo no update, preservando um nome já achado antes em
-        // vez de apagar informação boa por causa de uma busca menos sortuda.
-        decisionMakerName: opp.decisionMakerName ?? undefined,
-        suggestedApproach: opp.approach,
-        commercialArguments: opp.commercialArguments,
-        objections: opp.objections,
-        computedAt: runTimestamp,
-        missionId: mission?.id,
-      },
-      create: {
-        organizationId,
-        companyId: company.id,
-        icpId: icp.id,
-        score: opp.score,
-        urgency: opp.urgency,
-        headline: opp.headline,
-        execSummary: opp.execSummary,
-        reasoning: opp.reasoning,
-        buyerArea: opp.buyerArea,
-        decisionMaker: opp.decisionMaker,
-        decisionMakerName: opp.decisionMakerName,
-        suggestedApproach: opp.approach,
-        commercialArguments: opp.commercialArguments,
-        objections: opp.objections,
-        computedAt: runTimestamp,
-        missionId: mission?.id,
-      },
-    });
+      });
 
-    for (const signal of opp.signals) {
-      // Reaproveita um sinal já existente pra mesma empresa+fonte em vez de
-      // recriar — sem isso, uma notícia que continua "no ar" entre buscas
-      // virava um card duplicado no Radar a cada execução.
-      const existingSignal = await prisma.signal.findFirst({
-        where: { companyId: company.id, sourceUrl: signal.sourceUrl },
-      });
-      const signalRecord =
-        existingSignal ??
-        (await prisma.signal.create({
-          data: {
-            companyId: company.id,
-            category: signal.category,
-            sourceType: "ai_web_search",
-            sourceUrl: signal.sourceUrl,
-            imageUrl: imageUrlBySource.get(signal.sourceUrl) ?? null,
-            title: SIGNAL_CATEGORY_LABEL[signal.category] ?? signal.category,
-            description: signal.text,
-            detectedAt: runTimestamp,
-          },
-        }));
-      await prisma.opportunityScoreSignal.upsert({
-        where: { opportunityScoreId_signalId: { opportunityScoreId: score.id, signalId: signalRecord.id } },
-        update: {},
-        create: { opportunityScoreId: score.id, signalId: signalRecord.id },
-      });
-    }
+      for (const signalRecord of signalRecords) {
+        await tx.opportunityScoreSignal.upsert({
+          where: { opportunityScoreId_signalId: { opportunityScoreId: score.id, signalId: signalRecord.id } },
+          update: {},
+          create: { opportunityScoreId: score.id, signalId: signalRecord.id },
+        });
+      }
+    });
   }
 
   return { status: "ok", count: opportunities.length };

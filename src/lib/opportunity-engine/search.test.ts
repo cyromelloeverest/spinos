@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SEARCH_COOLDOWN_MS } from "./constants";
 import { PLANS } from "@/lib/plans";
+import { TRIAL_MAX_SEARCHES, TRIAL_MAX_ACTIVE_OPPORTUNITIES } from "@/lib/trial";
 
 const {
   organizationFindUnique,
@@ -36,16 +37,27 @@ const {
   parseMock: vi.fn(),
 }));
 
+// withOrgContext abre uma transação e passa "tx" pra callback — no mock,
+// "tx" é o mesmo objeto que "prisma", com os mesmos métodos mockados, mais
+// $executeRaw (usado só pro set_config do contexto de RLS, sem efeito aqui).
+// company/signal ficam também no "prisma" de fora porque search.ts as
+// chama fora de qualquer withOrgContext (são tabelas globais).
+const mockDb = {
+  organization: { findUnique: organizationFindUnique, update: organizationUpdate },
+  iCP: { findFirst: icpFindFirst },
+  opportunityScore: { count: opportunityScoreCount, upsert: opportunityScoreUpsert },
+  searchRun: { count: searchRunCount, create: searchRunCreate, delete: searchRunDelete },
+  company: { findMany: companyFindMany, create: companyCreate },
+  signal: { findFirst: signalFindFirst, create: signalCreate },
+  opportunityScoreSignal: { upsert: opportunityScoreSignalUpsert },
+  mission: { create: missionCreate },
+  $executeRaw: vi.fn(),
+};
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    organization: { findUnique: organizationFindUnique, update: organizationUpdate },
-    iCP: { findFirst: icpFindFirst },
-    opportunityScore: { count: opportunityScoreCount, upsert: opportunityScoreUpsert },
-    searchRun: { count: searchRunCount, create: searchRunCreate, delete: searchRunDelete },
-    company: { findMany: companyFindMany, create: companyCreate },
-    signal: { findFirst: signalFindFirst, create: signalCreate },
-    opportunityScoreSignal: { upsert: opportunityScoreSignalUpsert },
-    mission: { create: missionCreate },
+    ...mockDb,
+    $transaction: vi.fn((cb: (tx: typeof mockDb) => unknown) => cb(mockDb)),
   },
 }));
 
@@ -75,6 +87,10 @@ const baseOrg = {
   state: "SP",
   plan: "STARTER",
   lastSearchAt: null as Date | null,
+  // null = sem trial (conta paga/uso interno) — a maioria dos testes
+  // existentes assume esse caso; os testes de trial sobrescrevem com uma
+  // data no futuro.
+  trialEndsAt: null as Date | null,
 };
 
 const baseIcp = {
@@ -198,6 +214,57 @@ describe("searchOpportunities — gating", () => {
     expect(result).toEqual({ status: "ok", count: 0 });
     expect(opportunityScoreCount).not.toHaveBeenCalled();
     expect(searchRunCount).not.toHaveBeenCalled();
+  });
+
+  it("trial nunca herda buscas ilimitadas do plano Enterprise — bloqueia no teto do trial", async () => {
+    organizationFindUnique.mockResolvedValueOnce({
+      ...baseOrg,
+      plan: "ENTERPRISE",
+      trialEndsAt: new Date(Date.now() + 3 * DAY_MS),
+    });
+    opportunityScoreCount.mockResolvedValueOnce(0);
+    searchRunCount.mockResolvedValueOnce(TRIAL_MAX_SEARCHES);
+    const result = await searchOpportunities("org-1");
+    expect(result).toEqual({ status: "search_limit", limit: TRIAL_MAX_SEARCHES });
+  });
+
+  it("trial bloqueia por oportunidades ativas no teto do trial, não no teto (ilimitado) do plano selecionado", async () => {
+    organizationFindUnique.mockResolvedValueOnce({
+      ...baseOrg,
+      plan: "ENTERPRISE",
+      trialEndsAt: new Date(Date.now() + 3 * DAY_MS),
+    });
+    opportunityScoreCount.mockResolvedValueOnce(TRIAL_MAX_ACTIVE_OPPORTUNITIES);
+    const result = await searchOpportunities("org-1");
+    expect(result).toEqual({ status: "plan_limit", limit: TRIAL_MAX_ACTIVE_OPPORTUNITIES });
+  });
+
+  it("trial conta buscas de todo o período (sem filtro de mês), diferente de um plano pago", async () => {
+    organizationFindUnique.mockResolvedValueOnce({
+      ...baseOrg,
+      plan: "STARTER",
+      trialEndsAt: new Date(Date.now() + 3 * DAY_MS),
+    });
+    opportunityScoreCount.mockResolvedValueOnce(0);
+    searchRunCount.mockResolvedValueOnce(TRIAL_MAX_SEARCHES - 1);
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
+
+    await searchOpportunities("org-1");
+
+    expect(searchRunCount).toHaveBeenCalledWith({ where: { organizationId: "org-1" } });
+  });
+
+  it("libera busca no trial quando está abaixo dos dois tetos", async () => {
+    organizationFindUnique.mockResolvedValueOnce({
+      ...baseOrg,
+      plan: "ENTERPRISE",
+      trialEndsAt: new Date(Date.now() + 3 * DAY_MS),
+    });
+    opportunityScoreCount.mockResolvedValueOnce(TRIAL_MAX_ACTIVE_OPPORTUNITIES - 1);
+    searchRunCount.mockResolvedValueOnce(TRIAL_MAX_SEARCHES - 1);
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
+    const result = await searchOpportunities("org-1");
+    expect(result).toEqual({ status: "ok", count: 0 });
   });
 });
 

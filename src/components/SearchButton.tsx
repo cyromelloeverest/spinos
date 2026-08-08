@@ -16,10 +16,12 @@ export function SearchButton({
   disabled,
   disabledTitle,
   remainingSearches,
+  isTrialing,
 }: {
   disabled: boolean;
   disabledTitle?: string;
   remainingSearches?: number | null;
+  isTrialing?: boolean;
 }) {
   const { pending } = useFormStatus();
   const [open, setOpen] = useState(false);
@@ -73,7 +75,7 @@ export function SearchButton({
             {pending ? (
               <SearchingPhase />
             ) : (
-              <ConfirmPhase remainingSearches={remainingSearches} onCancel={() => setOpen(false)} />
+              <ConfirmPhase remainingSearches={remainingSearches} isTrialing={isTrialing} onCancel={() => setOpen(false)} />
             )}
           </div>
         </div>
@@ -84,9 +86,11 @@ export function SearchButton({
 
 function ConfirmPhase({
   remainingSearches,
+  isTrialing,
   onCancel,
 }: {
   remainingSearches?: number | null;
+  isTrialing?: boolean;
   onCancel: () => void;
 }) {
   return (
@@ -118,8 +122,8 @@ function ConfirmPhase({
       </p>
       {typeof remainingSearches === "number" ? (
         <p className="text-[12.5px] mb-5" style={{ color: "var(--fg-faint)" }}>
-          Isso usa 1 das suas buscas do mês ({remainingSearches} restante{remainingSearches === 1 ? "" : "s"} depois
-          desta).
+          Isso usa 1 das suas buscas {isTrialing ? "do teste grátis" : "do mês"} ({remainingSearches} restante
+          {remainingSearches === 1 ? "" : "s"} depois desta).
         </p>
       ) : (
         <div className="mb-5" />
