@@ -6,7 +6,15 @@ export const TRIAL_DAYS = 7;
 // isso, alguém "testando" o Enterprise (buscas ilimitadas) sem cartão de
 // crédito drena o saldo da API sem limite nenhum durante os 7 dias.
 // Números iniciais, ajustáveis depois de olhar dado real de conversão.
-export const TRIAL_MAX_SEARCHES = 5;
+//
+// 1 (não mais): a busca sob demanda é a "amostra grátis" — mostra o
+// produto completo (score, argumentos, objeções) uma vez, pra converter,
+// sem deixar o trial gastar IA à toa depois disso. A coleta gratuita
+// (RSS/PNCP, ver src/lib/free-signals/) continua rodando em paralelo sem
+// nenhum custo adicional, mesmo depois de esgotada a amostra. Depois da
+// 1ª busca, só compra de créditos avulsos (ver SEARCH_CREDIT_PACK)
+// libera buscas sob demanda extras dentro do trial.
+export const TRIAL_MAX_SEARCHES = 1;
 export const TRIAL_MAX_ACTIVE_OPPORTUNITIES = 20;
 
 export function newTrialEndsAt(daysFromNow: number = TRIAL_DAYS): Date {
