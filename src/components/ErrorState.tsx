@@ -20,7 +20,7 @@ export function ErrorState({
       <div className="w-full max-w-[420px] text-center">
         <div className="flex flex-col items-center gap-1.5 mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-preto.svg" alt="Spinos" style={{ height: "30px", width: "auto" }} />
+          <img src="/logo-preto.svg" alt="Spinos" style={{ height: "36px", width: "auto" }} />
         </div>
 
         <div

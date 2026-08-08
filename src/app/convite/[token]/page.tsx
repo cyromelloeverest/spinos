@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+// prismaAdmin de propósito: página pública, sem sessão — o convite é achado
+// pelo token, não existe organizationId conhecido antes disso.
+import { prismaAdmin } from "@/lib/prisma-admin";
 import { acceptInviteSignUp } from "@/lib/actions/team";
 
 export default async function ConvitePage({
@@ -13,7 +15,7 @@ export default async function ConvitePage({
   const { token } = await params;
   const { error } = await searchParams;
 
-  const invite = await prisma.invite.findUnique({
+  const invite = await prismaAdmin.invite.findUnique({
     where: { token },
     include: { organization: true },
   });
@@ -22,7 +24,7 @@ export default async function ConvitePage({
     redirect("/convite/invalido");
   }
 
-  const existingUser = await prisma.user.findUnique({ where: { email: invite.email } });
+  const existingUser = await prismaAdmin.user.findUnique({ where: { email: invite.email } });
   const acceptAction = acceptInviteSignUp.bind(null, token);
 
   return (
@@ -30,7 +32,7 @@ export default async function ConvitePage({
       <div className="w-full max-w-[380px] px-6">
         <div className="flex flex-col items-center gap-1.5 mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-preto.svg" alt="Spinos" style={{ height: "30px", width: "auto" }} />
+          <img src="/logo-preto.svg" alt="Spinos" style={{ height: "36px", width: "auto" }} />
           <div className="text-[11.5px] italic" style={{ fontFamily: "var(--font-display)", color: "var(--fg-faint)" }}>
             Inteligência Comercial
           </div>
