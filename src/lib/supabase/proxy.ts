@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/convite", "/aceitar-convite", "/api/auth/send-email", "/api/stripe/webhook", "/manifest.webmanifest", "/privacidade", "/termos"];
+const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/convite", "/aceitar-convite", "/api/auth/send-email", "/api/stripe/webhook", "/api/cron", "/manifest.webmanifest", "/privacidade", "/termos"];
 
 // Nonce por request pra CSP. Next.js aplica esse nonce automaticamente aos
 // scripts que ele mesmo injeta (RSC payload, hydration) quando detecta
