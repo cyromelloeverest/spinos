@@ -211,6 +211,16 @@ export default async function OpportunitiesPage({
           {params.message ?? "Erro ao buscar oportunidades."}
         </div>
       )}
+      {params.search === "empty" && (
+        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
+          Não encontramos nenhuma oportunidade real com esse ICP dessa vez — isso não contou na sua cota de buscas.
+          Tente ampliar o raio de atuação, adicionar mais segmentos, ou detalhar melhor a descrição do cliente ideal em{" "}
+          <Link href="/settings/icp" style={{ color: "var(--warn)", textDecoration: "underline" }}>
+            Meu ICP
+          </Link>
+          . Nova tentativa liberada em poucas horas, não em 2 dias.
+        </div>
+      )}
       {params.search === "ok" && (
         <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>
           {params.count} oportunidade(s) encontrada(s) e adicionada(s).

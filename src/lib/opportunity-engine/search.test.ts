@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SEARCH_COOLDOWN_MS } from "./constants";
+import { SEARCH_COOLDOWN_MS, EMPTY_RESULT_RETRY_MS } from "./constants";
 import { PLANS } from "@/lib/plans";
 import { TRIAL_MAX_SEARCHES, TRIAL_MAX_ACTIVE_OPPORTUNITIES } from "@/lib/trial";
 
@@ -166,7 +166,7 @@ describe("searchOpportunities — gating", () => {
     organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, lastSearchAt, plan: "ENTERPRISE" });
     parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
     const result = await searchOpportunities("org-1");
-    expect(result).toEqual({ status: "ok", count: 0 });
+    expect(result).toEqual({ status: "empty" });
   });
 
   it("retorna erro se a organização não tem ICP ativo", async () => {
@@ -195,7 +195,7 @@ describe("searchOpportunities — gating", () => {
     searchRunCount.mockResolvedValueOnce(0);
     parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
     const result = await searchOpportunities("org-1");
-    expect(result).toEqual({ status: "ok", count: 0 });
+    expect(result).toEqual({ status: "empty" });
   });
 
   it("retorna search_limit quando o número de buscas do mês atinge o teto do plano", async () => {
@@ -211,7 +211,7 @@ describe("searchOpportunities — gating", () => {
     organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "ENTERPRISE" });
     parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
     const result = await searchOpportunities("org-1");
-    expect(result).toEqual({ status: "ok", count: 0 });
+    expect(result).toEqual({ status: "empty" });
     expect(opportunityScoreCount).not.toHaveBeenCalled();
     expect(searchRunCount).not.toHaveBeenCalled();
   });
@@ -264,7 +264,7 @@ describe("searchOpportunities — gating", () => {
     searchRunCount.mockResolvedValueOnce(TRIAL_MAX_SEARCHES - 1);
     parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
     const result = await searchOpportunities("org-1");
-    expect(result).toEqual({ status: "ok", count: 0 });
+    expect(result).toEqual({ status: "empty" });
   });
 });
 
@@ -312,6 +312,46 @@ describe("searchOpportunities — prompt enviado à IA", () => {
 
     const prompt = lastPromptSent();
     expect(prompt).toContain("Nunca invente um nome");
+  });
+
+  it("instrui a IA a ampliar a busca antes de retornar uma lista vazia", async () => {
+    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "ENTERPRISE" });
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
+
+    await searchOpportunities("org-1");
+
+    const prompt = lastPromptSent();
+    expect(prompt).toContain("AMPLIE a busca");
+  });
+});
+
+describe("searchOpportunities — resultado vazio não consome cota nem cooldown inteiro", () => {
+  beforeEach(() => {
+    organizationFindUnique.mockResolvedValue({ ...baseOrg, plan: "ENTERPRISE", lastSearchAt: null });
+  });
+
+  it("retorna status empty e não cria Mission quando a IA não encontra nada", async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
+    const result = await searchOpportunities("org-1");
+    expect(result).toEqual({ status: "empty" });
+    expect(missionCreate).not.toHaveBeenCalled();
+  });
+
+  it("apaga o SearchRun criado — não deve contar contra a cota mensal/trial", async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
+    await searchOpportunities("org-1");
+    expect(searchRunDelete).toHaveBeenCalledWith({ where: { id: "run-1" } });
+  });
+
+  it("reduz o cooldown pra EMPTY_RESULT_RETRY_MS em vez dos 2 dias inteiros", async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
+    await searchOpportunities("org-1");
+
+    const secondUpdateCall = organizationUpdate.mock.calls[1][0] as { data: { lastSearchAt: Date } };
+    const nextAvailableAt = secondUpdateCall.data.lastSearchAt.getTime() + SEARCH_COOLDOWN_MS;
+
+    expect(nextAvailableAt).toBeLessThanOrEqual(Date.now() + EMPTY_RESULT_RETRY_MS + 1000);
+    expect(nextAvailableAt).toBeGreaterThan(Date.now() + EMPTY_RESULT_RETRY_MS - 60_000);
   });
 });
 

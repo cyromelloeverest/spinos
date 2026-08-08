@@ -7,7 +7,7 @@ import type { Organization, ICP } from "@/generated/prisma/client";
 import { withOrgContext } from "@/lib/db/with-org-context";
 import { OpportunitySearchResultSchema } from "./schema";
 import { findBestMatch } from "./company-matching";
-import { SEARCH_COOLDOWN_MS, startOfCurrentMonth } from "./constants";
+import { SEARCH_COOLDOWN_MS, EMPTY_RESULT_RETRY_MS, startOfCurrentMonth } from "./constants";
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
 import { effectiveLimits } from "@/lib/trial";
 import { fetchOgImage } from "@/lib/og-image";
@@ -19,6 +19,7 @@ export type SearchOutcome =
   | { status: "rate_limited"; nextAvailableAt: string }
   | { status: "plan_limit"; limit: number }
   | { status: "search_limit"; limit: number }
+  | { status: "empty" }
   | { status: "ok"; count: number };
 
 function buildPrompt(org: {
@@ -69,6 +70,8 @@ ICP (perfil de cliente ideal):
 - Modelo de venda da contratante: ${saleModelLabel}
 ${icp.idealCustomerDescription ? `- Descrição livre do cliente ideal (siga isso de perto, é a fonte mais confiável de nuance): ${icp.idealCustomerDescription}\n` : ""}${preferredSignalLabels.length > 0 ? `- Tipos de sinal mais relevantes pra essa empresa, priorize-os: ${preferredSignalLabels.join(", ")}\n` : ""}${icp.companiesToAvoid.length > 0 ? `- NÃO sugira estas empresas de jeito nenhum (já são clientes, concorrentes, ou já foram descartadas): ${icp.companiesToAvoid.join(", ")}\n` : ""}
 Busque sinais públicos reais (notícias, vagas de emprego, editais, investimentos, expansões, mudanças de liderança) publicados recentemente. Para cada empresa candidata encontrada, preencha o schema com pelo menos uma fonte real (URL verificável) por sinal citado. Não invente sinais nem URLs. Priorize 3 a 6 oportunidades de alta qualidade em vez de uma lista longa e genérica.
+
+Se, dentro dos critérios exatos de raio/cidades/estados/segmentos informados, você não encontrar nenhuma empresa real com sinal público verificável, AMPLIE a busca antes de desistir: considere cidades vizinhas, o estado inteiro, ou segmentos correlatos ao ICP. Deixe isso evidente no campo reasoning das oportunidades encontradas assim quando tiver ampliado o critério original. Só retorne uma lista vazia se, mesmo depois de ampliar, genuinamente não houver nenhuma evidência pública real — nunca invente uma empresa ou sinal só para preencher a lista.
 
 Pra cada oportunidade, tente também identificar o NOME REAL do provável decisor (não só o cargo) — procure em fontes públicas verificáveis como LinkedIn, a página "quem somos"/"equipe" do site da empresa, ou matérias de imprensa que citem a pessoa pelo nome. Preencha decisionMakerName só quando tiver certeza razoável da fonte; caso contrário, deixe null. Nunca invente um nome.`;
 }
@@ -188,6 +191,21 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
 
   const { opportunities } = response.parsed_output;
 
+  if (opportunities.length === 0) {
+    // Busca válida, mas sem nenhuma oportunidade real encontrada — o
+    // cliente não recebeu valor nenhum desta execução, então não deve
+    // consumir a cota mensal/trial nem o cooldown inteiro de 2 dias.
+    // Reduz o cooldown pra um retry bem mais rápido em vez disso.
+    await withOrgContext(organizationId, async (tx) => {
+      await tx.organization.update({
+        where: { id: organizationId },
+        data: { lastSearchAt: new Date(runTimestamp.getTime() - SEARCH_COOLDOWN_MS + EMPTY_RESULT_RETRY_MS) },
+      });
+      await tx.searchRun.delete({ where: { id: searchRun.id } }).catch(() => {});
+    });
+    return { status: "empty" };
+  }
+
   // Busca o og:image de cada fonte em paralelo antes de criar qualquer
   // registro — uma única onda de fetches (com timeout curto cada) em vez de
   // N chamadas sequenciais, e deduplicada por URL. Puro scraping de
@@ -207,10 +225,8 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
 
   // Uma missão por execução de busca — agrupa as oportunidades encontradas
   // agora pra o Dashboard destacar "o resultado desta busca" como um todo.
-  const mission =
-    opportunities.length > 0
-      ? await withOrgContext(organizationId, (tx) => tx.mission.create({ data: { organizationId } }))
-      : null;
+  // opportunities.length nunca é 0 aqui (busca vazia já retornou acima).
+  const mission = await withOrgContext(organizationId, (tx) => tx.mission.create({ data: { organizationId } }));
 
   for (const opp of opportunities) {
     let company = findBestMatch(opp.companyName, opp.city, companyPool);
@@ -282,7 +298,7 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
           commercialArguments: opp.commercialArguments,
           objections: opp.objections,
           computedAt: runTimestamp,
-          missionId: mission?.id,
+          missionId: mission.id,
         },
         create: {
           organizationId,
@@ -300,7 +316,7 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
           commercialArguments: opp.commercialArguments,
           objections: opp.objections,
           computedAt: runTimestamp,
-          missionId: mission?.id,
+          missionId: mission.id,
         },
       });
 

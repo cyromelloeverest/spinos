@@ -33,5 +33,8 @@ export async function runSearchAction() {
   if (result.status === "error") {
     redirect(`/oportunidades?search=error&message=${encodeURIComponent(result.message)}`);
   }
+  if (result.status === "empty") {
+    redirect("/oportunidades?search=empty");
+  }
   redirect(`/oportunidades?search=ok&count=${result.count}`);
 }

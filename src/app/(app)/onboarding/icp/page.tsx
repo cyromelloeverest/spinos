@@ -1,5 +1,6 @@
 import { createICP } from "@/lib/actions/onboarding";
 import { FormField } from "@/components/FormField";
+import { TextAreaField } from "@/components/TextAreaField";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { ArrowRight } from "lucide-react";
 
@@ -27,10 +28,17 @@ export default async function OnboardingICPPage({
       </h1>
       <p className="m-0 mb-8 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
         Não precisa cadastrar concorrentes ou empresas específicas — a IA descobre automaticamente.
-        Você só define o perfil.
+        Você pode refinar mais detalhes (funcionários, ticket médio, tecnologias etc.) depois em Configurações.
       </p>
 
       <form action={createICP} className="flex flex-col gap-4">
+        <TextAreaField
+          label="Descreva seu cliente ideal com suas palavras"
+          name="idealCustomerDescription"
+          placeholder="Ex: Empresas industriais em expansão física, que provavelmente vão precisar de estruturas metálicas customizadas nos próximos meses — não olhamos bem pra quem já tem fornecedor fixo há mais de 5 anos."
+          hint="O campo que mais ajuda a IA — texto livre capta nuances que os campos abaixo não pegam."
+          rows={4}
+        />
         <FormField
           label="Segmentos-alvo"
           name="segments"
@@ -38,32 +46,9 @@ export default async function OnboardingICPPage({
           hint="separados por vírgula"
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField label="Funcionários — mínimo" name="employeeMin" placeholder="Ex: 50" />
-          <FormField label="Funcionários — máximo" name="employeeMax" placeholder="Ex: 500" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField label="Estados" name="states" placeholder="Ex: SP, MG" hint="separados por vírgula" />
-          <FormField label="Cidades prioritárias" name="cities" placeholder="Ex: São Paulo, Belo Horizonte" hint="separadas por vírgula" />
+          <FormField label="Raio de atuação (km)" name="radiusKm" placeholder="Ex: 70" hint="opcional" />
         </div>
-        <FormField label="Raio de atuação (km)" name="radiusKm" placeholder="Ex: 70" />
-        <FormField
-          label="Cargo do decisor"
-          name="decisionMakerTitles"
-          placeholder="Ex: Diretor Comercial, Gerente de Compras"
-          hint="separados por vírgula"
-        />
-        <FormField
-          label="Tecnologias utilizadas pelo cliente ideal"
-          name="technologies"
-          placeholder="Ex: SAP, ERP TOTVS"
-          hint="separadas por vírgula, opcional"
-        />
-        <FormField
-          label="Palavras-chave"
-          name="keywords"
-          placeholder="Ex: expansão, nova unidade, contratação"
-          hint="separadas por vírgula"
-        />
         <FormField
           label="Produtos que você vende"
           name="productsSold"
@@ -76,25 +61,12 @@ export default async function OnboardingICPPage({
           placeholder="Ex: consultoria, instalação, manutenção"
           hint="separados por vírgula"
         />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField label="Ticket médio (R$)" name="averageTicketBRL" placeholder="Ex: 5000" hint="opcional — ajuda a IA a calibrar porte" />
-          <FormField label="Ciclo de vendas típico" name="salesCycleLength" placeholder="Ex: 2 a 4 semanas" hint="opcional" />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[12.5px] font-medium" style={{ color: "var(--fg)" }}>
-            Modelo de venda
-          </span>
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2 text-[13px] cursor-pointer" style={{ color: "var(--fg)" }}>
-              <input type="radio" name="saleModel" value="PONTUAL" className="w-4 h-4" style={{ accentColor: "var(--primary)" }} />
-              Pontual
-            </label>
-            <label className="flex items-center gap-2 text-[13px] cursor-pointer" style={{ color: "var(--fg)" }}>
-              <input type="radio" name="saleModel" value="RECORRENTE" className="w-4 h-4" style={{ accentColor: "var(--primary)" }} />
-              Recorrente / assinatura
-            </label>
-          </div>
-        </div>
+        <FormField
+          label="Palavras-chave"
+          name="keywords"
+          placeholder="Ex: expansão, nova unidade, contratação"
+          hint="separadas por vírgula, opcional"
+        />
 
         <button
           type="submit"

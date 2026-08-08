@@ -75,6 +75,7 @@ export async function createICP(formData: FormData) {
           averageTicketBRL: ticketRaw ? Number(ticketRaw) : null,
           salesCycleLength: String(formData.get("salesCycleLength") ?? "").trim() || null,
           saleModel: saleModelRaw === "PONTUAL" || saleModelRaw === "RECORRENTE" ? saleModelRaw : null,
+          idealCustomerDescription: String(formData.get("idealCustomerDescription") ?? "").trim() || null,
         },
       }),
     );
