@@ -28,7 +28,7 @@ const MatchedOpportunitySchema = z.object({
 });
 const MatchResultSchema = z.object({ opportunities: z.array(MatchedOpportunitySchema) });
 
-type CandidateSignal = {
+export type CandidateSignal = {
   signalId: string;
   companyId: string;
   companyName: string;
@@ -48,7 +48,7 @@ function keywordHits(icp: { keywords: string[]; productsSold: string[]; services
 
 // Pré-filtro 100% determinístico (zero IA, zero custo) — só os candidatos
 // que batem com o ICP por palavra-chave chegam na chamada de IA abaixo.
-function candidatesForIcp(
+export function candidatesForIcp(
   icp: { keywords: string[]; productsSold: string[]; servicesSold: string[]; segments: string[]; companiesToAvoid: string[] },
   signals: CandidateSignal[],
 ): CandidateSignal[] {
