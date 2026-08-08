@@ -8,10 +8,12 @@ import { moveToPipeline, dismissOpportunity } from "@/lib/actions/pipeline";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { SearchButton } from "@/components/SearchButton";
 import { SpinosScore } from "@/components/SpinosScore";
-import { ArrowRight, X, Check, Flame, TrendingUp, Minus, Target, Download } from "lucide-react";
+import { ArrowRight, X, Check, Flame, TrendingUp, Minus, Target, Download, Zap } from "lucide-react";
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
 import { getPlan } from "@/lib/plans";
 import { effectiveLimits } from "@/lib/trial";
+import { purchaseSearchCredits } from "@/lib/actions/credits";
+import { SEARCH_CREDIT_PACK } from "@/lib/search-credit-pack";
 import { logError } from "@/lib/log-error";
 
 const URGENCY_CONFIG: Record<string, { label: string; icon: typeof Flame; color: string }> = {
@@ -39,7 +41,14 @@ function isInFuture(date: Date): boolean {
 export default async function OpportunitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; count?: string; message?: string; nextAt?: string; limit?: string }>;
+  searchParams: Promise<{
+    search?: string;
+    count?: string;
+    message?: string;
+    nextAt?: string;
+    limit?: string;
+    creditos?: string;
+  }>;
 }) {
   const params = await searchParams;
   const organizationId = await getCurrentOrganizationId();
@@ -83,7 +92,14 @@ export default async function OpportunitiesPage({
   );
   const searchesUsed = isTrialing ? searchesAllTime : searchesThisMonth;
   const atPlanLimit = maxActiveOpportunities !== null && opportunities.length >= maxActiveOpportunities;
-  const atSearchLimit = maxSearches !== null && searchesUsed >= maxSearches;
+  const creditBalance = organization?.searchCreditBalance ?? 0;
+  // Enterprise pago (fora de trial) já tem buscas ilimitadas de verdade —
+  // saldo pré-pago não existe pra esse caso, nem faz sentido mostrar a opção
+  // de comprar. Trial sempre pode comprar (nunca é ilimitado de verdade,
+  // mesmo "testando" o Enterprise — ver effectiveLimits em src/lib/trial.ts).
+  const showCreditPurchase = isTrialing || plan.id !== "ENTERPRISE";
+  const rawAtSearchLimit = maxSearches !== null && searchesUsed >= maxSearches;
+  const atSearchLimit = rawAtSearchLimit && creditBalance <= 0;
   const remainingSearches = maxSearches !== null ? Math.max(maxSearches - searchesUsed - 1, 0) : null;
   const userBlocked = Boolean(membership?.searchBlocked);
   const searchDisabled = !anthropicConfigured || onCooldown || atPlanLimit || atSearchLimit || userBlocked;
@@ -141,17 +157,37 @@ export default async function OpportunitiesPage({
                   · {searchesUsed}/{maxSearches} {isTrialing ? "buscas do teste grátis" : "buscas este mês"}
                 </span>
               )}
+              {creditBalance > 0 && (
+                <span style={{ color: creditBalance === 1 ? "var(--warn)" : "var(--fg-faint)" }}>
+                  {" "}
+                  · +{creditBalance} busca{creditBalance === 1 ? "" : "s"} extra{creditBalance === 1 ? "" : "s"}
+                </span>
+              )}
             </p>
           </div>
         </div>
-        <form action={runSearchAction} className="flex-shrink-0 w-full sm:w-auto">
-          <SearchButton
-            disabled={searchDisabled}
-            disabledTitle={disabledTitle}
-            remainingSearches={remainingSearches}
-            isTrialing={isTrialing}
-          />
-        </form>
+        <div className="flex flex-col items-stretch sm:items-end gap-2 flex-shrink-0 w-full sm:w-auto">
+          <form action={runSearchAction} className="w-full sm:w-auto">
+            <SearchButton
+              disabled={searchDisabled}
+              disabledTitle={disabledTitle}
+              remainingSearches={remainingSearches}
+              isTrialing={isTrialing}
+            />
+          </form>
+          {showCreditPurchase && (
+            <form action={purchaseSearchCredits}>
+              <button
+                type="submit"
+                className="flex items-center gap-1.5 text-[11.5px] font-medium mx-auto sm:mx-0 border-0 bg-transparent cursor-pointer"
+                style={{ color: "var(--fg-faint)" }}
+              >
+                <Zap size={11} strokeWidth={1.75} />
+                Comprar {SEARCH_CREDIT_PACK.quantity} buscas extras — R${SEARCH_CREDIT_PACK.priceBRL}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
 
       <div className="px-4 md:px-10 pt-4 flex justify-end">
@@ -197,8 +233,8 @@ export default async function OpportunitiesPage({
       {params.search === "search_limit" && (
         <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
           {isTrialing
-            ? `Seu teste grátis permite até ${params.limit ?? maxSearches} buscas nos 7 dias, e o limite já foi atingido. Assine um plano pago pra continuar buscando.`
-            : `Seu plano permite até ${params.limit ?? maxSearches} buscas por mês, e o limite já foi atingido. O contador reseta no início do próximo mês, ou fale com a gente para evoluir de plano.`}
+            ? `Seu teste grátis permite até ${params.limit ?? maxSearches} buscas nos 7 dias, e o limite já foi atingido. Assine um plano pago ou compre buscas extras abaixo pra continuar buscando.`
+            : `Seu plano permite até ${params.limit ?? maxSearches} buscas por mês, e o limite já foi atingido. O contador reseta no início do próximo mês, ou compre buscas extras abaixo pra continuar agora.`}
         </div>
       )}
       {params.search === "user_blocked" && (
@@ -224,6 +260,16 @@ export default async function OpportunitiesPage({
       {params.search === "ok" && (
         <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>
           {params.count} oportunidade(s) encontrada(s) e adicionada(s).
+        </div>
+      )}
+      {params.creditos === "sucesso" && (
+        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>
+          Compra confirmada! O saldo pode levar alguns segundos pra aparecer.
+        </div>
+      )}
+      {params.creditos === "cancelado" && (
+        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--border)", color: "var(--fg-muted)" }}>
+          Compra cancelada — nenhum valor foi cobrado.
         </div>
       )}
 

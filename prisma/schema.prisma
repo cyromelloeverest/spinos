@@ -58,20 +58,45 @@ model Organization {
   stripeSubscriptionId String? @unique
   subscriptionStatus   String?
 
+  // Saldo pré-pago de buscas extras (trial/Starter/Profissional só —
+  // Enterprise já tem buscas ilimitadas de verdade, nunca precisa disso).
+  // Não expira com o ciclo mensal, só é decrementado quando consumido —
+  // ver effectiveLimits()/consumeSearchCredit() em src/lib/trial.ts.
+  searchCreditBalance Int @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users             Membership[]
-  icps              ICP[]
-  opportunityScores OpportunityScore[]
-  feedbacks         Feedback[]
-  chatConversations ChatConversation[]
-  crmExports        CrmExport[]
-  invites           Invite[]
-  searchRuns        SearchRun[]
-  missions          Mission[]
+  users                 Membership[]
+  icps                  ICP[]
+  opportunityScores     OpportunityScore[]
+  feedbacks             Feedback[]
+  chatConversations     ChatConversation[]
+  crmExports            CrmExport[]
+  invites               Invite[]
+  searchRuns            SearchRun[]
+  missions              Mission[]
+  searchCreditPurchases SearchCreditPurchase[]
 
   @@map("organizations")
+}
+
+// Registro de cada compra de saldo pré-pago — histórico/auditoria, e a base
+// pra detectar "trial comprou saldo antes de converter" (o sinal de lead
+// mais quente que existe, ver sendTrialCreditPurchaseAlert em
+// src/lib/credit-alert-email.ts).
+model SearchCreditPurchase {
+  id                      String   @id @default(cuid())
+  organizationId          String
+  quantity                Int
+  amountBRL               Int
+  stripeCheckoutSessionId String   @unique
+  createdAt               DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@map("search_credit_purchases")
 }
 
 // Um registro por busca de oportunidades efetivamente executada (chamada à IA

@@ -84,7 +84,7 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
 
   // Leituras de checagem (cooldown, ICP, limites de plano) — tudo dentro do
   // contexto da org, numa transação curta só de leitura.
-  type PreCheck = { outcome: SearchOutcome } | { organization: Organization; icp: ICP };
+  type PreCheck = { outcome: SearchOutcome } | { organization: Organization; icp: ICP; usedCredit: boolean };
   const preCheck = await withOrgContext(organizationId, async (tx): Promise<PreCheck> => {
     const organization = await tx.organization.findUnique({ where: { id: organizationId } });
     if (!organization) return { outcome: { status: "error", message: "Organização não encontrada." } };
@@ -114,6 +114,7 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
       }
     }
 
+    let usedCredit = false;
     if (maxSearches !== null) {
       // Trial é um teto total pros 7 dias inteiros, não "por mês" — a janela
       // de um mês não faz sentido pra um período que já é mais curto que isso.
@@ -121,15 +122,27 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
         where: isTrialing ? { organizationId } : { organizationId, createdAt: { gte: startOfCurrentMonth() } },
       });
       if (searchesUsed >= maxSearches) {
-        return { outcome: { status: "search_limit", limit: maxSearches } };
+        // Enterprise nunca chega aqui (maxSearches é null fora de trial), então
+        // saldo pré-pago só entra em jogo pra trial/Starter/Profissional — como
+        // pedido no brief. Consome 1 crédito na mesma transação da checagem,
+        // pra duplo-clique não gastar 2 créditos numa corrida.
+        if (organization.searchCreditBalance > 0) {
+          await tx.organization.update({
+            where: { id: organizationId },
+            data: { searchCreditBalance: { decrement: 1 } },
+          });
+          usedCredit = true;
+        } else {
+          return { outcome: { status: "search_limit", limit: maxSearches } };
+        }
       }
     }
 
-    return { organization, icp };
+    return { organization, icp, usedCredit };
   });
 
   if ("outcome" in preCheck) return preCheck.outcome;
-  const { organization, icp } = preCheck;
+  const { organization, icp, usedCredit } = preCheck;
 
   const runTimestamp = new Date();
   const previousLastSearchAt = organization.lastSearchAt;
@@ -167,7 +180,9 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
     await withOrgContext(organizationId, async (tx) => {
       await tx.organization.update({
         where: { id: organizationId },
-        data: { lastSearchAt: previousLastSearchAt },
+        // Devolve o crédito pré-pago também, se essa busca tinha consumido
+        // um — ela não produziu resultado nenhum, não é justo cobrar por isso.
+        data: { lastSearchAt: previousLastSearchAt, searchCreditBalance: usedCredit ? { increment: 1 } : undefined },
       });
       await tx.searchRun.delete({ where: { id: searchRun.id } }).catch(() => {});
     });
@@ -182,7 +197,7 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
     await withOrgContext(organizationId, async (tx) => {
       await tx.organization.update({
         where: { id: organizationId },
-        data: { lastSearchAt: previousLastSearchAt },
+        data: { lastSearchAt: previousLastSearchAt, searchCreditBalance: usedCredit ? { increment: 1 } : undefined },
       });
       await tx.searchRun.delete({ where: { id: searchRun.id } }).catch(() => {});
     });
@@ -199,7 +214,10 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
     await withOrgContext(organizationId, async (tx) => {
       await tx.organization.update({
         where: { id: organizationId },
-        data: { lastSearchAt: new Date(runTimestamp.getTime() - SEARCH_COOLDOWN_MS + EMPTY_RESULT_RETRY_MS) },
+        data: {
+          lastSearchAt: new Date(runTimestamp.getTime() - SEARCH_COOLDOWN_MS + EMPTY_RESULT_RETRY_MS),
+          searchCreditBalance: usedCredit ? { increment: 1 } : undefined,
+        },
       });
       await tx.searchRun.delete({ where: { id: searchRun.id } }).catch(() => {});
     });

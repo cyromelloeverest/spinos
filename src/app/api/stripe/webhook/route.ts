@@ -2,6 +2,47 @@ import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { getPlanByStripePriceId } from "@/lib/plans";
+import { sendTrialCreditPurchaseAlert } from "@/lib/credit-alert-email";
+import { logError } from "@/lib/log-error";
+
+// Pagamento avulso de um pacote de buscas extras (mode: "payment", não
+// "subscription" — ver purchaseSearchCredits em src/lib/actions/credits.ts).
+// stripeCheckoutSessionId é único na tabela de propósito: o Stripe reenvia
+// webhook em retry se não receber 200 rápido o bastante, e isso não pode
+// creditar a mesma compra duas vezes.
+async function fulfillSearchCreditPurchase(session: Stripe.Checkout.Session) {
+  const organizationId = session.metadata?.organizationId;
+  const quantity = Number(session.metadata?.quantity ?? 0);
+  if (!organizationId || !quantity) return;
+
+  const already = await prisma.searchCreditPurchase.findUnique({
+    where: { stripeCheckoutSessionId: session.id },
+  });
+  if (already) return;
+
+  const amountBRL = Math.round((session.amount_total ?? 0) / 100);
+
+  const organization = await prisma.organization.update({
+    where: { id: organizationId },
+    data: {
+      searchCreditBalance: { increment: quantity },
+      searchCreditPurchases: {
+        create: { quantity, amountBRL, stripeCheckoutSessionId: session.id },
+      },
+    },
+  });
+
+  // Trial pagando por saldo antes de virar cliente pago de verdade = lead
+  // quentíssimo, avisa o time comercial na hora.
+  if (organization.trialEndsAt !== null) {
+    await sendTrialCreditPurchaseAlert({
+      organizationName: organization.name,
+      organizationId: organization.id,
+      quantity,
+      amountBRL,
+    }).catch((err) => logError("webhook: falha ao enviar alerta de compra de crédito em trial", err, { organizationId }));
+  }
+}
 
 async function syncSubscription(customerId: string, subscriptionId: string) {
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -47,6 +88,8 @@ export async function POST(req: Request) {
         const subscriptionId = typeof session.subscription === "string" ? session.subscription : session.subscription.id;
         const customerId = typeof session.customer === "string" ? session.customer : session.customer.id;
         await syncSubscription(customerId, subscriptionId);
+      } else if (session.mode === "payment" && session.metadata?.kind === "search_credit_pack") {
+        await fulfillSearchCreditPurchase(session);
       }
       break;
     }
