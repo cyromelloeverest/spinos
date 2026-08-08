@@ -3,7 +3,11 @@
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+// prismaAdmin (não a conexão restrita): auth roda antes de existir contexto
+// de org — signup cria o User antes de qualquer Membership, e login precisa
+// achar a Membership pra decidir pra onde redirecionar. Mesma categoria de
+// exceção do current-org.ts.
+import { prismaAdmin } from "@/lib/prisma-admin";
 import { getCurrentUserId } from "@/lib/auth/current-org";
 import { translateAuthError } from "@/lib/auth/error-messages";
 import { isRateLimited, recordAttempt } from "@/lib/auth/rate-limit";
@@ -17,7 +21,7 @@ import { logError } from "@/lib/log-error";
 async function syncUserEmail(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data } = await supabase.auth.getUser();
   if (data.user?.id && data.user.email) {
-    await prisma.user.update({
+    await prismaAdmin.user.update({
       where: { id: data.user.id },
       data: { email: data.user.email },
     }).catch(() => {});
@@ -99,14 +103,14 @@ export async function signUp(formData: FormData) {
     // "sucesso" com um ID que não corresponde a nenhuma conta real quando o
     // e-mail já tem cadastro confirmado. Se já existe um public.users com
     // esse e-mail sob outro ID, é exatamente esse caso — não criar nada.
-    const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+    const existing = await prismaAdmin.user.findUnique({ where: { email }, select: { id: true } });
     if (existing && existing.id !== data.user.id) {
       redirect(`/signup?error=${encodeURIComponent("Esse e-mail já tem uma conta. Faça login ou clique em \"Esqueci minha senha\".")}`);
     }
 
     // Cria o registro correspondente em public.users, usando o mesmo ID
     // do usuário no Supabase Auth — evita precisar de tabela de mapeamento.
-    await prisma.user.upsert({
+    await prismaAdmin.user.upsert({
       where: { id: data.user.id },
       update: {},
       create: { id: data.user.id, email },
@@ -144,7 +148,7 @@ export async function signIn(formData: FormData) {
     redirect(next);
   }
 
-  const membership = await prisma.membership.findFirst({
+  const membership = await prismaAdmin.membership.findFirst({
     where: { userId: data.user.id },
     orderBy: { createdAt: "asc" },
   });

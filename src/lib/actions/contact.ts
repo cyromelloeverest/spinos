@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 
 export async function updateContactInfo(opportunityScoreId: string, formData: FormData) {
@@ -14,10 +14,12 @@ export async function updateContactInfo(opportunityScoreId: string, formData: Fo
   const contactEmail = String(formData.get("contactEmail") ?? "").trim() || null;
   const recommendedOffering = String(formData.get("recommendedOffering") ?? "").trim() || null;
 
-  await prisma.opportunityScore.update({
-    where: { id: opportunityScoreId, organizationId },
-    data: { contactName, contactPhone, contactEmail, recommendedOffering },
-  });
+  await withOrgContext(organizationId, (tx) =>
+    tx.opportunityScore.update({
+      where: { id: opportunityScoreId, organizationId },
+      data: { contactName, contactPhone, contactEmail, recommendedOffering },
+    }),
+  );
 
   revalidatePath(`/company/${opportunityScoreId}`);
 }

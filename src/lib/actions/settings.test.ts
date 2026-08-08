@@ -5,8 +5,13 @@ const { icpUpdate, getCurrentOrganizationId } = vi.hoisted(() => ({
   getCurrentOrganizationId: vi.fn(),
 }));
 
+const mockDb = { iCP: { update: icpUpdate }, $executeRaw: vi.fn() };
+
 vi.mock("@/lib/prisma", () => ({
-  prisma: { iCP: { update: icpUpdate } },
+  prisma: {
+    ...mockDb,
+    $transaction: vi.fn((cb: (tx: typeof mockDb) => unknown) => cb(mockDb)),
+  },
 }));
 
 vi.mock("@/lib/auth/current-org", () => ({ getCurrentOrganizationId }));

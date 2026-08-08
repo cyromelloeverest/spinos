@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentMembership } from "@/lib/auth/current-org";
 import { getPlan } from "@/lib/plans";
 import { SITE_URL } from "@/lib/site-url";
@@ -17,15 +17,22 @@ async function requireOwnerOrAdmin() {
   return membership;
 }
 
+// Separado em duas transações curtas (não uma só) porque a chamada ao
+// Stripe fica NO MEIO — não dá pra segurar uma transação do Postgres aberta
+// esperando uma chamada de rede externa responder.
 async function getOrCreateStripeCustomer(organizationId: string): Promise<string> {
-  const org = await prisma.organization.findUniqueOrThrow({ where: { id: organizationId } });
+  const org = await withOrgContext(organizationId, (tx) =>
+    tx.organization.findUniqueOrThrow({ where: { id: organizationId } }),
+  );
   if (org.stripeCustomerId) return org.stripeCustomerId;
 
   const customer = await stripe.customers.create({
     name: org.name,
     metadata: { organizationId },
   });
-  await prisma.organization.update({ where: { id: organizationId }, data: { stripeCustomerId: customer.id } });
+  await withOrgContext(organizationId, (tx) =>
+    tx.organization.update({ where: { id: organizationId }, data: { stripeCustomerId: customer.id } }),
+  );
   return customer.id;
 }
 
@@ -62,7 +69,9 @@ export async function createCheckoutSession(planId: string) {
 
 export async function createPortalSession() {
   const membership = await requireOwnerOrAdmin();
-  const org = await prisma.organization.findUniqueOrThrow({ where: { id: membership.organizationId } });
+  const org = await withOrgContext(membership.organizationId, (tx) =>
+    tx.organization.findUniqueOrThrow({ where: { id: membership.organizationId } }),
+  );
 
   if (!org.stripeCustomerId) {
     redirect("/settings/empresa?error=Você ainda não tem uma assinatura ativa.");

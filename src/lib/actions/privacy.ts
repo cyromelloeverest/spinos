@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentUserId, getCurrentMembership } from "@/lib/auth/current-org";
 import { logSecurityEvent } from "@/lib/audit/log";
 import { sendDeletionRequestEmail } from "@/lib/privacy-email";
@@ -20,10 +20,12 @@ export async function requestAccountDeletion() {
     redirect("/settings/empresa?privacidadeError=" + encodeURIComponent("Somente o dono da conta pode solicitar a exclusão da organização."));
   }
 
-  const [user, organization] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId } }),
-    prisma.organization.findUnique({ where: { id: membership.organizationId } }),
-  ]);
+  const [user, organization] = await withOrgContext(membership.organizationId, (tx) =>
+    Promise.all([
+      tx.user.findUnique({ where: { id: userId } }),
+      tx.organization.findUnique({ where: { id: membership.organizationId } }),
+    ]),
+  );
   if (!user || !organization) redirect("/settings/empresa");
 
   if (organization.subscriptionStatus && LIVE_SUBSCRIPTION_STATUSES.has(organization.subscriptionStatus)) {
