@@ -1,7 +1,11 @@
 import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prismaAdmin } from "@/lib/prisma-admin";
 import { getClientIp } from "@/lib/auth/rate-limit";
+
+// security_events fica fora do escopo das policies de RLS por tenant de
+// propósito (é log de auditoria cross-org, só o /admin lê) — por isso usa
+// prismaAdmin, não a conexão restrita.
 
 export type SecurityEventType =
   | "auth.signin_success"
@@ -40,7 +44,7 @@ type LogInput = {
 export async function logSecurityEvent(input: LogInput): Promise<void> {
   try {
     const ip = await getClientIp();
-    await prisma.securityEvent.create({
+    await prismaAdmin.securityEvent.create({
       data: {
         type: input.type,
         actorUserId: input.actorUserId ?? null,

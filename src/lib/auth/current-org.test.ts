@@ -18,8 +18,8 @@ const {
   cookieSet: vi.fn(),
 }));
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/prisma-admin", () => ({
+  prismaAdmin: {
     membership: { findUnique: membershipFindUnique, findFirst: membershipFindFirst, findMany: membershipFindMany },
     user: { findUnique: userFindUnique },
   },

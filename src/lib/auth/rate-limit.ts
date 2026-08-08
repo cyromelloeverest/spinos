@@ -1,7 +1,10 @@
 import "server-only";
 import { headers } from "next/headers";
-import { prisma } from "@/lib/prisma";
+import { prismaAdmin } from "@/lib/prisma-admin";
 import { logError } from "@/lib/log-error";
+
+// auth_attempts fica fora do escopo das policies de RLS por tenant (não é
+// dado de tenant, é rate limiting por IP) — por isso usa prismaAdmin.
 
 // Chance de podar tentativas com mais de 24h a cada chamada, em vez de um
 // cron dedicado — mantém a tabela pequena sem precisar de infra extra.
@@ -35,7 +38,7 @@ export async function isRateLimited(action: RateLimitAction): Promise<boolean> {
   const identifier = `${action}:${ip}`;
 
   try {
-    const count = await prisma.authAttempt.count({
+    const count = await prismaAdmin.authAttempt.count({
       where: { identifier, createdAt: { gte: new Date(Date.now() - windowMs) } },
     });
     return count >= maxAttempts;
@@ -53,9 +56,9 @@ export async function recordAttempt(action: RateLimitAction): Promise<void> {
   const identifier = `${action}:${ip}`;
 
   try {
-    await prisma.authAttempt.create({ data: { identifier } });
+    await prismaAdmin.authAttempt.create({ data: { identifier } });
     if (Math.random() < PRUNE_PROBABILITY) {
-      await prisma.authAttempt.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - PRUNE_AGE_MS) } } });
+      await prismaAdmin.authAttempt.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - PRUNE_AGE_MS) } } });
     }
   } catch (err) {
     // Rate limiting é defesa em profundidade, não pode derrubar o fluxo de auth.

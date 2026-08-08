@@ -1,6 +1,11 @@
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { prismaAdmin } from "@/lib/prisma-admin";
+
+// Usa prismaAdmin (não a conexão restrita por RLS) de propósito: essas
+// funções são o que DESCOBRE qual é a organização atual — não dá pra exigir
+// contexto de org já setado pra rodar a query que serve pra achar esse
+// contexto. É o mesmo motivo de uma tela de login não poder exigir sessão.
 
 // Qual organização mostrar quando o usuário pertence a mais de uma.
 // Setado por switchOrganization() e ao aceitar um convite — se ausente ou
@@ -40,7 +45,7 @@ export async function getCurrentMembership() {
   const activeOrgId = cookieStore.get(ACTIVE_ORG_COOKIE)?.value;
 
   if (activeOrgId) {
-    const membership = await prisma.membership.findUnique({
+    const membership = await prismaAdmin.membership.findUnique({
       where: { userId_organizationId: { userId, organizationId: activeOrgId } },
     });
     if (membership) return membership;
@@ -48,7 +53,7 @@ export async function getCurrentMembership() {
     // ignora e cai no fallback abaixo em vez de travar o usuário fora.
   }
 
-  return prisma.membership.findFirst({
+  return prismaAdmin.membership.findFirst({
     where: { userId },
     orderBy: { createdAt: "desc" },
   });
@@ -58,7 +63,7 @@ export async function getUserMemberships() {
   const userId = await getCurrentUserId();
   if (!userId) return [];
 
-  return prisma.membership.findMany({
+  return prismaAdmin.membership.findMany({
     where: { userId },
     include: { organization: { select: { name: true } } },
     orderBy: { createdAt: "asc" },
@@ -69,6 +74,6 @@ export async function isCurrentUserSuperAdmin(): Promise<boolean> {
   const userId = await getCurrentUserId();
   if (!userId) return false;
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { isSuperAdmin: true } });
+  const user = await prismaAdmin.user.findUnique({ where: { id: userId }, select: { isSuperAdmin: true } });
   return user?.isSuperAdmin ?? false;
 }
