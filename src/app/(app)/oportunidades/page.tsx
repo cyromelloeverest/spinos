@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import type { Prisma } from "@/generated/prisma/client";
 import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId, getCurrentMembership } from "@/lib/auth/current-org";
-import { runSearchAction } from "@/lib/actions/search";
+import { runSearchAction, runTargetedSearchAction } from "@/lib/actions/search";
+import { TargetedSearchForm } from "@/components/TargetedSearchForm";
 import { SEARCH_COOLDOWN_MS, startOfCurrentMonth } from "@/lib/opportunity-engine/constants";
 import { moveToPipeline, dismissOpportunity } from "@/lib/actions/pipeline";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
@@ -49,6 +50,7 @@ export default async function OpportunitiesPage({
     nextAt?: string;
     limit?: string;
     creditos?: string;
+    company?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -195,6 +197,12 @@ export default async function OpportunitiesPage({
         </div>
       </div>
 
+      <div className="mx-4 md:mx-10 mt-4">
+        <form action={runTargetedSearchAction}>
+          <TargetedSearchForm disabled={searchDisabled} disabledTitle={disabledTitle} />
+        </form>
+      </div>
+
       <div className="px-4 md:px-10 pt-4 flex justify-end">
         {plan.features.crmExport ? (
           <a
@@ -265,6 +273,17 @@ export default async function OpportunitiesPage({
       {params.search === "ok" && (
         <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>
           {params.count} oportunidade(s) encontrada(s) e adicionada(s).
+        </div>
+      )}
+      {params.search === "targeted_ok" && (
+        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>
+          Oportunidade de <strong>{params.company}</strong> encontrada e adicionada à sua lista.
+        </div>
+      )}
+      {params.search === "targeted_empty" && (
+        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
+          Não conseguimos confirmar publicamente a empresa <strong>{params.company}</strong> — confira o nome (e a
+          cidade, se souber) e tente de novo. Isso não contou na sua cota de buscas.
         </div>
       )}
       {params.creditos === "sucesso" && (

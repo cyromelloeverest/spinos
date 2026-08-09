@@ -74,7 +74,7 @@ vi.mock("@anthropic-ai/sdk", () => {
 
 // Import depois dos vi.mock acima (hoisted pelo vitest, mas mantido nesta
 // ordem por legibilidade).
-const { searchOpportunities } = await import("./search");
+const { searchOpportunities, searchSpecificCompany } = await import("./search");
 const Anthropic = (await import("@anthropic-ai/sdk")).default;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -624,5 +624,85 @@ describe("searchOpportunities — missão e dedup de sinais", () => {
         data: expect.objectContaining({ companyId: "company-1", sourceUrl: "https://exemplo.com/vaga" }),
       }),
     );
+  });
+});
+
+describe("searchSpecificCompany — busca dirigida", () => {
+  function lastPromptSent(): string {
+    const call = parseMock.mock.calls[parseMock.mock.calls.length - 1]?.[0];
+    return call.messages[0].content as string;
+  }
+
+  const baseOpportunity = {
+    companyName: "Vetnil Nutrição Animal",
+    city: "Louveira",
+    state: "SP",
+    score: 62,
+    urgency: "MEDIA",
+    headline: "Sem sinal forte de compra no momento",
+    execSummary: "Resumo.",
+    reasoning: "Não encontramos sinal público recente, mas segue no raio de atuação.",
+    buyerArea: "Comercial",
+    decisionMaker: "Gerente Comercial",
+    decisionMakerName: null,
+    approach: "Abordagem.",
+    commercialArguments: [],
+    objections: [],
+    signals: [],
+  };
+
+  beforeEach(() => {
+    organizationFindUnique.mockResolvedValue({ ...baseOrg, plan: "ENTERPRISE" });
+    companyFindMany.mockResolvedValue([]);
+    companyCreate.mockResolvedValue({ id: "company-1", name: "Vetnil Nutrição Animal", city: "Louveira", state: "SP" });
+    opportunityScoreUpsert.mockResolvedValue({ id: "score-1" });
+  });
+
+  it("inclui o nome e a localização da empresa-alvo no prompt", async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [baseOpportunity] } });
+
+    await searchSpecificCompany("org-1", "Vetnil Nutrição Animal", "Louveira, SP");
+
+    const prompt = lastPromptSent();
+    expect(prompt).toContain("EMPRESA-ALVO PRA ANALISAR (e só ela): Vetnil Nutrição Animal — Louveira, SP");
+    expect(prompt).toContain("análise dirigida");
+  });
+
+  it("funciona sem localização informada (opcional)", async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [baseOpportunity] } });
+
+    await searchSpecificCompany("org-1", "Vetnil Nutrição Animal", null);
+
+    const prompt = lastPromptSent();
+    expect(prompt).toContain("EMPRESA-ALVO PRA ANALISAR (e só ela): Vetnil Nutrição Animal\n");
+  });
+
+  it("persiste a oportunidade retornada, mesmo com score baixo/sem sinal forte", async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [baseOpportunity] } });
+
+    const result = await searchSpecificCompany("org-1", "Vetnil Nutrição Animal", "Louveira, SP");
+
+    expect(result).toEqual({ status: "ok", count: 1 });
+    expect(opportunityScoreUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ create: expect.objectContaining({ score: 62, headline: baseOpportunity.headline }) }),
+    );
+  });
+
+  it("compartilha o mesmo cooldown/cota da busca aberta — bloqueia em rate_limited", async () => {
+    const lastSearchAt = new Date(Date.now() - DAY_MS);
+    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, lastSearchAt, plan: "ENTERPRISE" });
+
+    const result = await searchSpecificCompany("org-1", "Vetnil Nutrição Animal", null);
+
+    expect(result.status).toBe("rate_limited");
+    expect(parseMock).not.toHaveBeenCalled();
+  });
+
+  it("retorna empty (sem gastar cota/cooldown inteiro) quando a IA não confirma a empresa", async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
+
+    const result = await searchSpecificCompany("org-1", "Empresa Que Não Existe Ltda", null);
+
+    expect(result).toEqual({ status: "empty" });
   });
 });

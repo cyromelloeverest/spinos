@@ -22,12 +22,8 @@ export type SearchOutcome =
   | { status: "empty" }
   | { status: "ok"; count: number };
 
-function buildPrompt(org: {
-  name: string;
-  segment: string | null;
-  city: string | null;
-  state: string | null;
-}, icp: {
+type OrgProfile = { name: string; segment: string | null; city: string | null; state: string | null };
+type IcpProfile = {
   segments: string[];
   radiusKm: number | null;
   states: string[];
@@ -43,14 +39,17 @@ function buildPrompt(org: {
   idealCustomerDescription: string | null;
   preferredSignalCategories: string[];
   companiesToAvoid: string[];
-}) {
+};
+type SearchPromptBuilder = (org: OrgProfile, icp: IcpProfile) => string;
+
+// Bloco de ICP compartilhado pelos dois modos de busca (aberta e dirigida)
+// — o que muda entre eles é só a tarefa pedida antes/depois desse bloco.
+function icpBlock(org: OrgProfile, icp: IcpProfile): string {
   const preferredSignalLabels = icp.preferredSignalCategories.map((c) => SIGNAL_CATEGORY_LABEL[c] ?? c);
   const saleModelLabel =
     icp.saleModel === "RECORRENTE" ? "recorrente/assinatura" : icp.saleModel === "PONTUAL" ? "pontual" : "não informado";
 
-  return `Você é um Diretor de Inteligência Comercial. Sua tarefa é encontrar, usando busca na web, empresas reais com sinais públicos recentes de que estão iniciando um ciclo de compra que combina com o ICP abaixo.
-
-EMPRESA CONTRATANTE (quem vai abordar os prospects):
+  return `EMPRESA CONTRATANTE (quem vai abordar os prospects):
 - Nome: ${org.name}
 - Segmento: ${org.segment ?? "não informado"}
 - Localização: ${org.city ?? "?"}, ${org.state ?? "?"}
@@ -68,15 +67,39 @@ ICP (perfil de cliente ideal):
 - Ticket médio de venda da contratante: ${icp.averageTicketBRL ? `R$ ${icp.averageTicketBRL.toLocaleString("pt-BR")}` : "não informado"} — use isso pra calibrar se o porte do prospect é compatível (nem pequeno demais pra pagar, nem tão grande que o ticket vira irrelevante)
 - Ciclo de vendas típico da contratante: ${icp.salesCycleLength || "não informado"} — use isso como referência ao estimar a janela de urgência de cada oportunidade
 - Modelo de venda da contratante: ${saleModelLabel}
-${icp.idealCustomerDescription ? `- Descrição livre do cliente ideal (siga isso de perto, é a fonte mais confiável de nuance): ${icp.idealCustomerDescription}\n` : ""}${preferredSignalLabels.length > 0 ? `- Tipos de sinal mais relevantes pra essa empresa, priorize-os: ${preferredSignalLabels.join(", ")}\n` : ""}${icp.companiesToAvoid.length > 0 ? `- NÃO sugira estas empresas de jeito nenhum (já são clientes, concorrentes, ou já foram descartadas): ${icp.companiesToAvoid.join(", ")}\n` : ""}
+${icp.idealCustomerDescription ? `- Descrição livre do cliente ideal (siga isso de perto, é a fonte mais confiável de nuance): ${icp.idealCustomerDescription}\n` : ""}${preferredSignalLabels.length > 0 ? `- Tipos de sinal mais relevantes pra essa empresa, priorize-os: ${preferredSignalLabels.join(", ")}\n` : ""}${icp.companiesToAvoid.length > 0 ? `- NÃO sugira estas empresas de jeito nenhum (já são clientes, concorrentes, ou já foram descartadas): ${icp.companiesToAvoid.join(", ")}\n` : ""}`;
+}
+
+const DECISION_MAKER_NAME_INSTRUCTION =
+  'Pra cada oportunidade, tente também identificar o NOME REAL do provável decisor (não só o cargo) — procure em fontes públicas verificáveis como LinkedIn, a página "quem somos"/"equipe" do site da empresa, ou matérias de imprensa que citem a pessoa pelo nome. Preencha decisionMakerName só quando tiver certeza razoável da fonte; caso contrário, deixe null. Nunca invente um nome.';
+
+function buildDiscoveryPrompt(org: OrgProfile, icp: IcpProfile): string {
+  return `Você é um Diretor de Inteligência Comercial. Sua tarefa é encontrar, usando busca na web, empresas reais com sinais públicos recentes de que estão iniciando um ciclo de compra que combina com o ICP abaixo.
+
+${icpBlock(org, icp)}
 Busque sinais públicos reais (notícias, vagas de emprego, editais, investimentos, expansões, mudanças de liderança) publicados recentemente. Para cada empresa candidata encontrada, preencha o schema com pelo menos uma fonte real (URL verificável) por sinal citado. Não invente sinais nem URLs. Priorize 3 a 6 oportunidades de alta qualidade em vez de uma lista longa e genérica.
 
 Se, dentro dos critérios exatos de raio/cidades/estados/segmentos informados, você não encontrar nenhuma empresa real com sinal público verificável, AMPLIE a busca antes de desistir: considere cidades vizinhas, o estado inteiro, ou segmentos correlatos ao ICP. Deixe isso evidente no campo reasoning das oportunidades encontradas assim quando tiver ampliado o critério original. Só retorne uma lista vazia se, mesmo depois de ampliar, genuinamente não houver nenhuma evidência pública real — nunca invente uma empresa ou sinal só para preencher a lista.
 
-Pra cada oportunidade, tente também identificar o NOME REAL do provável decisor (não só o cargo) — procure em fontes públicas verificáveis como LinkedIn, a página "quem somos"/"equipe" do site da empresa, ou matérias de imprensa que citem a pessoa pelo nome. Preencha decisionMakerName só quando tiver certeza razoável da fonte; caso contrário, deixe null. Nunca invente um nome.`;
+${DECISION_MAKER_NAME_INSTRUCTION}`;
 }
 
-export async function searchOpportunities(organizationId: string): Promise<SearchOutcome> {
+// Busca dirigida: o cliente já tem uma empresa em mente (um lead que já
+// está trabalhando fora do Spinos) e quer o mesmo tratamento completo —
+// Spinos Score, argumentos, objeções — só que pra essa empresa específica,
+// em vez de uma descoberta aberta.
+function buildTargetedPrompt(companyName: string, location: string | null): SearchPromptBuilder {
+  return (org, icp) => `Você é um Diretor de Inteligência Comercial. O cliente já tem uma empresa específica em mente — não é uma descoberta aberta, é uma análise dirigida sobre ELA.
+
+${icpBlock(org, icp)}
+EMPRESA-ALVO PRA ANALISAR (e só ela): ${companyName}${location ? ` — ${location}` : ""}
+
+Pesquise sinais públicos reais e recentes sobre essa empresa específica (notícias, vagas de emprego, editais, investimentos, expansões, mudanças de liderança) e avalie se ela é uma oportunidade comercial real pra contratante, considerando o ICP acima. Preencha EXATAMENTE uma oportunidade no schema, sempre que confirmar que essa empresa existe de verdade — mesmo que não encontre nenhum sinal forte de ciclo de compra agora, preencha assim mesmo com um score mais baixo e um reasoning honesto explicando a ausência de sinais recentes (não deixe a lista vazia só por falta de sinal forte). Só deixe a lista vazia se genuinamente não conseguir confirmar que essa empresa existe. Nunca invente sinais, URLs ou dados que não encontrou de verdade — se não achar nada sobre um aspecto, diga isso no reasoning em vez de inventar.
+
+${DECISION_MAKER_NAME_INSTRUCTION}`;
+}
+
+async function executeSearch(organizationId: string, buildSearchPrompt: SearchPromptBuilder): Promise<SearchOutcome> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return { status: "not_configured" };
@@ -171,7 +194,7 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
       output_config: {
         format: zodOutputFormat(OpportunitySearchResultSchema),
       },
-      messages: [{ role: "user", content: buildPrompt(organization, icp) }],
+      messages: [{ role: "user", content: buildSearchPrompt(organization, icp) }],
     });
   } catch (err) {
     // A busca falhou antes de produzir resultado — não deve consumir o
@@ -349,4 +372,20 @@ export async function searchOpportunities(organizationId: string): Promise<Searc
   }
 
   return { status: "ok", count: opportunities.length };
+}
+
+// Descoberta aberta — acha empresas novas que combinam com o ICP.
+export async function searchOpportunities(organizationId: string): Promise<SearchOutcome> {
+  return executeSearch(organizationId, buildDiscoveryPrompt);
+}
+
+// Busca dirigida — o cliente já tem uma empresa em mente e quer o Spinos
+// Score completo dela. Mesmo motor, mesma cota/cooldown/crédito de
+// executeSearch, só muda o prompt.
+export async function searchSpecificCompany(
+  organizationId: string,
+  companyName: string,
+  location: string | null,
+): Promise<SearchOutcome> {
+  return executeSearch(organizationId, buildTargetedPrompt(companyName, location));
 }
