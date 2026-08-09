@@ -706,3 +706,70 @@ describe("searchSpecificCompany — busca dirigida", () => {
     expect(result).toEqual({ status: "empty" });
   });
 });
+
+describe("searchOpportunities — não fabrica fato (regressão do caso Furnax)", () => {
+  const opportunityWithFakeSource = {
+    companyName: "Empresa Sem Fonte Real",
+    city: null as string | null,
+    state: null as string | null,
+    score: 42,
+    urgency: "BAIXA",
+    headline: "Sem sinal forte",
+    execSummary: "Resumo.",
+    reasoning: "Sem confirmação pública.",
+    buyerArea: "Comercial",
+    decisionMaker: "Sócio-Diretor",
+    decisionMakerName: null,
+    approach: "Abordagem.",
+    commercialArguments: [],
+    objections: [],
+    signals: [
+      {
+        category: "ICP_MATCH",
+        text: "Encaixe de perfil",
+        sourceUrl: "https://www.google.com/search?q=Empresa+Sem+Fonte+Real",
+        sourceLabel: "Google",
+      },
+      {
+        category: "HIRING",
+        text: "Vaga real encontrada",
+        sourceUrl: "https://exemplo.com/vaga-real",
+        sourceLabel: "Exemplo",
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    organizationFindUnique.mockResolvedValue({ ...baseOrg, plan: "ENTERPRISE" });
+    companyFindMany.mockResolvedValue([]);
+    companyCreate.mockResolvedValue({ id: "company-1", name: "Empresa Sem Fonte Real", city: null, state: null });
+    opportunityScoreUpsert.mockResolvedValue({ id: "score-1" });
+    signalFindFirst.mockResolvedValue(null);
+    signalCreate.mockResolvedValue({ id: "signal-1" });
+  });
+
+  it("descarta sinal cujo sourceUrl é uma página de resultado de busca, mas mantém a oportunidade e o sinal real", async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [opportunityWithFakeSource] } });
+
+    const result = await searchOpportunities("org-1");
+
+    expect(result).toEqual({ status: "ok", count: 1 });
+    expect(signalCreate).toHaveBeenCalledTimes(1);
+    expect(signalCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ sourceUrl: "https://exemplo.com/vaga-real" }) }),
+    );
+    expect(signalCreate).not.toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ sourceUrl: expect.stringContaining("google.com/search") }) }),
+    );
+  });
+
+  it("persiste city/state null sem quebrar, em vez de exigir um valor chutado", async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [opportunityWithFakeSource] } });
+
+    await searchOpportunities("org-1");
+
+    expect(companyCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ city: null, state: null }) }),
+    );
+  });
+});

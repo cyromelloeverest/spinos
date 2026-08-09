@@ -21,7 +21,12 @@ export const UrgencyEnum = z.enum(["ALTA", "MEDIA", "BAIXA"]);
 export const SignalSchema = z.object({
   category: SignalCategoryEnum,
   text: z.string().describe("Descrição objetiva do sinal público encontrado"),
-  sourceUrl: z.string().describe("URL da fonte que comprova o sinal"),
+  sourceUrl: z
+    .string()
+    .nullable()
+    .describe(
+      "URL de uma PÁGINA REAL de conteúdo que comprova o sinal (site da empresa, notícia, LinkedIn, edital) — NUNCA um link de página de resultado de busca (ex: google.com/search, bing.com/search). Null se o sinal for uma inferência de encaixe de perfil (categoria ICP_MATCH) sem uma página específica por trás — nunca invente uma URL só pra preencher o campo.",
+    ),
   sourceLabel: z.string().describe("Nome legível da fonte, ex: nome do site/veículo"),
 });
 
@@ -31,8 +36,16 @@ export const OpportunitySchema = z.object({
     .describe(
       "Nome oficial da empresa, limpo — sem parênteses, sigla de unidade/planta ou descrição do que ela faz (isso vai em execSummary/headline, não aqui). Ex: \"Sigvaris Group\", não \"Sigvaris Group (unidade Jundiaí)\".",
     ),
-  city: z.string(),
-  state: z.string(),
+  city: z
+    .string()
+    .nullable()
+    .describe(
+      "Cidade da empresa, SOMENTE se confirmada em fonte pública real (site oficial, LinkedIn, notícia, cadastro público) — nunca assuma pela proximidade com a contratante ou porque bateria com o raio do ICP. Null se não encontrar confirmação real.",
+    ),
+  state: z
+    .string()
+    .nullable()
+    .describe("Estado (UF) da empresa, mesma regra de city — null se não confirmado em fonte real, nunca estimado."),
   score: z.number().describe("Opportunity Score de 0 a 100"),
   urgency: UrgencyEnum,
   headline: z.string().describe("Uma frase resumindo por que abordar agora"),

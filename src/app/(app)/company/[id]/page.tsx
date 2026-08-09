@@ -9,8 +9,9 @@ import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
 import { linkedinPersonSearchUrl, linkedinTitleSearchUrl, linkedinCompanySearchUrl } from "@/lib/linkedin";
 import { LinkedInButton } from "@/components/LinkedInButton";
 import { SpinosScore } from "@/components/SpinosScore";
-import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, CircleAlert } from "lucide-react";
 import { PIPELINE_STAGE_LABEL, type PipelineStage } from "@/lib/pipeline-stages";
+import { formatLocation } from "@/lib/format-location";
 
 export default async function CompanyPage({
   params,
@@ -67,9 +68,7 @@ export default async function CompanyPage({
             {opp.company.name}
           </h1>
           <div className="flex items-center gap-2.5 text-[13px]" style={{ color: "var(--fg-muted)" }}>
-            <span>
-              {opp.company.city}, {opp.company.state}
-            </span>
+            <span>{formatLocation(opp.company.city, opp.company.state)}</span>
             <LinkedInButton href={linkedinCompanySearchUrl(opp.company.name)} size="sm" />
           </div>
         </div>
@@ -88,6 +87,19 @@ export default async function CompanyPage({
       </Section>
 
       <Section title="Sinais que embasam esta análise">
+        {opp.signalsUsed.length === 0 && (
+          <div
+            className="flex items-start gap-2.5 rounded-[10px] border px-4 py-3.5 text-[12.5px] leading-[1.55]"
+            style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg-muted)" }}
+          >
+            <CircleAlert size={15} strokeWidth={1.75} className="flex-shrink-0 mt-0.5" style={{ color: "var(--warn)" }} />
+            <span>
+              Não encontramos nenhum sinal público específico (notícia, vaga, edital) sobre esta empresa — a análise
+              abaixo é baseada em encaixe de perfil com seu ICP, não em um evento de compra confirmado. Cidade e
+              porte só aparecem quando confirmados; vale validar por contato direto antes de investir tempo comercial.
+            </span>
+          </div>
+        )}
         <div className="flex flex-col">
           {opp.signalsUsed.map(({ signal }, i) => (
             <div key={signal.id} className="grid gap-0" style={{ gridTemplateColumns: "90px 20px 1fr" }}>

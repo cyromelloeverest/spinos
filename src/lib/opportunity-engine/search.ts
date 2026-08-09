@@ -42,6 +42,14 @@ type IcpProfile = {
 };
 type SearchPromptBuilder = (org: OrgProfile, icp: IcpProfile) => string;
 
+// Página de resultado de busca (google.com/search?q=..., bing.com/search?...)
+// não comprova nada sobre a empresa — é só o link da pergunta, não da
+// resposta. Ver NO_FABRICATION_INSTRUCTION abaixo.
+const SEARCH_ENGINE_RESULTS_URL = /^https?:\/\/(www\.)?(google|bing|duckduckgo)\.[a-z.]+\/search\b/i;
+function isSearchEngineResultsUrl(url: string): boolean {
+  return SEARCH_ENGINE_RESULTS_URL.test(url);
+}
+
 // Bloco de ICP compartilhado pelos dois modos de busca (aberta e dirigida)
 // — o que muda entre eles é só a tarefa pedida antes/depois desse bloco.
 function icpBlock(org: OrgProfile, icp: IcpProfile): string {
@@ -73,6 +81,15 @@ ${icp.idealCustomerDescription ? `- Descrição livre do cliente ideal (siga iss
 const DECISION_MAKER_NAME_INSTRUCTION =
   'Pra cada oportunidade, tente também identificar o NOME REAL do provável decisor (não só o cargo) — procure em fontes públicas verificáveis como LinkedIn, a página "quem somos"/"equipe" do site da empresa, ou matérias de imprensa que citem a pessoa pelo nome. Preencha decisionMakerName só quando tiver certeza razoável da fonte; caso contrário, deixe null. Nunca invente um nome.';
 
+// Regra central contra fabricação de fato — reforça o que os campos
+// nullable do schema já permitem, porque um modelo sob pressão de
+// "sempre preencher algo" tende a chutar um valor plausível em vez de
+// admitir que não sabe (foi exatamente o que causou cidade errada numa
+// busca dirigida real: a IA assumiu que a empresa ficava perto da
+// contratante só porque bateria com o raio do ICP).
+const NO_FABRICATION_INSTRUCTION =
+  "Nunca afirme como fato algo que você não confirmou numa fonte pública real e específica (site oficial, LinkedIn, notícia, cadastro público, edital) — vale pra cidade, estado, porte/número de funcionários, tecnologia usada e qualquer outro dado factual. Sem confirmação real, deixe city/state null (nunca estime pela proximidade com a contratante ou porque bateria com o ICP) e, se mencionar porte/tamanho em execSummary ou reasoning, deixe explícito que é estimativa, não fato confirmado. Nunca use uma URL de página de resultado de busca (google.com/search, bing.com/search etc.) como sourceUrl de um sinal — só URLs de páginas de conteúdo real. Se não encontrar nenhuma fonte real específica, prefira sourceUrl null (ou deixar signals vazio) a inventar uma URL só pra preencher o campo.";
+
 function buildDiscoveryPrompt(org: OrgProfile, icp: IcpProfile): string {
   return `Você é um Diretor de Inteligência Comercial. Sua tarefa é encontrar, usando busca na web, empresas reais com sinais públicos recentes de que estão iniciando um ciclo de compra que combina com o ICP abaixo.
 
@@ -81,7 +98,9 @@ Busque sinais públicos reais (notícias, vagas de emprego, editais, investiment
 
 Se, dentro dos critérios exatos de raio/cidades/estados/segmentos informados, você não encontrar nenhuma empresa real com sinal público verificável, AMPLIE a busca antes de desistir: considere cidades vizinhas, o estado inteiro, ou segmentos correlatos ao ICP. Deixe isso evidente no campo reasoning das oportunidades encontradas assim quando tiver ampliado o critério original. Só retorne uma lista vazia se, mesmo depois de ampliar, genuinamente não houver nenhuma evidência pública real — nunca invente uma empresa ou sinal só para preencher a lista.
 
-${DECISION_MAKER_NAME_INSTRUCTION}`;
+${DECISION_MAKER_NAME_INSTRUCTION}
+
+${NO_FABRICATION_INSTRUCTION}`;
 }
 
 // Busca dirigida: o cliente já tem uma empresa em mente (um lead que já
@@ -94,9 +113,11 @@ function buildTargetedPrompt(companyName: string, location: string | null): Sear
 ${icpBlock(org, icp)}
 EMPRESA-ALVO PRA ANALISAR (e só ela): ${companyName}${location ? ` — ${location}` : ""}
 
-Pesquise sinais públicos reais e recentes sobre essa empresa específica (notícias, vagas de emprego, editais, investimentos, expansões, mudanças de liderança) e avalie se ela é uma oportunidade comercial real pra contratante, considerando o ICP acima. Preencha EXATAMENTE uma oportunidade no schema, sempre que confirmar que essa empresa existe de verdade — mesmo que não encontre nenhum sinal forte de ciclo de compra agora, preencha assim mesmo com um score mais baixo e um reasoning honesto explicando a ausência de sinais recentes (não deixe a lista vazia só por falta de sinal forte). Só deixe a lista vazia se genuinamente não conseguir confirmar que essa empresa existe. Nunca invente sinais, URLs ou dados que não encontrou de verdade — se não achar nada sobre um aspecto, diga isso no reasoning em vez de inventar.
+Pesquise sinais públicos reais e recentes sobre essa empresa específica (notícias, vagas de emprego, editais, investimentos, expansões, mudanças de liderança) e avalie se ela é uma oportunidade comercial real pra contratante, considerando o ICP acima. Preencha EXATAMENTE uma oportunidade no schema, sempre que confirmar que essa empresa existe de verdade — mesmo que não encontre nenhum sinal forte de ciclo de compra agora, preencha assim mesmo com um score mais baixo e um reasoning honesto explicando a ausência de sinais recentes (não deixe a lista vazia só por falta de sinal forte). Isso vale pra score/reasoning/approach, que são análise e recomendação, não fato — mas cidade, estado e porte SÓ entram se confirmados de verdade (ver regra abaixo). Só deixe a lista vazia se genuinamente não conseguir confirmar que essa empresa existe.
 
-${DECISION_MAKER_NAME_INSTRUCTION}`;
+${DECISION_MAKER_NAME_INSTRUCTION}
+
+${NO_FABRICATION_INSTRUCTION}`;
 }
 
 async function executeSearch(organizationId: string, buildSearchPrompt: SearchPromptBuilder): Promise<SearchOutcome> {
@@ -227,7 +248,16 @@ async function executeSearch(organizationId: string, buildSearchPrompt: SearchPr
     return { status: "error", message: "A IA não retornou um resultado estruturado válido." };
   }
 
-  const { opportunities } = response.parsed_output;
+  // Defesa em profundidade além da instrução no prompt: mesmo com
+  // NO_FABRICATION_INSTRUCTION, um modelo eventualmente ainda devolve o
+  // link de uma página de resultado de busca como se fosse uma fonte real
+  // (foi o que causou o "sinal" fantasma da Furnax, com google.com/search
+  // como sourceUrl). Descarta esses sinais aqui em vez de confiar só no
+  // prompt — a oportunidade em si continua valendo, só perde esse sinal.
+  const opportunities = response.parsed_output.opportunities.map((opp) => ({
+    ...opp,
+    signals: opp.signals.filter((s) => !s.sourceUrl || !isSearchEngineResultsUrl(s.sourceUrl)),
+  }));
 
   if (opportunities.length === 0) {
     // Busca válida, mas sem nenhuma oportunidade real encontrada — o
@@ -260,9 +290,11 @@ async function executeSearch(organizationId: string, buildSearchPrompt: SearchPr
   // tenant) — usam o client normal direto, sem contexto de org: a policy
   // delas libera leitura/escrita pra qualquer conexão, não filtra por
   // organizationId (não existe essa coluna nelas).
-  const companyPool = await prisma.company.findMany({
-    where: { state: { in: [...new Set(opportunities.map((o) => o.state))] } },
-  });
+  // .filter(Boolean) tira o null de opp.state não-confirmado — sem isso,
+  // o "in" do Prisma recebe um null solto na lista, que não é o mesmo que
+  // buscar linhas com state null (e algumas versões do driver rejeitam).
+  const knownStates = [...new Set(opportunities.map((o) => o.state).filter((s): s is string => Boolean(s)))];
+  const companyPool = knownStates.length > 0 ? await prisma.company.findMany({ where: { state: { in: knownStates } } }) : [];
 
   // Uma missão por execução de busca — agrupa as oportunidades encontradas
   // agora pra o Dashboard destacar "o resultado desta busca" como um todo.
@@ -278,7 +310,7 @@ async function executeSearch(organizationId: string, buildSearchPrompt: SearchPr
           name: opp.companyName,
           city: opp.city,
           state: opp.state,
-          cnpj: `unknown:${opp.companyName}:${opp.city}:${Date.now()}`,
+          cnpj: `unknown:${opp.companyName}:${opp.city ?? ""}:${Date.now()}`,
         },
       });
       companyPool.push(company);

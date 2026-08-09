@@ -16,6 +16,7 @@ import { getPlan } from "@/lib/plans";
 import { effectiveLimits } from "@/lib/trial";
 import { purchaseSearchCredits } from "@/lib/actions/credits";
 import { SEARCH_CREDIT_PACK } from "@/lib/search-credit-pack";
+import { formatLocation } from "@/lib/format-location";
 import { logError } from "@/lib/log-error";
 
 const URGENCY_CONFIG: Record<string, { label: string; icon: typeof Flame; color: string }> = {
@@ -320,7 +321,7 @@ export default async function OpportunitiesPage({
                   <div className="flex items-center gap-2.5 mb-1.5">
                     <div className="text-[15.5px] font-semibold">{opp.company.name}</div>
                     <div className="text-[12px]" style={{ color: "var(--fg-faint)" }}>
-                      {opp.company.city}, {opp.company.state}
+                      {formatLocation(opp.company.city, opp.company.state)}
                     </div>
                   </div>
                   <div className="text-[13px] mb-2.5 leading-[1.5]" style={{ color: "var(--fg-muted)" }}>
