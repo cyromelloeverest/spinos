@@ -45,16 +45,24 @@ export default async function EsqueciSenhaPage({
               <input type="hidden" name="email" value={params.email ?? ""} />
               <label className="flex flex-col gap-1.5">
                 <span className="text-[12.5px] font-medium" style={{ color: "var(--fg)" }}>
-                  Código de 6 dígitos
+                  Código recebido por e-mail
                 </span>
+                {/* O Supabase gera o tamanho do código a partir de uma
+                    configuração própria (GOTRUE_MAILER_OTP_LENGTH, 6-10
+                    dígitos) — não trava num tamanho fixo aqui, senão o
+                    campo rejeita um código real assim que essa config
+                    mudar (foi exatamente esse bug: assumimos 6 copiando a
+                    tela de MFA, que é TOTP e sempre tem 6; o e-mail veio
+                    com 8). */}
                 <input
                   name="code"
                   placeholder="000000"
                   required
                   autoFocus
                   inputMode="numeric"
-                  pattern="[0-9]{6}"
-                  maxLength={6}
+                  pattern="[0-9]{6,10}"
+                  minLength={6}
+                  maxLength={10}
                   autoComplete="one-time-code"
                   className="rounded-[10px] border px-3.5 text-[18px] text-center outline-none"
                   style={{
