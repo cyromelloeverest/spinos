@@ -18,7 +18,7 @@ type HookPayload = {
   email_data: EmailData;
 };
 
-function buildEmailContent(actionType: EmailActionType, confirmUrl: string): { subject: string; html: string } {
+function buildEmailContent(actionType: EmailActionType, confirmUrl: string, recoveryCode?: string): { subject: string; html: string } {
   switch (actionType) {
     case "signup":
       return {
@@ -26,9 +26,14 @@ function buildEmailContent(actionType: EmailActionType, confirmUrl: string): { s
         html: `<p>Bem-vindo à Spinos! Clique no link abaixo pra confirmar seu e-mail e ativar sua conta:</p><p><a href="${confirmUrl}">Confirmar e-mail</a></p><p>Se você não pediu esse cadastro, pode ignorar este e-mail.</p>`,
       };
     case "recovery":
+      // Código digitado, não link clicável — link clicável fica vulnerável
+      // a scanner de segurança corporativo (Outlook/Gmail) que renderiza a
+      // página e chega a simular o clique, queimando o token de uso único
+      // antes da pessoa de verdade conseguir usar (caso real: Felipe/Sakatec,
+      // 2026-08-09).
       return {
-        subject: "Redefinir senha — Spinos",
-        html: `<p>Clique no link abaixo pra redefinir sua senha:</p><p><a href="${confirmUrl}">Redefinir senha</a></p><p>Se você não pediu essa redefinição, pode ignorar este e-mail.</p>`,
+        subject: "Seu código de redefinição de senha — Spinos",
+        html: `<p>Use o código abaixo pra criar uma senha nova:</p><p style="font-size:32px;font-weight:700;letter-spacing:6px;font-family:monospace;">${recoveryCode}</p><p>O código vale só por alguns minutos e uma única vez. Se você não pediu essa redefinição, pode ignorar este e-mail.</p>`,
       };
     case "email_change":
       return {
@@ -77,7 +82,7 @@ export async function POST(req: Request) {
   const next = email_data.redirect_to || "/";
   const confirmUrl = `${SITE_URL}/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(email_data.email_action_type)}&next=${encodeURIComponent(next)}`;
 
-  const { subject, html } = buildEmailContent(email_data.email_action_type, confirmUrl);
+  const { subject, html } = buildEmailContent(email_data.email_action_type, confirmUrl, email_data.token);
 
   const sendResult = await fetch("https://api.resend.com/emails", {
     method: "POST",

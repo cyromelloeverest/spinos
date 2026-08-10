@@ -185,7 +185,7 @@ export async function requestPasswordReset(formData: FormData) {
   // resultado do Supabase — sempre grava, sucesso ou não, porque o endpoint
   // não deve revelar (por diferença de comportamento) quais e-mails existem.
   if (await isRateLimited("password-reset")) {
-    redirect("/login/esqueci-senha?sent=1");
+    redirect(`/login/esqueci-senha?sent=1&email=${encodeURIComponent(email)}`);
   }
 
   // Só valida formato (não bloqueia por "e-mail não existe", pelo mesmo
@@ -193,8 +193,11 @@ export async function requestPasswordReset(formData: FormData) {
   // lixo obviamente malformado.
   if (emailSchema.safeParse(email).success) {
     const supabase = await createClient();
-    // Sempre redireciona pra "enviamos o link" mesmo se o e-mail não existir —
-    // isso evita que alguém descubra quais e-mails têm conta só testando aqui.
+    // Sempre redireciona pra "enviamos o código" mesmo se o e-mail não
+    // existir — isso evita que alguém descubra quais e-mails têm conta só
+    // testando aqui. redirectTo fica sem uso real (o e-mail manda um código
+    // pra digitar, não um link — ver send-email/route.ts), mas o Supabase
+    // exige o parâmetro mesmo assim.
     await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${SITE_URL}/auth/confirm?next=/redefinir-senha`,
     });
@@ -202,7 +205,43 @@ export async function requestPasswordReset(formData: FormData) {
   }
   await recordAttempt("password-reset");
 
-  redirect("/login/esqueci-senha?sent=1");
+  redirect(`/login/esqueci-senha?sent=1&email=${encodeURIComponent(email)}`);
+}
+
+// Segunda etapa da redefinição por código (ver comentário em
+// send-email/route.ts sobre por que não é mais um link clicável). O código
+// de 6 dígitos vem do mesmo email_data.token que o Supabase já gera pro
+// link — só muda o que fazemos com ele.
+export async function verifyPasswordResetCode(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const code = String(formData.get("code") ?? "").trim();
+
+  if (!email || !code) {
+    redirect(
+      `/login/esqueci-senha?sent=1&email=${encodeURIComponent(email)}&codeError=${encodeURIComponent("Informe o código recebido por e-mail.")}`,
+    );
+  }
+
+  if (await isRateLimited("password-reset-verify")) {
+    redirect(
+      `/login/esqueci-senha?sent=1&email=${encodeURIComponent(email)}&codeError=${encodeURIComponent("Muitas tentativas. Aguarde alguns minutos e tente de novo.")}`,
+    );
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "recovery" });
+
+  if (error) {
+    await recordAttempt("password-reset-verify");
+    await logSecurityEvent({ type: "auth.password_reset_code_failed", actorEmail: email });
+    logError("auth: verifyOtp (código de redefinição) falhou", error.message);
+    redirect(
+      `/login/esqueci-senha?sent=1&email=${encodeURIComponent(email)}&codeError=${encodeURIComponent("Código inválido ou expirado. Confira os 6 dígitos ou peça um novo código.")}`,
+    );
+  }
+
+  await logSecurityEvent({ type: "auth.password_reset_code_verified", actorEmail: email });
+  redirect("/redefinir-senha");
 }
 
 export async function requestEmailChange(formData: FormData) {

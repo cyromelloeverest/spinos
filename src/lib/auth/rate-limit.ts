@@ -11,7 +11,7 @@ import { logError } from "@/lib/log-error";
 const PRUNE_PROBABILITY = 0.02;
 const PRUNE_AGE_MS = 24 * 60 * 60 * 1000;
 
-type RateLimitAction = "signin" | "signup" | "password-reset" | "mfa-challenge";
+type RateLimitAction = "signin" | "signup" | "password-reset" | "password-reset-verify" | "mfa-challenge";
 
 const LIMITS: Record<RateLimitAction, { windowMs: number; maxAttempts: number }> = {
   signin: { windowMs: 15 * 60 * 1000, maxAttempts: 10 },
@@ -21,6 +21,9 @@ const LIMITS: Record<RateLimitAction, { windowMs: number; maxAttempts: number }>
   // força bruta num intervalo de 30s. 10 tentativas em 15min é generoso o
   // bastante pra um usuário real errar de vez em quando sem travar.
   "mfa-challenge": { windowMs: 15 * 60 * 1000, maxAttempts: 10 },
+  // Mesmo raciocínio do mfa-challenge — o código de redefinição de senha
+  // também é 6 dígitos numéricos.
+  "password-reset-verify": { windowMs: 15 * 60 * 1000, maxAttempts: 10 },
 };
 
 export async function getClientIp(): Promise<string> {

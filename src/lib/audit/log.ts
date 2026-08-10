@@ -32,7 +32,9 @@ export type SecurityEventType =
   | "auth.mfa_enrolled"
   | "auth.mfa_disabled"
   | "auth.mfa_challenge_succeeded"
-  | "auth.mfa_challenge_failed";
+  | "auth.mfa_challenge_failed"
+  | "auth.password_reset_code_verified"
+  | "auth.password_reset_code_failed";
 
 type LogInput = {
   type: SecurityEventType;
