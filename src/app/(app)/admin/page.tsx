@@ -11,7 +11,7 @@ import { ConfirmDeleteOrgButton } from "@/components/ConfirmDeleteOrgButton";
 import { logError } from "@/lib/log-error";
 import { ShieldCheck, X, Ban, Play, UserX, ShieldAlert } from "lucide-react";
 
-const ROLE_LABEL: Record<string, string> = { OWNER: "Dono", ADMIN: "Admin", MEMBER: "Membro" };
+const ROLE_LABEL: Record<string, string> = { OWNER: "Dono", ADMIN: "Admin", MEMBER: "Membro", AGENCY: "Agência" };
 
 async function fetchOrganizations() {
   const organizations = await prismaAdmin.organization.findMany({

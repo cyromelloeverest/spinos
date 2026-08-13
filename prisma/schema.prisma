@@ -155,10 +155,15 @@ model User {
   @@map("users")
 }
 
+// AGENCY: acesso operacional completo (ICP, oportunidades, pipeline, equipe)
+// concedido pelo cliente a um parceiro externo (agência de marketing) —
+// nunca tem acesso a cobrança/assinatura nem pode excluir a conta. Revogável
+// a qualquer momento pelo cliente, do mesmo jeito que remover um membro.
 enum Role {
   OWNER
   ADMIN
   MEMBER
+  AGENCY
 }
 
 model Membership {

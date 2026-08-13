@@ -43,6 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const orgOptions: OrgMembership[] = memberships.map((m) => ({
     organizationId: m.organizationId,
     name: m.organization.name,
+    role: m.role,
   }));
 
   return (

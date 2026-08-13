@@ -14,7 +14,7 @@ export type OrgProfile = {
   state: string | null;
 } | null;
 
-export type OrgMembership = { organizationId: string; name: string };
+export type OrgMembership = { organizationId: string; name: string; role: string };
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -229,6 +229,14 @@ export function Rail({
                     }}
                   >
                     <span className="truncate flex-1">{m.name}</span>
+                    {m.role === "AGENCY" && (
+                      <span
+                        className="text-[9px] font-semibold uppercase rounded-full px-1.5 py-[1px] flex-shrink-0"
+                        style={{ background: "var(--dark-border)", color: "var(--dark-fg-muted)", letterSpacing: "0.04em" }}
+                      >
+                        Agência
+                      </span>
+                    )}
                     {m.organizationId === currentOrganizationId && (
                       <Check size={14} strokeWidth={2} className="flex-shrink-0" style={{ color: "var(--primary)" }} />
                     )}

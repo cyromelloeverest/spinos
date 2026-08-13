@@ -12,7 +12,7 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-const ROLE_LABEL: Record<string, string> = { OWNER: "Dono", ADMIN: "Administrador", MEMBER: "Membro" };
+const ROLE_LABEL: Record<string, string> = { OWNER: "Dono", ADMIN: "Administrador", MEMBER: "Membro", AGENCY: "Agência" };
 
 export default async function EquipeSettingsPage({
   searchParams,
@@ -23,7 +23,7 @@ export default async function EquipeSettingsPage({
   const membership = await getCurrentMembership();
   if (!membership) redirect("/onboarding");
 
-  const canManage = membership.role === "OWNER" || membership.role === "ADMIN";
+  const canManage = membership.role === "OWNER" || membership.role === "ADMIN" || membership.role === "AGENCY";
 
   let organization;
   let members;
@@ -117,7 +117,7 @@ export default async function EquipeSettingsPage({
                 {inv.email}
               </div>
               <div className="text-[12px]" style={{ color: "var(--fg-faint)" }}>
-                Convite pendente · expira em {formatDate(inv.expiresAt)}
+                Convite pendente · {ROLE_LABEL[inv.role]} · expira em {formatDate(inv.expiresAt)}
               </div>
             </div>
             {canManage && (
@@ -149,6 +149,21 @@ export default async function EquipeSettingsPage({
             <div className="w-full sm:flex-1">
               <FormField label="E-mail" name="email" placeholder="colega@empresa.com.br" required />
             </div>
+            <label className="flex flex-col gap-1.5 w-full sm:w-auto">
+              <span className="text-[12.5px] font-medium" style={{ color: "var(--fg)" }}>
+                Papel
+              </span>
+              <select
+                name="role"
+                defaultValue="MEMBER"
+                className="rounded-[10px] border px-3.5 text-[13.5px] outline-none w-full sm:w-auto"
+                style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)", height: "44px" }}
+              >
+                <option value="MEMBER">Membro</option>
+                <option value="ADMIN">Administrador</option>
+                <option value="AGENCY">Agência</option>
+              </select>
+            </label>
             <button
               type="submit"
               className="text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer w-full sm:w-auto"
@@ -157,6 +172,10 @@ export default async function EquipeSettingsPage({
               Enviar convite
             </button>
           </form>
+          <p className="text-[11.5px] mt-2" style={{ color: "var(--fg-faint)" }}>
+            Agência: acesso operacional completo (oportunidades, pipeline, ICP, equipe), sem acesso à cobrança da
+            conta. Revogável a qualquer momento removendo a pessoa da equipe.
+          </p>
         </>
       )}
     </div>

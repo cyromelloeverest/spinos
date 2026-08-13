@@ -13,11 +13,17 @@ import { sendInviteEmail, INVITE_TTL_MS } from "@/lib/invite-email";
 import { logSecurityEvent } from "@/lib/audit/log";
 import { emailSchema, passwordSchema, firstIssueMessage } from "@/lib/validation";
 
+// Agência tem acesso operacional igual a admin (inclusive gerenciar equipe),
+// só nunca chega em cobrança (ver requireOwnerOrAdmin em billing.ts/credits.ts,
+// que de propósito NÃO inclui AGENCY aqui).
+const INVITABLE_ROLES = ["ADMIN", "MEMBER", "AGENCY"] as const;
+type InvitableRole = (typeof INVITABLE_ROLES)[number];
+
 async function requireOwnerOrAdmin() {
   const membership = await getCurrentMembership();
   if (!membership) redirect("/onboarding");
-  if (membership.role !== "OWNER" && membership.role !== "ADMIN") {
-    redirect("/settings/equipe?error=Apenas donos e administradores podem gerenciar a equipe.");
+  if (membership.role !== "OWNER" && membership.role !== "ADMIN" && membership.role !== "AGENCY") {
+    redirect("/settings/equipe?error=Apenas donos, administradores e agências podem gerenciar a equipe.");
   }
   return membership;
 }
@@ -30,6 +36,13 @@ export async function inviteMember(formData: FormData) {
     redirect(`/settings/equipe?error=${encodeURIComponent(firstIssueMessage(emailResult.error))}`);
   }
   const email = emailResult.data;
+
+  // Nunca aceita "OWNER" nem lixo arbitrário vindo do form — cai em MEMBER
+  // por padrão (mesmo comportamento de antes de existir esse campo).
+  const rawRole = String(formData.get("role") ?? "MEMBER");
+  const role: InvitableRole = (INVITABLE_ROLES as readonly string[]).includes(rawRole)
+    ? (rawRole as InvitableRole)
+    : "MEMBER";
 
   await withOrgContext(membership.organizationId, async (tx) => {
     const organization = await tx.organization.findUnique({ where: { id: membership.organizationId } });
@@ -65,17 +78,18 @@ export async function inviteMember(formData: FormData) {
       data: {
         organizationId: organization.id,
         email,
+        role,
         token,
         expiresAt: new Date(Date.now() + INVITE_TTL_MS),
       },
     });
 
-    await sendInviteEmail(email, organization.name, token);
+    await sendInviteEmail(email, organization.name, token, { isAgency: role === "AGENCY" });
     await logSecurityEvent({
       type: "team.member_invited",
       actorUserId: membership.userId,
       organizationId: organization.id,
-      metadata: { email },
+      metadata: { email, role },
     });
   });
 
