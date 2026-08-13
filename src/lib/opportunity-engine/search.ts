@@ -147,38 +147,39 @@ async function executeSearch(organizationId: string, buildSearchPrompt: SearchPr
     if (!icp) return { outcome: { status: "error", message: "Cadastre um ICP antes de buscar oportunidades." } };
 
     // Trial nunca herda o limite do plano selecionado pra testar — mesmo
-    // "testando" o Enterprise (limites ilimitados), o teto do trial vale.
+    // "testando" o Enterprise, o teto do trial vale. Nenhum plano (incl.
+    // Enterprise) tem dimensão ilimitada, então os tetos abaixo sempre
+    // existem — não tem mais branch de "plano sem limite".
     const { maxActiveOpportunities, maxSearches, isTrialing } = effectiveLimits(organization);
-    if (maxActiveOpportunities !== null) {
-      const activeCount = await tx.opportunityScore.count({
-        where: { organizationId, stage: null, status: { not: "DISMISSED" } },
-      });
-      if (activeCount >= maxActiveOpportunities) {
-        return { outcome: { status: "plan_limit", limit: maxActiveOpportunities } };
-      }
+    const activeCount = await tx.opportunityScore.count({
+      where: { organizationId, stage: null, status: { not: "DISMISSED" } },
+    });
+    if (activeCount >= maxActiveOpportunities) {
+      return { outcome: { status: "plan_limit", limit: maxActiveOpportunities } };
     }
 
     let usedCredit = false;
-    if (maxSearches !== null) {
-      // Trial é um teto total pros 7 dias inteiros, não "por mês" — a janela
-      // de um mês não faz sentido pra um período que já é mais curto que isso.
-      const searchesUsed = await tx.searchRun.count({
-        where: isTrialing ? { organizationId } : { organizationId, createdAt: { gte: startOfCurrentMonth() } },
-      });
-      if (searchesUsed >= maxSearches) {
-        // Enterprise nunca chega aqui (maxSearches é null fora de trial), então
-        // saldo pré-pago só entra em jogo pra trial/Starter/Profissional — como
-        // pedido no brief. Consome 1 crédito na mesma transação da checagem,
-        // pra duplo-clique não gastar 2 créditos numa corrida.
-        if (organization.searchCreditBalance > 0) {
-          await tx.organization.update({
-            where: { id: organizationId },
-            data: { searchCreditBalance: { decrement: 1 } },
-          });
-          usedCredit = true;
-        } else {
-          return { outcome: { status: "search_limit", limit: maxSearches } };
-        }
+    // Trial é um teto total pros 7 dias inteiros, não "por mês" — a janela
+    // de um mês não faz sentido pra um período que já é mais curto que isso.
+    const searchesUsed = await tx.searchRun.count({
+      where: isTrialing ? { organizationId } : { organizationId, createdAt: { gte: startOfCurrentMonth() } },
+    });
+    if (searchesUsed >= maxSearches) {
+      // Enterprise pago (fora de trial) nunca usa saldo pré-pago — acima do
+      // teto incluso é conversa comercial, não compra automática (ver
+      // brief 2026-08-11). Trial "testando" Enterprise continua podendo
+      // usar crédito normalmente — o teto ali é sempre o do trial, nunca o
+      // do plano selecionado. Consome 1 crédito na mesma transação da
+      // checagem, pra duplo-clique não gastar 2 créditos numa corrida.
+      const creditAllowed = isTrialing || organization.plan !== "ENTERPRISE";
+      if (creditAllowed && organization.searchCreditBalance > 0) {
+        await tx.organization.update({
+          where: { id: organizationId },
+          data: { searchCreditBalance: { decrement: 1 } },
+        });
+        usedCredit = true;
+      } else {
+        return { outcome: { status: "search_limit", limit: maxSearches } };
       }
     }
 

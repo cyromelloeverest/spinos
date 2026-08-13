@@ -61,9 +61,7 @@ export default async function EquipeSettingsPage({
       </h1>
       <p className="m-0 mb-8 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
         Quem tem acesso à {organization.name} no Spinos.
-        {plan.maxUsers !== null && (
-          <span> {seatsUsed}/{plan.maxUsers} usuários do plano {plan.name}.</span>
-        )}
+        <span> {seatsUsed}/{plan.maxUsers} usuários do plano {plan.name}.</span>
       </p>
 
       {params.invited && (

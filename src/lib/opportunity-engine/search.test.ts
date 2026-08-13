@@ -207,13 +207,23 @@ describe("searchOpportunities — gating", () => {
     expect(organizationUpdate).not.toHaveBeenCalled(); // não deve gastar cooldown numa busca bloqueada
   });
 
-  it("plano ENTERPRISE (limites null) nunca consulta contagem de oportunidades ou buscas", async () => {
+  it("plano ENTERPRISE também bloqueia no teto — não é mais ilimitado", async () => {
     organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "ENTERPRISE" });
-    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
+    opportunityScoreCount.mockResolvedValueOnce(0);
+    searchRunCount.mockResolvedValueOnce(PLANS.ENTERPRISE.maxSearchesPerMonth);
     const result = await searchOpportunities("org-1");
-    expect(result).toEqual({ status: "empty" });
-    expect(opportunityScoreCount).not.toHaveBeenCalled();
-    expect(searchRunCount).not.toHaveBeenCalled();
+    expect(result).toEqual({ status: "search_limit", limit: PLANS.ENTERPRISE.maxSearchesPerMonth });
+  });
+
+  it("ENTERPRISE pago fora de trial não usa saldo pré-pago no teto de buscas — vira search_limit mesmo com crédito", async () => {
+    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "ENTERPRISE", searchCreditBalance: 5 });
+    opportunityScoreCount.mockResolvedValueOnce(0);
+    searchRunCount.mockResolvedValueOnce(PLANS.ENTERPRISE.maxSearchesPerMonth);
+    const result = await searchOpportunities("org-1");
+    expect(result).toEqual({ status: "search_limit", limit: PLANS.ENTERPRISE.maxSearchesPerMonth });
+    expect(organizationUpdate).not.toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ searchCreditBalance: expect.anything() }) }),
+    );
   });
 
   it("trial nunca herda buscas ilimitadas do plano Enterprise — bloqueia no teto do trial", async () => {

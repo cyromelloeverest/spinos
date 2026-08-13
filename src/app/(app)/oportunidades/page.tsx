@@ -99,16 +99,18 @@ export default async function OpportunitiesPage({
     organization ?? { plan: "STARTER", trialEndsAt: null },
   );
   const searchesUsed = isTrialing ? searchesAllTime : searchesThisMonth;
-  const atPlanLimit = maxActiveOpportunities !== null && opportunities.length >= maxActiveOpportunities;
+  const atPlanLimit = opportunities.length >= maxActiveOpportunities;
   const creditBalance = organization?.searchCreditBalance ?? 0;
-  // Enterprise pago (fora de trial) já tem buscas ilimitadas de verdade —
-  // saldo pré-pago não existe pra esse caso, nem faz sentido mostrar a opção
-  // de comprar. Trial sempre pode comprar (nunca é ilimitado de verdade,
-  // mesmo "testando" o Enterprise — ver effectiveLimits em src/lib/trial.ts).
-  const showCreditPurchase = isTrialing || plan.id !== "ENTERPRISE";
-  const rawAtSearchLimit = maxSearches !== null && searchesUsed >= maxSearches;
-  const atSearchLimit = rawAtSearchLimit && creditBalance <= 0;
-  const remainingSearches = maxSearches !== null ? Math.max(maxSearches - searchesUsed - 1, 0) : null;
+  // Enterprise pago (fora de trial) não compra saldo — acima do teto
+  // incluso é conversa comercial, não compra automática (decisão de
+  // negócio 2026-08-11, mantém o tom de atendimento dedicado desse plano).
+  // Trial sempre pode comprar, mesmo "testando" o Enterprise — o teto ali
+  // é sempre o do trial, nunca o do plano selecionado (ver trial.ts).
+  const isPaidEnterprise = !isTrialing && plan.id === "ENTERPRISE";
+  const showCreditPurchase = !isPaidEnterprise;
+  const rawAtSearchLimit = searchesUsed >= maxSearches;
+  const atSearchLimit = rawAtSearchLimit && (isPaidEnterprise || creditBalance <= 0);
+  const remainingSearches = Math.max(maxSearches - searchesUsed - 1, 0);
   const userBlocked = Boolean(membership?.searchBlocked);
   const searchDisabled = !anthropicConfigured || onCooldown || atPlanLimit || atSearchLimit || userBlocked;
   const disabledTitle = !anthropicConfigured
@@ -118,11 +120,15 @@ export default async function OpportunitiesPage({
       : atPlanLimit
         ? isTrialing
           ? `Limite de ${maxActiveOpportunities} oportunidades ativas do teste grátis atingido`
-          : `Limite de ${maxActiveOpportunities} oportunidades ativas do plano ${plan.name} atingido`
+          : isPaidEnterprise
+            ? `Limite de ${maxActiveOpportunities} oportunidades ativas do plano Enterprise atingido — fale com o time comercial`
+            : `Limite de ${maxActiveOpportunities} oportunidades ativas do plano ${plan.name} atingido`
         : atSearchLimit
           ? isTrialing
             ? `Limite de ${maxSearches} buscas do teste grátis atingido`
-            : `Limite de ${maxSearches} buscas/mês do plano ${plan.name} atingido`
+            : isPaidEnterprise
+              ? `Limite de ${maxSearches} buscas/mês do plano Enterprise atingido — fale com o time comercial`
+              : `Limite de ${maxSearches} buscas/mês do plano ${plan.name} atingido`
           : onCooldown && nextAvailableAt
             ? `Próxima busca disponível em ${formatDateTime(nextAvailableAt)}`
             : undefined;
@@ -153,18 +159,14 @@ export default async function OpportunitiesPage({
               {opportunities.length === 0
                 ? "Nenhuma oportunidade ainda — rode uma busca pra encontrar sinais reais pro seu ICP."
                 : `${opportunities.length} oportunidades calculadas a partir do seu ICP.`}
-              {maxActiveOpportunities !== null && (
-                <span style={{ color: atPlanLimit ? "var(--warn)" : "var(--fg-faint)" }}>
-                  {" "}
-                  ({opportunities.length}/{maxActiveOpportunities}{isTrialing ? " do teste grátis" : ` do plano ${plan.name}`})
-                </span>
-              )}
-              {maxSearches !== null && (
-                <span style={{ color: atSearchLimit ? "var(--warn)" : "var(--fg-faint)" }}>
-                  {" "}
-                  · {searchesUsed}/{maxSearches} {isTrialing ? "buscas do teste grátis" : "buscas este mês"}
-                </span>
-              )}
+              <span style={{ color: atPlanLimit ? "var(--warn)" : "var(--fg-faint)" }}>
+                {" "}
+                ({opportunities.length}/{maxActiveOpportunities}{isTrialing ? " do teste grátis" : ` do plano ${plan.name}`})
+              </span>
+              <span style={{ color: atSearchLimit ? "var(--warn)" : "var(--fg-faint)" }}>
+                {" "}
+                · {searchesUsed}/{maxSearches} {isTrialing ? "buscas do teste grátis" : "buscas este mês"}
+              </span>
               {creditBalance > 0 && (
                 <span style={{ color: creditBalance === 1 ? "var(--warn)" : "var(--fg-faint)" }}>
                   {" "}
@@ -241,14 +243,18 @@ export default async function OpportunitiesPage({
         <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
           {isTrialing
             ? `Seu teste grátis permite até ${params.limit ?? maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no pipeline para liberar espaço, ou assine um plano pago pra continuar sem esse teto.`
-            : `Seu plano permite até ${params.limit ?? maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no pipeline para liberar espaço, ou fale com a gente para evoluir de plano.`}
+            : isPaidEnterprise
+              ? `Seu plano Enterprise permite até ${params.limit ?? maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no pipeline para liberar espaço, ou fale com nosso time comercial pra ajustar seu limite.`
+              : `Seu plano permite até ${params.limit ?? maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no pipeline para liberar espaço, ou compre buscas extras/evolua de plano abaixo.`}
         </div>
       )}
       {params.search === "search_limit" && (
         <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
           {isTrialing
             ? `Seu teste grátis permite até ${params.limit ?? maxSearches} buscas nos 7 dias, e o limite já foi atingido. Assine um plano pago ou compre buscas extras abaixo pra continuar buscando.`
-            : `Seu plano permite até ${params.limit ?? maxSearches} buscas por mês, e o limite já foi atingido. O contador reseta no início do próximo mês, ou compre buscas extras abaixo pra continuar agora.`}
+            : isPaidEnterprise
+              ? `Seu plano Enterprise permite até ${params.limit ?? maxSearches} buscas por mês, e o limite já foi atingido. O contador reseta no início do próximo mês, ou fale com nosso time comercial pra ajustar seu limite.`
+              : `Seu plano permite até ${params.limit ?? maxSearches} buscas por mês, e o limite já foi atingido. O contador reseta no início do próximo mês, ou compre buscas extras abaixo pra continuar agora.`}
         </div>
       )}
       {params.search === "user_blocked" && (

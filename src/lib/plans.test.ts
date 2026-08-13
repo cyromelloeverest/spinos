@@ -17,30 +17,25 @@ describe("getPlan", () => {
 });
 
 describe("PLANS", () => {
-  it("ENTERPRISE não tem nenhum limite numérico (null = ilimitado)", () => {
-    expect(PLANS.ENTERPRISE.maxActiveOpportunities).toBeNull();
-    expect(PLANS.ENTERPRISE.maxUsers).toBeNull();
-    expect(PLANS.ENTERPRISE.maxSearchesPerMonth).toBeNull();
-  });
-
-  it("STARTER e PROFISSIONAL têm todos os limites numéricos definidos", () => {
-    for (const plan of [PLANS.STARTER, PLANS.PROFISSIONAL]) {
-      expect(plan.maxActiveOpportunities).not.toBeNull();
-      expect(plan.maxUsers).not.toBeNull();
-      expect(plan.maxSearchesPerMonth).not.toBeNull();
+  // Decisão de negócio 2026-08-11: nenhuma dimensão de nenhum plano fica
+  // "ilimitada" — IA, suporte e receita não capturada de conta grande são
+  // custo real. Enterprise é o teto mais alto, não "sem teto".
+  it("nenhum plano tem dimensão ilimitada — todo limite é um número real", () => {
+    for (const plan of Object.values(PLANS)) {
+      expect(typeof plan.maxActiveOpportunities).toBe("number");
+      expect(typeof plan.maxUsers).toBe("number");
+      expect(typeof plan.maxSearchesPerMonth).toBe("number");
+      expect(typeof plan.maxIcps).toBe("number");
     }
   });
 
-  it("os limites crescem (ou ficam ilimitados) a cada tier — nunca diminuem", () => {
+  it("os limites crescem a cada tier — nunca diminuem", () => {
     const tiers = [PLANS.STARTER, PLANS.PROFISSIONAL, PLANS.ENTERPRISE];
     for (let i = 1; i < tiers.length; i++) {
       const prev = tiers[i - 1];
       const curr = tiers[i];
       for (const key of ["maxActiveOpportunities", "maxUsers", "maxSearchesPerMonth", "maxIcps"] as const) {
-        const prevVal = prev[key];
-        const currVal = curr[key];
-        if (currVal === null) continue; // ilimitado sempre é "maior ou igual"
-        expect(prevVal === null || currVal >= prevVal).toBe(true);
+        expect(curr[key]).toBeGreaterThanOrEqual(prev[key]);
       }
     }
   });

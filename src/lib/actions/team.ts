@@ -36,16 +36,21 @@ export async function inviteMember(formData: FormData) {
     if (!organization) redirect("/settings/equipe");
 
     const plan = getPlan(organization.plan);
-    if (plan.maxUsers !== null) {
-      const [memberCount, pendingInviteCount] = await Promise.all([
-        tx.membership.count({ where: { organizationId: organization.id } }),
-        tx.invite.count({
-          where: { organizationId: organization.id, acceptedAt: null, expiresAt: { gt: new Date() } },
-        }),
-      ]);
-      if (memberCount + pendingInviteCount >= plan.maxUsers) {
-        redirect(`/settings/equipe?error=${encodeURIComponent(`Seu plano (${plan.name}) permite até ${plan.maxUsers} usuário(s). Evolua de plano para convidar mais gente.`)}`);
-      }
+    const [memberCount, pendingInviteCount] = await Promise.all([
+      tx.membership.count({ where: { organizationId: organization.id } }),
+      tx.invite.count({
+        where: { organizationId: organization.id, acceptedAt: null, expiresAt: { gt: new Date() } },
+      }),
+    ]);
+    if (memberCount + pendingInviteCount >= plan.maxUsers) {
+      // Enterprise acima do teto incluso não é upgrade de plano automático
+      // (não existe plano acima) — é conversa comercial, mesmo raciocínio
+      // do teto de buscas/oportunidades (ver plans.ts).
+      const message =
+        plan.id === "ENTERPRISE"
+          ? `Seu plano Enterprise inclui até ${plan.maxUsers} usuário(s). Pra adicionar mais, fale com nosso time comercial.`
+          : `Seu plano (${plan.name}) permite até ${plan.maxUsers} usuário(s). Evolua de plano para convidar mais gente.`;
+      redirect(`/settings/equipe?error=${encodeURIComponent(message)}`);
     }
 
     const existingMember = await tx.membership.findFirst({

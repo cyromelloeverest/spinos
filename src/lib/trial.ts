@@ -35,11 +35,12 @@ export function trialDaysLeft(trialEndsAt: Date | null): number | null {
 // layout já bloqueia o app inteiro antes de qualquer ação chegar aqui — ver
 // src/app/(app)/layout.tsx). Nesse estado, o teto do trial sempre vence o
 // limite do plano selecionado, mesmo que a pessoa tenha escolhido "testar"
-// o Enterprise (limites null = ilimitado). trialEndsAt null = sem teste
-// (conta paga ou uso interno) — aí sim vale o limite real do plano.
+// o Enterprise. trialEndsAt null = sem teste (conta paga ou uso interno) —
+// aí sim vale o limite real do plano. Nenhum dos dois caminhos retorna
+// null — nenhum plano (incl. Enterprise) tem dimensão ilimitada.
 export function effectiveLimits(organization: { plan: string; trialEndsAt: Date | null }): {
-  maxActiveOpportunities: number | null;
-  maxSearches: number | null;
+  maxActiveOpportunities: number;
+  maxSearches: number;
   isTrialing: boolean;
 } {
   if (organization.trialEndsAt !== null) {

@@ -5,13 +5,19 @@ export type AlertsFrequency = "weekly" | "daily" | "realtime";
 export type PlanDefinition = {
   id: PlanId;
   name: string;
-  maxActiveOpportunities: number | null; // null = ilimitado
-  maxUsers: number | null;
-  maxSearchesPerMonth: number | null;
+  // Nenhum plano tem dimensão ilimitada de propósito (decisão de negócio
+  // 2026-08-11): IA, suporte e receita não capturada de conta grande são
+  // custo real. O Enterprise é o teto mais alto, não "sem teto" — passar
+  // dele não é upgrade de plano automático (não existe plano acima), é
+  // conversa comercial. Ver a mensagem específica de Enterprise em
+  // team.ts/oportunidades/page.tsx quando o teto é atingido.
+  maxActiveOpportunities: number;
+  maxUsers: number;
+  maxSearchesPerMonth: number;
   // Ainda não tem UI pra criar mais de 1 ICP por org — isso é a fonte da
   // verdade do limite comercial, mas nada no código impede hoje um usuário
   // de passar dele (não há como criar um segundo ICP de jeito nenhum ainda).
-  maxIcps: number | null;
+  maxIcps: number;
   // Idem: não existe sistema de alertas construído — isso é só o dado
   // comercial, pra quando a feature existir.
   alertsFrequency: AlertsFrequency;
@@ -59,10 +65,10 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   ENTERPRISE: {
     id: "ENTERPRISE",
     name: "Enterprise",
-    maxActiveOpportunities: null,
-    maxUsers: null,
-    maxSearchesPerMonth: null,
-    maxIcps: null,
+    maxActiveOpportunities: 400,
+    maxUsers: 20,
+    maxSearchesPerMonth: 60,
+    maxIcps: 10,
     alertsFrequency: "realtime",
     supportTier: "Onboarding + CS dedicado + SLA",
     features: { crmExport: true, inteligenciaCompetitiva: true },

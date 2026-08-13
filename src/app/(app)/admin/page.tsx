@@ -142,7 +142,7 @@ export default async function AdminPage({
               <tbody>
                 {organizations.map((org) => {
                   const limit = PLANS[org.plan as PlanId].maxActiveOpportunities;
-                  const overLimit = limit !== null && org.activeOpportunities > limit;
+                  const overLimit = org.activeOpportunities > limit;
                   const expired = isTrialExpired(org.trialEndsAt);
                   const daysLeft = trialDaysLeft(org.trialEndsAt);
                   const pendingInvites = org.invites.filter((i) => i.expiresAt > new Date());
@@ -249,8 +249,7 @@ export default async function AdminPage({
                       </Td>
                       <Td>
                         <span style={{ color: overLimit ? "var(--critical)" : "var(--fg)" }}>
-                          {org.activeOpportunities}
-                          {limit !== null ? ` / ${limit}` : ""}
+                          {org.activeOpportunities} / {limit}
                         </span>
                       </Td>
                       <Td>

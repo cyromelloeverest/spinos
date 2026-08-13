@@ -72,7 +72,7 @@ describe("trialDaysLeft", () => {
 });
 
 describe("effectiveLimits", () => {
-  it("trial usa o teto fixo do trial, mesmo escolhendo testar o plano Enterprise (ilimitado)", () => {
+  it("trial usa o teto fixo do trial, mesmo escolhendo testar o plano Enterprise", () => {
     const result = effectiveLimits({ plan: "ENTERPRISE", trialEndsAt: new Date(Date.now() + DAY_MS) });
     expect(result).toEqual({
       maxActiveOpportunities: TRIAL_MAX_ACTIVE_OPPORTUNITIES,
@@ -96,8 +96,12 @@ describe("effectiveLimits", () => {
     });
   });
 
-  it("sem trial e no Enterprise, os limites voltam a ser ilimitados de verdade", () => {
+  it("sem trial e no Enterprise, usa o teto real do plano — não é mais ilimitado", () => {
     const result = effectiveLimits({ plan: "ENTERPRISE", trialEndsAt: null });
-    expect(result).toEqual({ maxActiveOpportunities: null, maxSearches: null, isTrialing: false });
+    expect(result).toEqual({
+      maxActiveOpportunities: PLANS.ENTERPRISE.maxActiveOpportunities,
+      maxSearches: PLANS.ENTERPRISE.maxSearchesPerMonth,
+      isTrialing: false,
+    });
   });
 });

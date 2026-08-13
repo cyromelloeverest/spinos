@@ -135,12 +135,10 @@ export async function matchFreeSignalsToOrganizations(ingested: IngestedSignal[]
     if (isTrialExpired(organization.trialEndsAt)) continue;
 
     const { maxActiveOpportunities } = effectiveLimits(organization);
-    if (maxActiveOpportunities !== null) {
-      const activeCount = await prisma.opportunityScore.count({
-        where: { organizationId: organization.id, stage: null, status: { not: "DISMISSED" } },
-      });
-      if (activeCount >= maxActiveOpportunities) continue;
-    }
+    const activeCount = await prisma.opportunityScore.count({
+      where: { organizationId: organization.id, stage: null, status: { not: "DISMISSED" } },
+    });
+    if (activeCount >= maxActiveOpportunities) continue;
 
     const candidates = candidatesForIcp(icp, candidatePool);
     if (candidates.length === 0) continue;
