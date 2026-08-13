@@ -5,5 +5,5 @@
 export const SEARCH_CREDIT_PACK = {
   quantity: 5,
   priceBRL: 149,
-  stripePriceId: "price_1U1zLsEqWpT7TrUVbxgQGMQP",
+  stripePriceId: "price_1U3mzBEqWpT7TrUVvxQSFwA2",
 };

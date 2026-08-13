@@ -41,7 +41,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     supportTier: "Padrão",
     features: { crmExport: false, inteligenciaCompetitiva: false },
     priceMonthlyBRL: 309,
-    stripePriceId: "price_1U0tTkEqWpT7TrUVXoLERMhz",
+    stripePriceId: "price_1U3mz9EqWpT7TrUVKCOoNqE4",
   },
   PROFISSIONAL: {
     id: "PROFISSIONAL",
@@ -54,7 +54,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     supportTier: "Prioritário",
     features: { crmExport: true, inteligenciaCompetitiva: false },
     priceMonthlyBRL: 649,
-    stripePriceId: "price_1U0tTkEqWpT7TrUViSAfShM7",
+    stripePriceId: "price_1U3mzAEqWpT7TrUVKTqZGbiO",
   },
   ENTERPRISE: {
     id: "ENTERPRISE",
@@ -67,7 +67,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     supportTier: "Onboarding + CS dedicado + SLA",
     features: { crmExport: true, inteligenciaCompetitiva: true },
     priceMonthlyBRL: 1699,
-    stripePriceId: "price_1U0tTlEqWpT7TrUVvmsqhzaU",
+    stripePriceId: "price_1U3mzAEqWpT7TrUVo5lX85N1",
   },
 };
 
