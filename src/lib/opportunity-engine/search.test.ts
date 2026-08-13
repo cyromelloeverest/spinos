@@ -18,6 +18,7 @@ const {
   signalCreate,
   opportunityScoreSignalUpsert,
   missionCreate,
+  searchUsageLogCreate,
   parseMock,
 } = vi.hoisted(() => ({
   organizationFindUnique: vi.fn(),
@@ -34,6 +35,7 @@ const {
   signalCreate: vi.fn(),
   opportunityScoreSignalUpsert: vi.fn(),
   missionCreate: vi.fn(),
+  searchUsageLogCreate: vi.fn(),
   parseMock: vi.fn(),
 }));
 
@@ -51,6 +53,7 @@ const mockDb = {
   signal: { findFirst: signalFindFirst, create: signalCreate },
   opportunityScoreSignal: { upsert: opportunityScoreSignalUpsert },
   mission: { create: missionCreate },
+  searchUsageLog: { create: searchUsageLogCreate },
   $executeRaw: vi.fn(),
 };
 
@@ -130,6 +133,7 @@ beforeEach(() => {
   signalCreate.mockResolvedValue({ id: "signal-1" });
   opportunityScoreSignalUpsert.mockResolvedValue({});
   missionCreate.mockResolvedValue({ id: "mission-1" });
+  searchUsageLogCreate.mockResolvedValue({ id: "usage-1" });
 });
 
 afterEach(() => {
@@ -781,5 +785,96 @@ describe("searchOpportunities — não fabrica fato (regressão do caso Furnax)"
     expect(companyCreate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ city: null, state: null }) }),
     );
+  });
+});
+
+describe("logSearchUsage — custo real por busca (item 4 do brief 2026-08-11)", () => {
+  const usage = {
+    input_tokens: 1000,
+    output_tokens: 2000,
+    cache_creation_input_tokens: 500,
+    cache_read_input_tokens: 200,
+    server_tool_use: { web_search_requests: 4 },
+  };
+  // (1000 + 500 + 200) / 1e6 * 5 + 2000 / 1e6 * 25 + 4 * 0.01
+  const expectedCostUSD = (1700 / 1_000_000) * 5 + (2000 / 1_000_000) * 25 + 4 * 0.01;
+
+  beforeEach(() => {
+    organizationFindUnique.mockResolvedValue({ ...baseOrg, plan: "ENTERPRISE" });
+    companyFindMany.mockResolvedValue([]);
+    companyCreate.mockResolvedValue({ id: "company-1", name: "Empresa X", city: "SP", state: "SP" });
+    opportunityScoreUpsert.mockResolvedValue({ id: "score-1" });
+  });
+
+  it("loga uso e custo real numa busca aberta bem-sucedida (mode: discovery, outcome: ok)", async () => {
+    parseMock.mockResolvedValueOnce({
+      parsed_output: {
+        opportunities: [
+          {
+            companyName: "Empresa X",
+            city: "SP",
+            state: "SP",
+            score: 70,
+            urgency: "MEDIA",
+            headline: "H",
+            execSummary: "E",
+            reasoning: "R",
+            buyerArea: "Comercial",
+            decisionMaker: "Diretor",
+            decisionMakerName: null,
+            approach: "A",
+            commercialArguments: [],
+            objections: [],
+            signals: [],
+          },
+        ],
+      },
+      usage,
+    });
+
+    await searchOpportunities("org-1");
+
+    expect(searchUsageLogCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        organizationId: "org-1",
+        mode: "discovery",
+        outcome: "ok",
+        inputTokens: 1000,
+        outputTokens: 2000,
+        cacheCreationTokens: 500,
+        cacheReadTokens: 200,
+        webSearchCount: 4,
+        estimatedCostUSD: expectedCostUSD,
+      }),
+    });
+  });
+
+  it("loga com outcome empty quando a busca não acha nada — o custo foi incorrido de qualquer jeito", async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] }, usage });
+
+    await searchOpportunities("org-1");
+
+    expect(searchUsageLogCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({ mode: "discovery", outcome: "empty", estimatedCostUSD: expectedCostUSD }),
+    });
+  });
+
+  it("loga com mode targeted numa busca dirigida", async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] }, usage });
+
+    await searchSpecificCompany("org-1", "Empresa X", null);
+
+    expect(searchUsageLogCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({ mode: "targeted", outcome: "empty" }),
+    });
+  });
+
+  it("não lança e não quebra a busca quando a resposta não tem usage (defensivo)", async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
+
+    const result = await searchOpportunities("org-1");
+
+    expect(result).toEqual({ status: "empty" });
+    expect(searchUsageLogCreate).not.toHaveBeenCalled();
   });
 });

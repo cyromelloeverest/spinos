@@ -22,12 +22,29 @@ async function fetchOrganizations() {
     },
   });
 
+  // Custo real de IA dos últimos 30 dias por org — dado medido (não a
+  // estimativa calculada), pra identificar rápido se alguma conta está
+  // consumindo desproporcional (brief 2026-08-11, item 4).
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
   const withCounts = await Promise.all(
     organizations.map(async (org) => {
-      const activeOpportunities = await prismaAdmin.opportunityScore.count({
-        where: { organizationId: org.id, stage: null, status: { not: "DISMISSED" } },
-      });
-      return { ...org, activeOpportunities };
+      const [activeOpportunities, usageAgg] = await Promise.all([
+        prismaAdmin.opportunityScore.count({
+          where: { organizationId: org.id, stage: null, status: { not: "DISMISSED" } },
+        }),
+        prismaAdmin.searchUsageLog.aggregate({
+          where: { organizationId: org.id, createdAt: { gte: thirtyDaysAgo } },
+          _sum: { estimatedCostUSD: true },
+          _count: true,
+        }),
+      ]);
+      return {
+        ...org,
+        activeOpportunities,
+        costLast30dUSD: usageAgg._sum.estimatedCostUSD ?? 0,
+        searchesLast30d: usageAgg._count,
+      };
     }),
   );
 
@@ -133,6 +150,7 @@ export default async function AdminPage({
                   <Th>Empresa</Th>
                   <Th>Usuários</Th>
                   <Th>Oportunidades ativas</Th>
+                  <Th>Custo IA (30d)</Th>
                   <Th>Plano</Th>
                   <Th>Teste grátis</Th>
                   <Th>Criada em</Th>
@@ -251,6 +269,17 @@ export default async function AdminPage({
                         <span style={{ color: overLimit ? "var(--critical)" : "var(--fg)" }}>
                           {org.activeOpportunities} / {limit}
                         </span>
+                      </Td>
+                      <Td>
+                        {/* Sem limite numérico "certo" ainda (é dado novo, item 4 do
+                            brief 2026-08-11) — US$5 em 30 dias é só um sinal visual
+                            grosseiro de "vale olhar", não um teto de verdade. */}
+                        <span style={{ color: org.costLast30dUSD > 5 ? "var(--warn)" : "var(--fg-faint)" }}>
+                          ${org.costLast30dUSD.toFixed(2)}
+                        </span>
+                        <div className="text-[11px]" style={{ color: "var(--fg-faint)" }}>
+                          {org.searchesLast30d} busca(s)
+                        </div>
                       </Td>
                       <Td>
                         <PlanSelect organizationId={org.id} currentPlan={org.plan} />

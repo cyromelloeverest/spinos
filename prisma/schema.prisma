@@ -75,6 +75,7 @@ model Organization {
   crmExports            CrmExport[]
   invites               Invite[]
   searchRuns            SearchRun[]
+  searchUsageLogs       SearchUsageLog[]
   missions              Mission[]
   searchCreditPurchases SearchCreditPurchase[]
 
@@ -111,6 +112,32 @@ model SearchRun {
 
   @@index([organizationId, createdAt])
   @@map("search_runs")
+}
+
+// Log de uso real de IA por busca — separado do SearchRun de propósito:
+// SearchRun existe só pra contar cota, e é apagado quando a busca não deve
+// consumir o limite do cliente (vazia ou com erro); o custo real foi
+// incorrido de qualquer jeito nesses casos, então esse log nunca é
+// apagado. É o dado que embasa validar/ajustar os números de plano (brief
+// 2026-08-11, item 4 — antes disso só existia estimativa calculada, não
+// custo medido).
+model SearchUsageLog {
+  id                  String   @id @default(cuid())
+  organizationId      String
+  mode                String // "discovery" | "targeted"
+  outcome             String // "ok" | "empty" | "parse_error" | "api_error"
+  inputTokens         Int
+  outputTokens        Int
+  cacheCreationTokens Int
+  cacheReadTokens     Int
+  webSearchCount      Int
+  estimatedCostUSD    Float
+  createdAt           DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@map("search_usage_logs")
 }
 
 model User {

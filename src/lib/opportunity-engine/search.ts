@@ -50,6 +50,73 @@ function isSearchEngineResultsUrl(url: string): boolean {
   return SEARCH_ENGINE_RESULTS_URL.test(url);
 }
 
+// Preços por token (USD) do modelo usado nas buscas hoje (claude-opus-5) —
+// ajustar se o modelo mudar. Tokens de cache tratados pelo preço de input
+// de propósito: cache write custa mais e cache read custa menos, mas a
+// diferença é pequena perto do custo total e não vale a complexidade extra
+// só pra essa estimativa (que já é mais precisa que o cálculo teórico
+// anterior, por vir de uso real).
+const OPUS_INPUT_PER_MTOK_USD = 5;
+const OPUS_OUTPUT_PER_MTOK_USD = 25;
+const WEB_SEARCH_PER_CALL_USD = 0.01;
+
+// Grava o uso real de IA de toda busca que chegou a gerar uma resposta —
+// nunca é apagado (diferente do SearchRun, que existe só pra contar cota e
+// é apagado quando a busca não deve consumir o limite do cliente). É o
+// dado que embasa validar/ajustar os números de plano (brief 2026-08-11,
+// item 4 — antes só existia estimativa calculada, não custo medido). Nunca
+// lança — instrumentação não pode derrubar uma busca que já funcionou.
+async function logSearchUsage(
+  organizationId: string,
+  mode: "discovery" | "targeted",
+  outcome: "ok" | "empty" | "parse_error",
+  usage:
+    | {
+        input_tokens: number | null;
+        output_tokens: number;
+        cache_creation_input_tokens: number | null;
+        cache_read_input_tokens: number | null;
+        server_tool_use: { web_search_requests: number } | null;
+      }
+    | null
+    | undefined,
+): Promise<void> {
+  // A API real sempre inclui usage — isso é só defensivo, pra instrumentação
+  // nunca conseguir derrubar uma busca que já funcionou por completo.
+  if (!usage) {
+    logError("search: resposta sem usage, não deu pra logar custo", null, { organizationId, mode, outcome });
+    return;
+  }
+  const inputTokens = usage.input_tokens ?? 0;
+  const cacheCreationTokens = usage.cache_creation_input_tokens ?? 0;
+  const cacheReadTokens = usage.cache_read_input_tokens ?? 0;
+  const webSearchCount = usage.server_tool_use?.web_search_requests ?? 0;
+  const estimatedCostUSD =
+    ((inputTokens + cacheCreationTokens + cacheReadTokens) / 1_000_000) * OPUS_INPUT_PER_MTOK_USD +
+    (usage.output_tokens / 1_000_000) * OPUS_OUTPUT_PER_MTOK_USD +
+    webSearchCount * WEB_SEARCH_PER_CALL_USD;
+
+  try {
+    await withOrgContext(organizationId, (tx) =>
+      tx.searchUsageLog.create({
+        data: {
+          organizationId,
+          mode,
+          outcome,
+          inputTokens,
+          outputTokens: usage.output_tokens,
+          cacheCreationTokens,
+          cacheReadTokens,
+          webSearchCount,
+          estimatedCostUSD,
+        },
+      }),
+    );
+  } catch (err) {
+    logError("search: falha ao gravar log de uso de IA", err, { organizationId, mode, outcome });
+  }
+}
+
 // Bloco de ICP compartilhado pelos dois modos de busca (aberta e dirigida)
 // — o que muda entre eles é só a tarefa pedida antes/depois desse bloco.
 function icpBlock(org: OrgProfile, icp: IcpProfile): string {
@@ -120,7 +187,11 @@ ${DECISION_MAKER_NAME_INSTRUCTION}
 ${NO_FABRICATION_INSTRUCTION}`;
 }
 
-async function executeSearch(organizationId: string, buildSearchPrompt: SearchPromptBuilder): Promise<SearchOutcome> {
+async function executeSearch(
+  organizationId: string,
+  buildSearchPrompt: SearchPromptBuilder,
+  mode: "discovery" | "targeted",
+): Promise<SearchOutcome> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return { status: "not_configured" };
@@ -239,6 +310,7 @@ async function executeSearch(organizationId: string, buildSearchPrompt: SearchPr
   }
 
   if (!response.parsed_output) {
+    await logSearchUsage(organizationId, mode, "parse_error", response.usage);
     await withOrgContext(organizationId, async (tx) => {
       await tx.organization.update({
         where: { id: organizationId },
@@ -264,7 +336,10 @@ async function executeSearch(organizationId: string, buildSearchPrompt: SearchPr
     // Busca válida, mas sem nenhuma oportunidade real encontrada — o
     // cliente não recebeu valor nenhum desta execução, então não deve
     // consumir a cota mensal/trial nem o cooldown inteiro de 2 dias.
-    // Reduz o cooldown pra um retry bem mais rápido em vez disso.
+    // Reduz o cooldown pra um retry bem mais rápido em vez disso. O custo
+    // real de IA foi incorrido de qualquer jeito — loga antes de apagar o
+    // SearchRun (esse log nunca é apagado, ver logSearchUsage acima).
+    await logSearchUsage(organizationId, mode, "empty", response.usage);
     await withOrgContext(organizationId, async (tx) => {
       await tx.organization.update({
         where: { id: organizationId },
@@ -404,12 +479,13 @@ async function executeSearch(organizationId: string, buildSearchPrompt: SearchPr
     });
   }
 
+  await logSearchUsage(organizationId, mode, "ok", response.usage);
   return { status: "ok", count: opportunities.length };
 }
 
 // Descoberta aberta — acha empresas novas que combinam com o ICP.
 export async function searchOpportunities(organizationId: string): Promise<SearchOutcome> {
-  return executeSearch(organizationId, buildDiscoveryPrompt);
+  return executeSearch(organizationId, buildDiscoveryPrompt, "discovery");
 }
 
 // Busca dirigida — o cliente já tem uma empresa em mente e quer o Spinos
@@ -420,5 +496,5 @@ export async function searchSpecificCompany(
   companyName: string,
   location: string | null,
 ): Promise<SearchOutcome> {
-  return executeSearch(organizationId, buildTargetedPrompt(companyName, location));
+  return executeSearch(organizationId, buildTargetedPrompt(companyName, location), "targeted");
 }
