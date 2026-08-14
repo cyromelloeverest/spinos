@@ -61,7 +61,11 @@ export const OpportunitySchema = z.object({
     ),
   approach: z.string().describe("Como iniciar a conversa comercial"),
   commercialArguments: z.array(z.string()),
-  objections: z.array(z.string()),
+  objections: z
+    .array(z.string())
+    .describe(
+      "Objeções mais prováveis que o decisor vai levantar. Cada item precisa ter a objeção E a resposta sugerida na mesma string, formato 'Objeção: ... → Resposta sugerida: ...'. Nunca deixe só a objeção sem a resposta embutida.",
+    ),
   signals: z.array(SignalSchema),
 });
 
