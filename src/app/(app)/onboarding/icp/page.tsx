@@ -7,7 +7,7 @@ import { ArrowRight } from "lucide-react";
 export default async function OnboardingICPPage({
   searchParams,
 }: {
-  searchParams: Promise<{ dbError?: string }>;
+  searchParams: Promise<{ dbError?: string; error?: string }>;
 }) {
   const params = await searchParams;
   if (params.dbError) return <DbSetupNotice />;
@@ -30,6 +30,12 @@ export default async function OnboardingICPPage({
         Não precisa cadastrar concorrentes ou empresas específicas — a IA descobre automaticamente.
         Você pode refinar mais detalhes (funcionários, ticket médio, tecnologias etc.) depois em Configurações.
       </p>
+
+      {params.error && (
+        <div className="mb-6 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }}>
+          {params.error}
+        </div>
+      )}
 
       <form action={createICP} className="flex flex-col gap-4">
         <TextAreaField

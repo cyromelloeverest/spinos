@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 export default async function OnboardingCompanyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ dbError?: string }>;
+  searchParams: Promise<{ dbError?: string; error?: string }>;
 }) {
   const params = await searchParams;
   if (params.dbError) return <DbSetupNotice />;
@@ -28,6 +28,12 @@ export default async function OnboardingCompanyPage({
       <p className="m-0 mb-8 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
         Usamos isso para calibrar como a IA interpreta sinais de mercado a favor do seu negócio.
       </p>
+
+      {params.error && (
+        <div className="mb-6 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }}>
+          {params.error}
+        </div>
+      )}
 
       <form action={createOrganization} className="flex flex-col gap-4">
         <FormField label="Nome da empresa" name="name" placeholder="Ex: Minha Empresa Ltda" required />

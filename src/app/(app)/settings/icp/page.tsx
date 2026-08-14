@@ -12,7 +12,7 @@ import type { SignalCategory } from "@/generated/prisma/enums";
 export default async function IcpSettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; error?: string }>;
 }) {
   const params = await searchParams;
   const organizationId = await getCurrentOrganizationId();
@@ -50,6 +50,15 @@ export default async function IcpSettingsPage({
           style={{ borderColor: "var(--primary)", color: "var(--primary)" }}
         >
           ICP atualizado com sucesso.
+        </div>
+      )}
+
+      {params.error && (
+        <div
+          className="mb-6 rounded-[8px] border px-4 py-3 text-[12.5px]"
+          style={{ borderColor: "var(--critical)", color: "var(--critical)" }}
+        >
+          {params.error}
         </div>
       )}
 
