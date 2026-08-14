@@ -56,7 +56,10 @@ export async function ingestFreeSignals(): Promise<IngestedSignal[]> {
     } else if (!company.segment && signal.segment) {
       // Empresa já existia sem segmento definido — só enriquece, nunca
       // sobrescreve um valor que já esteja preenchido por outra via.
-      company = await prisma.company.update({ where: { id: company.id }, data: { segment: signal.segment } });
+      // prismaAdmin (não prisma): RLS pro papel restrito permite
+      // INSERT/SELECT global em companies, mas não UPDATE — só o papel
+      // admin (bypass) consegue gravar aqui, fora de contexto de org.
+      company = await prismaAdmin.company.update({ where: { id: company.id }, data: { segment: signal.segment } });
       const idx = rssCompanyPool.findIndex((c) => c.id === company!.id);
       if (idx >= 0) rssCompanyPool[idx] = company;
     }
@@ -82,8 +85,11 @@ export async function ingestFreeSignals(): Promise<IngestedSignal[]> {
 
   // PNCP: CNPJ real do órgão comprador — dedup direto por CNPJ, sem
   // heurística de nome (muito mais confiável que o caminho do RSS).
+  // prismaAdmin: mesmo motivo do ramo RSS acima — o branch "update" do
+  // upsert (quando o órgão já existe de um edital anterior) precisa do
+  // papel bypass, RLS restrito não permite UPDATE em companies.
   for (const item of pncpItems) {
-    const company = await prisma.company.upsert({
+    const company = await prismaAdmin.company.upsert({
       where: { cnpj: item.cnpj },
       update: {},
       create: {
