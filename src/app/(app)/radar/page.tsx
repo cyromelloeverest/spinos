@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { candidatesForIcp, type CandidateSignal } from "@/lib/free-signals/match";
@@ -57,20 +56,29 @@ function fetchStories(organizationId: string) {
 // isso ficava invisível pra sempre. Mesmo pré-filtro determinístico do
 // match.ts (zero custo de IA), só que aqui é pra exibir, não pra enriquecer.
 async function fetchRawCandidates(organizationId: string) {
-  const icp = await prisma.iCP.findFirst({ where: { organizationId, isActive: true }, orderBy: { createdAt: "desc" } });
+  const icp = await withOrgContext(organizationId, (tx) =>
+    tx.iCP.findFirst({ where: { organizationId, isActive: true }, orderBy: { createdAt: "desc" } }),
+  );
   if (!icp) return [];
 
+  // signals é tabela global (RLS: global_read), mas o filtro "none" abaixo
+  // faz join/subquery em opportunity_score_signals -> opportunity_scores,
+  // que SÃO tenant-scoped — sem contexto de org setado, RLS esconderia essas
+  // linhas e o "none" daria falso-positivo (sinal já vinculado reaparecendo
+  // como novo). Por isso essa query também precisa ir dentro do contexto.
   const cutoff = new Date(Date.now() - RAW_SIGNAL_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
-  const signals = await prisma.signal.findMany({
-    where: {
-      sourceType: { in: ["rss_free", "pncp_free"] },
-      detectedAt: { gte: cutoff },
-      opportunityScoreSignals: { none: { opportunityScore: { organizationId } } },
-    },
-    include: { company: true },
-    orderBy: { detectedAt: "desc" },
-    take: 200,
-  });
+  const signals = await withOrgContext(organizationId, (tx) =>
+    tx.signal.findMany({
+      where: {
+        sourceType: { in: ["rss_free", "pncp_free"] },
+        detectedAt: { gte: cutoff },
+        opportunityScoreSignals: { none: { opportunityScore: { organizationId } } },
+      },
+      include: { company: true },
+      orderBy: { detectedAt: "desc" },
+      take: 200,
+    }),
+  );
 
   const pool: CandidateSignal[] = signals.map((s) => ({
     signalId: s.id,
