@@ -48,10 +48,17 @@ export async function ingestFreeSignals(): Promise<IngestedSignal[]> {
           name: signal.companyName,
           city: signal.city,
           state: signal.state,
+          segment: signal.segment,
           cnpj: `unknown:${signal.companyName}:${signal.city ?? ""}:${Date.now()}`,
         },
       });
       rssCompanyPool.push(company);
+    } else if (!company.segment && signal.segment) {
+      // Empresa já existia sem segmento definido — só enriquece, nunca
+      // sobrescreve um valor que já esteja preenchido por outra via.
+      company = await prisma.company.update({ where: { id: company.id }, data: { segment: signal.segment } });
+      const idx = rssCompanyPool.findIndex((c) => c.id === company!.id);
+      if (idx >= 0) rssCompanyPool[idx] = company;
     }
 
     const existing = await prisma.signal.findFirst({ where: { companyId: company.id, sourceUrl: signal.link } });

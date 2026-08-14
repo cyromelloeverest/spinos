@@ -34,6 +34,7 @@ export type CandidateSignal = {
   companyName: string;
   city: string | null;
   state: string | null;
+  segment: string | null;
   category: string;
   title: string;
   description: string | null;
@@ -48,6 +49,10 @@ function keywordHits(icp: { keywords: string[]; productsSold: string[]; services
 
 // Pré-filtro 100% determinístico (zero IA, zero custo) — só os candidatos
 // que batem com o ICP por palavra-chave chegam na chamada de IA abaixo.
+// Inclui o segmento da empresa no texto comparado — sem isso, um ICP
+// descrito por segmento (ex: "indústria metalúrgica") quase nunca batia
+// com uma manchete de notícia, que fala do que a empresa FEZ, não do
+// setor em que ela atua.
 export function candidatesForIcp(
   icp: { keywords: string[]; productsSold: string[]; servicesSold: string[]; segments: string[]; companiesToAvoid: string[] },
   signals: CandidateSignal[],
@@ -55,7 +60,10 @@ export function candidatesForIcp(
   const avoid = new Set(icp.companiesToAvoid.map((c) => c.toLowerCase()));
   return signals
     .filter((s) => !avoid.has(s.companyName.toLowerCase()))
-    .map((s) => ({ signal: s, hits: keywordHits(icp, `${s.companyName} ${s.title} ${s.description ?? ""}`.toLowerCase()) }))
+    .map((s) => ({
+      signal: s,
+      hits: keywordHits(icp, `${s.companyName} ${s.segment ?? ""} ${s.title} ${s.description ?? ""}`.toLowerCase()),
+    }))
     .filter((s) => s.hits >= MIN_KEYWORD_HITS)
     .sort((a, b) => b.hits - a.hits)
     .slice(0, MAX_CANDIDATES_PER_ORG)
@@ -73,7 +81,7 @@ async function enrichCandidates(
   const listText = candidates
     .map(
       (c, i) =>
-        `${i}. Empresa: ${c.companyName} (${c.city ?? "?"}, ${c.state ?? "?"}) — Categoria: ${c.category} — ${c.title}${c.description ? ` — ${c.description}` : ""}`,
+        `${i}. Empresa: ${c.companyName} (${c.city ?? "?"}, ${c.state ?? "?"})${c.segment ? ` — Segmento: ${c.segment}` : ""} — Categoria: ${c.category} — ${c.title}${c.description ? ` — ${c.description}` : ""}`,
     )
     .join("\n");
 
@@ -120,6 +128,7 @@ export async function matchFreeSignalsToOrganizations(ingested: IngestedSignal[]
     companyName: s.company.name,
     city: s.company.city,
     state: s.company.state,
+    segment: s.company.segment,
     category: s.category,
     title: s.title,
     description: s.description,

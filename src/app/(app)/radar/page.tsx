@@ -78,6 +78,7 @@ async function fetchRawCandidates(organizationId: string) {
     companyName: s.company.name,
     city: s.company.city,
     state: s.company.state,
+    segment: s.company.segment,
     category: s.category,
     title: s.title,
     description: s.description,

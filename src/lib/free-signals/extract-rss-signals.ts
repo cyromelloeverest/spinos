@@ -13,6 +13,12 @@ const ExtractedSignalSchema = z.object({
   companyName: z.string().describe("Nome oficial da empresa citada, limpo — sem sufixo de matéria/veículo"),
   city: z.string().nullable().describe("Cidade da empresa, só se estiver clara no título — senão null"),
   state: z.string().nullable().describe("Sigla UF (ex: SP), só se estiver clara — senão null"),
+  segment: z
+    .string()
+    .nullable()
+    .describe(
+      "Setor/segmento de atuação da empresa (ex: 'indústria metalúrgica', 'varejo de moda', 'logística') — só se puder ser inferido com razoável confiança pelo nome da empresa (conhecimento geral) ou pelo contexto da manchete; senão null. Nunca invente.",
+    ),
   category: z.enum([
     "HIRING",
     "EXPANSION",
@@ -59,7 +65,7 @@ export async function extractCompanySignalsFromRss(items: RssItem[]): Promise<Ex
       messages: [
         {
           role: "user",
-          content: `Abaixo está uma lista numerada de manchetes de notícias brasileiras recentes. Extraia APENAS as que citam uma empresa real (pelo nome) fazendo algo que sinaliza início de ciclo de compra: contratação, expansão física, investimento recebido, nova unidade/fábrica, mudança de liderança, parceria, ou prêmio relevante. Ignore notícias genéricas, de governo/política, opinião, ou que não citem uma empresa específica pelo nome. Nunca invente cidade/estado — se não estiver claro no título, deixe null. itemIndex deve ser exatamente o número da lista.\n\n${listText}`,
+          content: `Abaixo está uma lista numerada de manchetes de notícias brasileiras recentes. Extraia APENAS as que citam uma empresa real (pelo nome) fazendo algo que sinaliza início de ciclo de compra: contratação, expansão física, investimento recebido, nova unidade/fábrica, mudança de liderança, parceria, ou prêmio relevante. Ignore notícias genéricas, de governo/política, opinião, ou que não citem uma empresa específica pelo nome. Nunca invente cidade/estado — se não estiver claro no título, deixe null. Pra segment: use seu conhecimento geral sobre a empresa citada (ex: "Vale" é mineração, "BYD" é automotivo/veículos elétricos) ou pistas claras da própria manchete; se não tiver confiança razoável, deixe null — não chute. itemIndex deve ser exatamente o número da lista.\n\n${listText}`,
         },
       ],
     });

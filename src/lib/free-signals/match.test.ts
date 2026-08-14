@@ -16,6 +16,7 @@ function makeSignal(overrides: Partial<CandidateSignal>): CandidateSignal {
     companyName: "Empresa Teste",
     city: "São Paulo",
     state: "SP",
+    segment: null,
     category: "OTHER",
     title: "Título genérico",
     description: null,
@@ -33,6 +34,15 @@ describe("candidatesForIcp — pré-filtro determinístico, sem IA", () => {
   it("inclui candidato quando uma palavra-chave do ICP aparece no título", () => {
     const icp = { ...baseIcp, keywords: ["nova unidade"] };
     const signal = makeSignal({ title: "Empresa inaugura nova unidade em Campinas" });
+    expect(candidatesForIcp(icp, [signal])).toEqual([signal]);
+  });
+
+  it("inclui candidato quando o ICP bate com o segmento da empresa, não só com o texto da manchete", () => {
+    // Caso real que motivou essa checagem: o ICP descreve o setor do
+    // prospect ("indústria metalúrgica"), mas a manchete fala do que a
+    // empresa FEZ ("abre vagas"), não do setor em que ela atua.
+    const icp = { ...baseIcp, segments: ["indústria metalúrgica"] };
+    const signal = makeSignal({ segment: "indústria metalúrgica", title: "Empresa abre vagas de operador" });
     expect(candidatesForIcp(icp, [signal])).toEqual([signal]);
   });
 
