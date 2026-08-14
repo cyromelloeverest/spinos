@@ -20,7 +20,12 @@ function fetchActiveOpportunities(tx: Prisma.TransactionClient, organizationId: 
   });
 }
 
-export default async function ScriptsPage() {
+export default async function ScriptsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ foco?: string }>;
+}) {
+  const { foco } = await searchParams;
   const organizationId = await getCurrentOrganizationId();
   if (!organizationId) redirect("/onboarding");
 
@@ -41,6 +46,17 @@ export default async function ScriptsPage() {
   if (dbError) return <DbSetupNotice />;
 
   const orgName = organization?.name ?? "sua empresa";
+
+  // Quem chegou aqui a partir do card "Fale com 1 empresa hoje" do
+  // dashboard espera ver aquela oportunidade específica primeiro, já
+  // aberta — não garimpar ela numa lista ordenada só por score.
+  if (foco) {
+    const idx = opportunities.findIndex((o) => o.id === foco);
+    if (idx > 0) {
+      const [focused] = opportunities.splice(idx, 1);
+      opportunities.unshift(focused);
+    }
+  }
 
   return (
     <div>
@@ -80,6 +96,7 @@ export default async function ScriptsPage() {
               script={script}
               personName={opp.contactName || opp.decisionMakerName}
               personTitle={opp.decisionMaker}
+              highlighted={opp.id === foco}
             />
           );
         })}

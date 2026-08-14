@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Check, Copy } from "lucide-react";
 import { linkedinPersonSearchUrl, linkedinTitleSearchUrl } from "@/lib/linkedin";
 import { LinkedInButton } from "./LinkedInButton";
@@ -14,6 +14,7 @@ export function ScriptCard({
   script,
   personName,
   personTitle,
+  highlighted = false,
 }: {
   companyName: string;
   city: string | null;
@@ -22,6 +23,7 @@ export function ScriptCard({
   script: string;
   personName?: string | null;
   personTitle?: string | null;
+  highlighted?: boolean;
 }) {
   const linkedinHref = personName
     ? linkedinPersonSearchUrl(personName, companyName)
@@ -29,8 +31,16 @@ export function ScriptCard({
       ? linkedinTitleSearchUrl(personTitle, companyName)
       : null;
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(highlighted);
   const [copied, setCopied] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Card veio de um link direto ("Fale com 1 empresa hoje" no dashboard) —
+  // já nasce aberto (acima), e aqui garante que fica visível sem o usuário
+  // ter que rolar a lista pra achar.
+  useEffect(() => {
+    if (highlighted) cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlighted]);
 
   async function handleCopy() {
     await navigator.clipboard.writeText(script);
@@ -39,7 +49,24 @@ export function ScriptCard({
   }
 
   return (
-    <div className="rounded-[16px] border" style={{ background: "var(--card)", borderColor: "var(--border)", boxShadow: "var(--shadow-card)" }}>
+    <div
+      ref={cardRef}
+      className="rounded-[16px] border"
+      style={{
+        background: "var(--card)",
+        borderColor: highlighted ? "var(--primary)" : "var(--border)",
+        borderWidth: highlighted ? "1.5px" : "1px",
+        boxShadow: highlighted ? "var(--shadow-float)" : "var(--shadow-card)",
+      }}
+    >
+      {highlighted && (
+        <div
+          className="text-[11px] font-semibold uppercase px-5 pt-3.5 -mb-1"
+          style={{ color: "var(--primary)", letterSpacing: "0.04em" }}
+        >
+          Sugestão de hoje
+        </div>
+      )}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

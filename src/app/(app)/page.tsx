@@ -30,6 +30,19 @@ const FUNNEL_STAGES = PIPELINE_STAGE_ORDER.map((stage) => ({ stage, label: PIPEL
 const RECENT_WINDOW_MS = 10 * 24 * 60 * 60 * 1000;
 const HOT_SCORE_THRESHOLD = 85;
 
+// Prioriza quem ainda não foi trabalhado (status NEW, sem stage nenhum) —
+// "fale com uma empresa hoje" não faz sentido apontando pra alguém que já
+// está em conversa. Se a missão inteira já foi trabalhada, cai pra maior
+// nota geral em vez de não sugerir nada.
+function pickNextMissionOpportunity(
+  scores: { id: string; status: string; stage: string | null; score: number }[],
+): string | null {
+  if (scores.length === 0) return null;
+  const untouched = scores.filter((o) => o.status === "NEW" && o.stage === null);
+  const pool = untouched.length > 0 ? untouched : scores;
+  return pool.reduce((best, o) => (o.score > best.score ? o : best), pool[0]).id;
+}
+
 async function fetchDashboardData(tx: Prisma.TransactionClient, organizationId: string) {
   const since = new Date(Date.now() - RECENT_WINDOW_MS);
   const activeFilter = { organizationId, stage: null, status: { not: "DISMISSED" } } as const;
@@ -67,7 +80,7 @@ async function fetchDashboardData(tx: Prisma.TransactionClient, organizationId: 
   const latestMission = await tx.mission.findFirst({
     where: { organizationId },
     orderBy: { createdAt: "desc" },
-    include: { opportunityScores: { select: { status: true, stage: true } } },
+    include: { opportunityScores: { select: { id: true, status: true, stage: true, score: true } } },
   });
   const mission =
     latestMission && latestMission.opportunityScores.length > 0
@@ -76,6 +89,7 @@ async function fetchDashboardData(tx: Prisma.TransactionClient, organizationId: 
           total: latestMission.opportunityScores.length,
           worked: latestMission.opportunityScores.filter((o) => o.status !== "NEW" || o.stage !== null).length,
           won: latestMission.opportunityScores.filter((o) => o.stage === "VENDIDO").length,
+          nextOpportunityId: pickNextMissionOpportunity(latestMission.opportunityScores),
         }
       : null;
 
@@ -330,7 +344,7 @@ export default async function DashboardPage({
 function MissionCard({
   mission,
 }: {
-  mission: { createdAt: Date; total: number; worked: number; won: number };
+  mission: { createdAt: Date; total: number; worked: number; won: number; nextOpportunityId: string | null };
 }) {
   const pct = Math.round((mission.worked / mission.total) * 100);
   const dateLabel = mission.createdAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
@@ -377,14 +391,26 @@ function MissionCard({
           <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "var(--primary)" }} />
         </div>
 
-        <Link
-          href="/oportunidades"
-          className="inline-flex items-center gap-1 text-[12.5px] font-semibold no-underline"
-          style={{ color: "var(--primary)" }}
-        >
-          Ver oportunidades da missão
-          <ArrowRight size={13} strokeWidth={2} />
-        </Link>
+        {mission.nextOpportunityId && (
+          <Link
+            href={`/assistente-vendas?foco=${mission.nextOpportunityId}`}
+            className="inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold no-underline rounded-[10px] px-4 py-2.5 mb-3 w-full sm:w-auto"
+            style={{ background: "var(--primary)", color: "#ffffff" }}
+          >
+            Fale com 1 empresa hoje
+            <ArrowRight size={13} strokeWidth={2} />
+          </Link>
+        )}
+        <div>
+          <Link
+            href="/oportunidades"
+            className="inline-flex items-center gap-1 text-[12.5px] font-semibold no-underline"
+            style={{ color: "var(--primary)" }}
+          >
+            Ver oportunidades da missão
+            <ArrowRight size={13} strokeWidth={2} />
+          </Link>
+        </div>
       </div>
     </div>
   );
