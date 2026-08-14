@@ -25,17 +25,31 @@ export function SearchButton({
 }) {
   const { pending } = useFormStatus();
   const [open, setOpen] = useState(false);
+  // Fechar o modal (X, backdrop, Esc) nunca cancela a submissão em si — o
+  // form/server action continua rodando no servidor independente do que a
+  // UI mostra. "dismissed" só controla visibilidade, não a request.
+  const [dismissed, setDismissed] = useState(false);
   const isDisabled = disabled || pending;
-  const showModal = open || pending;
+  const showModal = (open || pending) && !dismissed;
+
+  function openModal() {
+    setDismissed(false);
+    setOpen(true);
+  }
+
+  function closeModal() {
+    setOpen(false);
+    setDismissed(true);
+  }
 
   useEffect(() => {
-    if (!open || pending) return;
+    if (!showModal) return;
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") closeModal();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, pending]);
+  }, [showModal]);
 
   return (
     <>
@@ -43,7 +57,7 @@ export function SearchButton({
         type="button"
         disabled={isDisabled}
         title={disabled ? disabledTitle : undefined}
-        onClick={() => setOpen(true)}
+        onClick={openModal}
         className={`flex items-center justify-center gap-2.5 text-[14px] font-semibold rounded-full pl-5 pr-6 py-3.5 border-0 whitespace-nowrap transition-transform w-full sm:w-auto ${!isDisabled ? "animate-glow-pulse" : ""}`}
         style={{
           background: isDisabled ? "var(--card-hover)" : "var(--primary)",
@@ -65,7 +79,7 @@ export function SearchButton({
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(15,23,42,0.55)" }}
-          onClick={() => !pending && setOpen(false)}
+          onClick={closeModal}
         >
           <div
             className="w-full max-w-[440px] rounded-[16px] border p-6"
@@ -73,9 +87,9 @@ export function SearchButton({
             onClick={(e) => e.stopPropagation()}
           >
             {pending ? (
-              <SearchingPhase />
+              <SearchingPhase onDismiss={closeModal} />
             ) : (
-              <ConfirmPhase remainingSearches={remainingSearches} isTrialing={isTrialing} onCancel={() => setOpen(false)} />
+              <ConfirmPhase remainingSearches={remainingSearches} isTrialing={isTrialing} onCancel={closeModal} />
             )}
           </div>
         </div>
@@ -153,7 +167,7 @@ function ConfirmPhase({
 
 const SLOW_WARNING_MS = 75_000;
 
-function SearchingPhase() {
+function SearchingPhase({ onDismiss }: { onDismiss: () => void }) {
   const [started, setStarted] = useState(false);
   const [messageIndex, setMessageIndex] = useState(0);
   const [slow, setSlow] = useState(false);
@@ -177,6 +191,17 @@ function SearchingPhase() {
 
   return (
     <div className="text-center py-2">
+      <div className="flex justify-end -mt-2 -mr-2 mb-1">
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="flex items-center justify-center w-7 h-7 rounded-[8px] border-0"
+          style={{ background: "transparent", color: "var(--fg-faint)", cursor: "pointer" }}
+          aria-label="Fechar"
+        >
+          <X size={16} strokeWidth={1.75} />
+        </button>
+      </div>
       <div
         className="w-11 h-11 rounded-[12px] flex items-center justify-center mx-auto mb-4"
         style={{ background: "var(--primary-soft)", color: "var(--primary)" }}
@@ -200,8 +225,8 @@ function SearchingPhase() {
       {slow ? (
         <div className="mt-4 rounded-[10px] border px-3.5 py-3 text-left" style={{ background: "var(--card-hover)", borderColor: "var(--border)" }}>
           <p className="text-[12.5px] leading-[1.55] m-0 mb-2.5" style={{ color: "var(--fg-muted)" }}>
-            Isso está demorando mais que o esperado. A busca pode já ter terminado do nosso lado — atualize a
-            página pra conferir.
+            Isso está demorando mais que o esperado, mas a busca continua rodando do nosso lado. Pode fechar esta
+            janela ou a página sem problema — as oportunidades aparecem na lista assim que terminar.
           </p>
           <button
             type="button"
@@ -209,12 +234,13 @@ function SearchingPhase() {
             className="text-[12.5px] font-semibold rounded-[10px] px-3.5 py-2 border-0"
             style={{ background: "var(--primary)", color: "#ffffff", cursor: "pointer" }}
           >
-            Atualizar página
+            Atualizar página agora
           </button>
         </div>
       ) : (
         <p className="text-[11.5px] mt-3" style={{ color: "var(--fg-faint)" }}>
-          Isso leva até 1 minuto — não feche esta página.
+          Isso leva até 1 minuto. Pode fechar esta página — a busca continua no nosso lado e as oportunidades
+          aparecem na lista quando terminar.
         </p>
       )}
     </div>
