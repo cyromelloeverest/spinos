@@ -307,13 +307,26 @@ export default async function OpportunitiesPage({
 
       <div className="px-4 md:px-10 pt-6 pb-16 flex flex-col gap-2.5 max-w-[880px]">
         {opportunities.length === 0 && (
-          <div className="flex flex-col items-center text-center py-10">
-            <RadarAnimation size={220} />
-            <h2 className="text-[16px] font-semibold mt-6 mb-1.5">Nenhuma oportunidade ainda</h2>
-            <p className="text-[13px] max-w-[360px]" style={{ color: "var(--fg-muted)" }}>
+          <div
+            className="rounded-[16px] border flex flex-col items-center text-center px-6 py-12"
+            style={{ background: "var(--card)", borderColor: "var(--border)", boxShadow: "var(--shadow-card)" }}
+          >
+            <RadarAnimation size={140} />
+            <h2 className="text-[17px] font-semibold mt-5 mb-1.5">Nenhuma oportunidade ainda</h2>
+            <p className="text-[13px] max-w-[380px] mb-6" style={{ color: "var(--fg-muted)" }}>
               Rode uma busca acima pra vasculhar sinais públicos reais e encontrar empresas prontas pra comprar de
               você agora.
             </p>
+            <div className="flex flex-col sm:flex-row gap-x-6 gap-y-2">
+              {["Notícias, vagas e editais públicos", "Cruzados com o seu ICP", "Score, motivo e abordagem prontos"].map(
+                (item) => (
+                  <div key={item} className="flex items-center gap-1.5 text-[12.5px]" style={{ color: "var(--fg-faint)" }}>
+                    <Check size={13} strokeWidth={2.25} style={{ color: "var(--primary)" }} />
+                    {item}
+                  </div>
+                ),
+              )}
+            </div>
           </div>
         )}
         {opportunities.map((opp) => {
