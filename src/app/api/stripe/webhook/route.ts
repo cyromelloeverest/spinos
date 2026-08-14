@@ -2,24 +2,24 @@ import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 // prismaAdmin de propósito: webhook do Stripe não tem sessão de usuário —
 // os lookups são por stripeCustomerId/checkout session, não por
-// organizationId conhecido de antemão (exceto fulfillSearchCreditPurchase,
+// organizationId conhecido de antemão (exceto fulfillCreditPurchase,
 // que usa prismaAdmin também só por consistência com o resto do arquivo).
 import { prismaAdmin } from "@/lib/prisma-admin";
 import { getPlanByStripePriceId } from "@/lib/plans";
 import { sendTrialCreditPurchaseAlert } from "@/lib/credit-alert-email";
 import { logError } from "@/lib/log-error";
 
-// Pagamento avulso de um pacote de buscas extras (mode: "payment", não
-// "subscription" — ver purchaseSearchCredits em src/lib/actions/credits.ts).
+// Pagamento avulso de um pacote de créditos (mode: "payment", não
+// "subscription" — ver purchaseCredits em src/lib/actions/credits.ts).
 // stripeCheckoutSessionId é único na tabela de propósito: o Stripe reenvia
 // webhook em retry se não receber 200 rápido o bastante, e isso não pode
 // creditar a mesma compra duas vezes.
-async function fulfillSearchCreditPurchase(session: Stripe.Checkout.Session) {
+async function fulfillCreditPurchase(session: Stripe.Checkout.Session) {
   const organizationId = session.metadata?.organizationId;
   const quantity = Number(session.metadata?.quantity ?? 0);
   if (!organizationId || !quantity) return;
 
-  const already = await prismaAdmin.searchCreditPurchase.findUnique({
+  const already = await prismaAdmin.creditPurchase.findUnique({
     where: { stripeCheckoutSessionId: session.id },
   });
   if (already) return;
@@ -29,8 +29,8 @@ async function fulfillSearchCreditPurchase(session: Stripe.Checkout.Session) {
   const organization = await prismaAdmin.organization.update({
     where: { id: organizationId },
     data: {
-      searchCreditBalance: { increment: quantity },
-      searchCreditPurchases: {
+      creditBalance: { increment: quantity },
+      creditPurchases: {
         create: { quantity, amountBRL, stripeCheckoutSessionId: session.id },
       },
     },
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
         const customerId = typeof session.customer === "string" ? session.customer : session.customer.id;
         await syncSubscription(customerId, subscriptionId);
       } else if (session.mode === "payment" && session.metadata?.kind === "search_credit_pack") {
-        await fulfillSearchCreditPurchase(session);
+        await fulfillCreditPurchase(session);
       }
       break;
     }

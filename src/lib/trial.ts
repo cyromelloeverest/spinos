@@ -12,7 +12,7 @@ export const TRIAL_DAYS = 7;
 // sem deixar o trial gastar IA à toa depois disso. A coleta gratuita
 // (RSS/PNCP, ver src/lib/free-signals/) continua rodando em paralelo sem
 // nenhum custo adicional, mesmo depois de esgotada a amostra. Depois da
-// 1ª busca, só compra de créditos avulsos (ver SEARCH_CREDIT_PACK)
+// 1ª busca, só compra de créditos avulsos (ver CREDIT_PACK)
 // libera buscas sob demanda extras dentro do trial.
 export const TRIAL_MAX_SEARCHES = 1;
 export const TRIAL_MAX_ACTIVE_OPPORTUNITIES = 20;

@@ -220,13 +220,13 @@ describe("searchOpportunities — gating", () => {
   });
 
   it("ENTERPRISE pago fora de trial não usa saldo pré-pago no teto de buscas — vira search_limit mesmo com crédito", async () => {
-    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "ENTERPRISE", searchCreditBalance: 5 });
+    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "ENTERPRISE", creditBalance: 5 });
     opportunityScoreCount.mockResolvedValueOnce(0);
     searchRunCount.mockResolvedValueOnce(PLANS.ENTERPRISE.maxSearchesPerMonth);
     const result = await searchOpportunities("org-1");
     expect(result).toEqual({ status: "search_limit", limit: PLANS.ENTERPRISE.maxSearchesPerMonth });
     expect(organizationUpdate).not.toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ searchCreditBalance: expect.anything() }) }),
+      expect.objectContaining({ data: expect.objectContaining({ creditBalance: expect.anything() }) }),
     );
   });
 
@@ -284,7 +284,7 @@ describe("searchOpportunities — gating", () => {
 
 describe("searchOpportunities — saldo pré-pago de buscas extras", () => {
   it("consome 1 crédito e libera a busca quando o teto foi atingido mas há saldo", async () => {
-    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "STARTER", searchCreditBalance: 3 });
+    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "STARTER", creditBalance: 3 });
     opportunityScoreCount.mockResolvedValueOnce(0);
     searchRunCount.mockResolvedValueOnce(PLANS.STARTER.maxSearchesPerMonth);
     parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
@@ -294,12 +294,12 @@ describe("searchOpportunities — saldo pré-pago de buscas extras", () => {
     expect(result).toEqual({ status: "empty" });
     expect(organizationUpdate).toHaveBeenCalledWith({
       where: { id: "org-1" },
-      data: { searchCreditBalance: { decrement: 1 } },
+      data: { creditBalance: { decrement: 1 } },
     });
   });
 
   it("bloqueia com search_limit quando o teto foi atingido e não há saldo", async () => {
-    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "STARTER", searchCreditBalance: 0 });
+    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "STARTER", creditBalance: 0 });
     opportunityScoreCount.mockResolvedValueOnce(0);
     searchRunCount.mockResolvedValueOnce(PLANS.STARTER.maxSearchesPerMonth);
 
@@ -310,7 +310,7 @@ describe("searchOpportunities — saldo pré-pago de buscas extras", () => {
   });
 
   it("não mexe no saldo quando a busca é liberada normalmente, abaixo do teto", async () => {
-    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "STARTER", searchCreditBalance: 3 });
+    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "STARTER", creditBalance: 3 });
     opportunityScoreCount.mockResolvedValueOnce(0);
     searchRunCount.mockResolvedValueOnce(PLANS.STARTER.maxSearchesPerMonth! - 1);
     parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
@@ -318,12 +318,12 @@ describe("searchOpportunities — saldo pré-pago de buscas extras", () => {
     await searchOpportunities("org-1");
 
     expect(organizationUpdate).not.toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ searchCreditBalance: expect.anything() }) }),
+      expect.objectContaining({ data: expect.objectContaining({ creditBalance: expect.anything() }) }),
     );
   });
 
   it("devolve o crédito consumido se a chamada à IA falhar", async () => {
-    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "STARTER", searchCreditBalance: 3 });
+    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "STARTER", creditBalance: 3 });
     opportunityScoreCount.mockResolvedValueOnce(0);
     searchRunCount.mockResolvedValueOnce(PLANS.STARTER.maxSearchesPerMonth);
     parseMock.mockRejectedValueOnce(new Error("boom"));
@@ -334,16 +334,16 @@ describe("searchOpportunities — saldo pré-pago de buscas extras", () => {
     // 2) grava lastSearchAt antes de chamar a IA, 3) desfaz tudo no catch.
     expect(organizationUpdate).toHaveBeenNthCalledWith(1, {
       where: { id: "org-1" },
-      data: { searchCreditBalance: { decrement: 1 } },
+      data: { creditBalance: { decrement: 1 } },
     });
     expect(organizationUpdate).toHaveBeenNthCalledWith(3, {
       where: { id: "org-1" },
-      data: { lastSearchAt: null, searchCreditBalance: { increment: 1 } },
+      data: { lastSearchAt: null, creditBalance: { increment: 1 } },
     });
   });
 
   it("devolve o crédito consumido quando a busca volta vazia", async () => {
-    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "STARTER", searchCreditBalance: 3 });
+    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "STARTER", creditBalance: 3 });
     opportunityScoreCount.mockResolvedValueOnce(0);
     searchRunCount.mockResolvedValueOnce(PLANS.STARTER.maxSearchesPerMonth);
     parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
@@ -353,7 +353,7 @@ describe("searchOpportunities — saldo pré-pago de buscas extras", () => {
     expect(organizationUpdate).toHaveBeenNthCalledWith(
       3,
       expect.objectContaining({
-        data: expect.objectContaining({ searchCreditBalance: { increment: 1 } }),
+        data: expect.objectContaining({ creditBalance: { increment: 1 } }),
       }),
     );
   });

@@ -58,11 +58,16 @@ model Organization {
   stripeSubscriptionId String? @unique
   subscriptionStatus   String?
 
-  // Saldo pré-pago de buscas extras (trial/Starter/Profissional só —
-  // Enterprise já tem buscas ilimitadas de verdade, nunca precisa disso).
-  // Não expira com o ciclo mensal, só é decrementado quando consumido —
-  // ver effectiveLimits()/consumeSearchCredit() em src/lib/trial.ts.
-  searchCreditBalance Int @default(0)
+  // Saldo pré-pago genérico (não específico de busca) — trial/Starter/
+  // Profissional só; Enterprise acima do teto incluso é conversa comercial,
+  // não compra automática (ver plans.ts). Desenhado pra ser reaproveitado
+  // por qualquer feature futura com custo de IA, não só busca — ex: quando
+  // o Chat com IA (ChatConversation/ChatMessage, ainda não cobrado) sair do
+  // "em breve", pode debitar do mesmo saldo em vez de precisar de um
+  // mecanismo de cobrança novo. Não expira com o ciclo mensal, só é
+  // decrementado quando consumido — ver a checagem de crédito em
+  // executeSearch() em src/lib/opportunity-engine/search.ts.
+  creditBalance Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -77,7 +82,7 @@ model Organization {
   searchRuns            SearchRun[]
   searchUsageLogs       SearchUsageLog[]
   missions              Mission[]
-  searchCreditPurchases SearchCreditPurchase[]
+  creditPurchases       CreditPurchase[]
 
   @@map("organizations")
 }
@@ -85,8 +90,10 @@ model Organization {
 // Registro de cada compra de saldo pré-pago — histórico/auditoria, e a base
 // pra detectar "trial comprou saldo antes de converter" (o sinal de lead
 // mais quente que existe, ver sendTrialCreditPurchaseAlert em
-// src/lib/credit-alert-email.ts).
-model SearchCreditPurchase {
+// src/lib/credit-alert-email.ts). "quantity" é em créditos genéricos, não
+// necessariamente 1:1 com buscas pra sempre — hoje é 1:1 porque busca é a
+// única coisa que consome saldo.
+model CreditPurchase {
   id                      String   @id @default(cuid())
   organizationId          String
   quantity                Int
@@ -97,7 +104,7 @@ model SearchCreditPurchase {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, createdAt])
-  @@map("search_credit_purchases")
+  @@map("credit_purchases")
 }
 
 // Um registro por busca de oportunidades efetivamente executada (chamada à IA

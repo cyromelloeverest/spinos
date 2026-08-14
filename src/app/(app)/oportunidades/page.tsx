@@ -14,8 +14,8 @@ import { ArrowRight, X, Check, Flame, TrendingUp, Minus, Target, Download, Zap }
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
 import { getPlan } from "@/lib/plans";
 import { effectiveLimits } from "@/lib/trial";
-import { purchaseSearchCredits } from "@/lib/actions/credits";
-import { SEARCH_CREDIT_PACK } from "@/lib/search-credit-pack";
+import { purchaseCredits } from "@/lib/actions/credits";
+import { CREDIT_PACK } from "@/lib/credit-pack";
 import { formatLocation } from "@/lib/format-location";
 import { logError } from "@/lib/log-error";
 
@@ -100,7 +100,7 @@ export default async function OpportunitiesPage({
   );
   const searchesUsed = isTrialing ? searchesAllTime : searchesThisMonth;
   const atPlanLimit = opportunities.length >= maxActiveOpportunities;
-  const creditBalance = organization?.searchCreditBalance ?? 0;
+  const creditBalance = organization?.creditBalance ?? 0;
   // Enterprise pago (fora de trial) não compra saldo — acima do teto
   // incluso é conversa comercial, não compra automática (decisão de
   // negócio 2026-08-11, mantém o tom de atendimento dedicado desse plano).
@@ -186,14 +186,14 @@ export default async function OpportunitiesPage({
             />
           </form>
           {showCreditPurchase && (
-            <form action={purchaseSearchCredits}>
+            <form action={purchaseCredits}>
               <button
                 type="submit"
                 className="flex items-center gap-1.5 text-[11.5px] font-medium mx-auto sm:mx-0 border-0 bg-transparent cursor-pointer"
                 style={{ color: "var(--fg-faint)" }}
               >
                 <Zap size={11} strokeWidth={1.75} />
-                Comprar {SEARCH_CREDIT_PACK.quantity} buscas extras — R${SEARCH_CREDIT_PACK.priceBRL}
+                Comprar {CREDIT_PACK.quantity} buscas extras — R${CREDIT_PACK.priceBRL}
               </button>
             </form>
           )}

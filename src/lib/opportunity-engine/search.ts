@@ -243,10 +243,10 @@ async function executeSearch(
       // do plano selecionado. Consome 1 crédito na mesma transação da
       // checagem, pra duplo-clique não gastar 2 créditos numa corrida.
       const creditAllowed = isTrialing || organization.plan !== "ENTERPRISE";
-      if (creditAllowed && organization.searchCreditBalance > 0) {
+      if (creditAllowed && organization.creditBalance > 0) {
         await tx.organization.update({
           where: { id: organizationId },
-          data: { searchCreditBalance: { decrement: 1 } },
+          data: { creditBalance: { decrement: 1 } },
         });
         usedCredit = true;
       } else {
@@ -298,7 +298,7 @@ async function executeSearch(
         where: { id: organizationId },
         // Devolve o crédito pré-pago também, se essa busca tinha consumido
         // um — ela não produziu resultado nenhum, não é justo cobrar por isso.
-        data: { lastSearchAt: previousLastSearchAt, searchCreditBalance: usedCredit ? { increment: 1 } : undefined },
+        data: { lastSearchAt: previousLastSearchAt, creditBalance: usedCredit ? { increment: 1 } : undefined },
       });
       await tx.searchRun.delete({ where: { id: searchRun.id } }).catch(() => {});
     });
@@ -314,7 +314,7 @@ async function executeSearch(
     await withOrgContext(organizationId, async (tx) => {
       await tx.organization.update({
         where: { id: organizationId },
-        data: { lastSearchAt: previousLastSearchAt, searchCreditBalance: usedCredit ? { increment: 1 } : undefined },
+        data: { lastSearchAt: previousLastSearchAt, creditBalance: usedCredit ? { increment: 1 } : undefined },
       });
       await tx.searchRun.delete({ where: { id: searchRun.id } }).catch(() => {});
     });
@@ -345,7 +345,7 @@ async function executeSearch(
         where: { id: organizationId },
         data: {
           lastSearchAt: new Date(runTimestamp.getTime() - SEARCH_COOLDOWN_MS + EMPTY_RESULT_RETRY_MS),
-          searchCreditBalance: usedCredit ? { increment: 1 } : undefined,
+          creditBalance: usedCredit ? { increment: 1 } : undefined,
         },
       });
       await tx.searchRun.delete({ where: { id: searchRun.id } }).catch(() => {});

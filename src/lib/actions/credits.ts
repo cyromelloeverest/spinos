@@ -6,7 +6,7 @@ import { getCurrentMembership } from "@/lib/auth/current-org";
 import { SITE_URL } from "@/lib/site-url";
 import { stripe } from "@/lib/stripe";
 import { logError } from "@/lib/log-error";
-import { SEARCH_CREDIT_PACK } from "@/lib/search-credit-pack";
+import { CREDIT_PACK } from "@/lib/credit-pack";
 
 async function requireOwnerOrAdmin() {
   const membership = await getCurrentMembership();
@@ -39,7 +39,7 @@ async function getOrCreateStripeCustomer(organizationId: string): Promise<string
 // Disponível a qualquer momento (não só quando o limite já bateu) — o brief
 // pede compra sem fricção, então não há nenhum gate de "só se estiver
 // bloqueado" aqui. Quem decide se faz sentido comprar é o cliente.
-export async function purchaseSearchCredits() {
+export async function purchaseCredits() {
   const membership = await requireOwnerOrAdmin();
 
   let sessionUrl: string | null = null;
@@ -48,16 +48,19 @@ export async function purchaseSearchCredits() {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer: customerId,
-      line_items: [{ price: SEARCH_CREDIT_PACK.stripePriceId, quantity: 1 }],
+      line_items: [{ price: CREDIT_PACK.stripePriceId, quantity: 1 }],
       success_url: `${SITE_URL}/oportunidades?creditos=sucesso`,
       cancel_url: `${SITE_URL}/oportunidades?creditos=cancelado`,
       // Pagamento avulso não tem subscription_data — os metadados vão direto
       // na sessão, e é isso que o webhook lê em checkout.session.completed
       // pra saber que é compra de crédito (não assinatura) e de qual org.
+      // "kind" mantido como "search_credit_pack" de propósito (não renomeado
+      // junto com o resto) — é um valor opaco só interpretado pelo nosso
+      // próprio webhook, não precisa bater com nome de coluna/variável.
       metadata: {
         organizationId: membership.organizationId,
         kind: "search_credit_pack",
-        quantity: String(SEARCH_CREDIT_PACK.quantity),
+        quantity: String(CREDIT_PACK.quantity),
       },
     });
     sessionUrl = session.url;
