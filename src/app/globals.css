@@ -86,3 +86,42 @@ a:focus-visible,
     animation: none;
   }
 }
+
+/* Animação do radar (mesma do hero de spinos.com.br, ver RadarAnimation.tsx) */
+@keyframes radar-pulse {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+.animate-radar-pulse {
+  animation: radar-pulse 3s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+}
+
+@keyframes ping-dot {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+}
+
+.animate-ping-dot {
+  animation: ping-dot 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-radar-pulse,
+  .animate-ping-dot {
+    animation: none;
+  }
+}

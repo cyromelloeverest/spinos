@@ -8,6 +8,7 @@ import { TargetedSearchForm } from "@/components/TargetedSearchForm";
 import { SEARCH_COOLDOWN_MS, startOfCurrentMonth } from "@/lib/opportunity-engine/constants";
 import { moveToPipeline, dismissOpportunity } from "@/lib/actions/pipeline";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
+import { RadarAnimation } from "@/components/RadarAnimation";
 import { SearchButton } from "@/components/SearchButton";
 import { SpinosScore } from "@/components/SpinosScore";
 import { ArrowRight, X, Check, Flame, TrendingUp, Minus, Target, Download, Zap } from "lucide-react";
@@ -305,6 +306,16 @@ export default async function OpportunitiesPage({
       )}
 
       <div className="px-4 md:px-10 pt-6 pb-16 flex flex-col gap-2.5 max-w-[880px]">
+        {opportunities.length === 0 && (
+          <div className="flex flex-col items-center text-center py-10">
+            <RadarAnimation size={220} />
+            <h2 className="text-[16px] font-semibold mt-6 mb-1.5">Nenhuma oportunidade ainda</h2>
+            <p className="text-[13px] max-w-[360px]" style={{ color: "var(--fg-muted)" }}>
+              Rode uma busca acima pra vasculhar sinais públicos reais e encontrar empresas prontas pra comprar de
+              você agora.
+            </p>
+          </div>
+        )}
         {opportunities.map((opp) => {
           const urgency = URGENCY_CONFIG[opp.urgency] ?? URGENCY_CONFIG.BAIXA;
           const UrgencyIcon = urgency.icon;
