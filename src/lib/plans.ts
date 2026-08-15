@@ -55,7 +55,10 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxActiveOpportunities: 150,
     maxUsers: 5,
     maxSearchesPerMonth: 25,
-    maxIcps: 3,
+    // Igual em todos os planos de propósito: ainda não existe UI pra criar
+    // mais de 1 ICP por org (decisão 2026-08-14) — diferenciar por plano
+    // venderia algo que nenhum cliente consegue usar hoje.
+    maxIcps: 1,
     alertsFrequency: "daily",
     supportTier: "Prioritário",
     features: { crmExport: true, inteligenciaCompetitiva: false },
@@ -68,7 +71,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxActiveOpportunities: 400,
     maxUsers: 20,
     maxSearchesPerMonth: 60,
-    maxIcps: 10,
+    maxIcps: 1,
     alertsFrequency: "realtime",
     supportTier: "Onboarding + CS dedicado + SLA",
     features: { crmExport: true, inteligenciaCompetitiva: true },
