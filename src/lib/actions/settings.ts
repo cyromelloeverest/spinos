@@ -114,6 +114,29 @@ export async function updateOrganizationProfile(formData: FormData) {
   redirect("/settings/empresa?saved=1");
 }
 
+// Toggle isolado do form de perfil de propósito — um checkbox simples não
+// precisa da validação/schema do resto da página, e assim o usuário não
+// precisa reenviar todo o formulário de empresa só pra ligar/desligar isso.
+export async function toggleLifecycleEmails(formData: FormData) {
+  const organizationId = await getCurrentOrganizationId();
+  if (!organizationId) redirect("/onboarding");
+
+  // Checkbox só manda o campo quando marcado — marcado = "quero receber",
+  // então a ausência do campo é que vira opt-out=true.
+  const receiveEmails = formData.get("receiveLifecycleEmails") === "on";
+  const optOut = !receiveEmails;
+
+  await withOrgContext(organizationId, (tx) =>
+    tx.organization.update({
+      where: { id: organizationId },
+      data: { lifecycleEmailsOptOut: optOut },
+    }),
+  );
+
+  revalidatePath("/settings/empresa");
+  redirect("/settings/empresa?saved=1");
+}
+
 const userProfileSchema = z.object({
   name: optionalTextSchema("Nome", 150),
   role: optionalTextSchema("Cargo", 100),

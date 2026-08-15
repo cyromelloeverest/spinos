@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId, getCurrentUserId, getCurrentMembership } from "@/lib/auth/current-org";
-import { updateOrganizationProfile, updateUserProfile } from "@/lib/actions/settings";
+import { updateOrganizationProfile, updateUserProfile, toggleLifecycleEmails } from "@/lib/actions/settings";
 import { requestEmailChange } from "@/lib/actions/auth";
 import { createCheckoutSession, createPortalSession } from "@/lib/actions/billing";
 import { requestAccountDeletion } from "@/lib/actions/privacy";
@@ -207,6 +207,34 @@ export default async function EmpresaSettingsPage({
             style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}
           >
             Salvar conta
+          </button>
+        </form>
+      </Section>
+
+      <Section title="Notificações">
+        <form action={toggleLifecycleEmails} className="flex flex-col gap-4">
+          <label className="flex items-start gap-2.5 text-[13px] cursor-pointer" style={{ color: "var(--fg)" }}>
+            <input
+              type="checkbox"
+              name="receiveLifecycleEmails"
+              defaultChecked={!organization.lifecycleEmailsOptOut}
+              className="w-4 h-4 mt-0.5"
+              style={{ accentColor: "var(--primary)" }}
+            />
+            <span>
+              Receber lembretes por e-mail (busca grátis do trial não usada, teste acabando, oportunidades paradas
+              sem ação)
+              <span className="block text-[11.5px] mt-0.5" style={{ color: "var(--fg-faint)" }}>
+                Não afeta e-mails da sua conta, como redefinição de senha ou convites de equipe.
+              </span>
+            </span>
+          </label>
+          <button
+            type="submit"
+            className="self-start text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer"
+            style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}
+          >
+            Salvar preferência
           </button>
         </form>
       </Section>

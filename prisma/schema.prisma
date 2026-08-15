@@ -69,6 +69,18 @@ model Organization {
   // executeSearch() em src/lib/opportunity-engine/search.ts.
   creditBalance Int @default(0)
 
+  // Controle de e-mails de engajamento automático (lembretes de trial e
+  // oportunidades paradas — ver src/lib/lifecycle-emails.ts, brief
+  // 2026-08-14). Timestamp de quando cada um foi enviado, pra nunca
+  // duplicar; os dois de trial são "uma vez só", o de oportunidades
+  // paradas usa o timestamp como cooldown pra reenvio periódico.
+  trialNoSearchEmailSentAt      DateTime?
+  trialEndingEmailSentAt        DateTime?
+  staleOpportunitiesEmailSentAt DateTime?
+  // Descadastro desses e-mails de engajamento — não afeta e-mails
+  // transacionais (redefinição de senha, convite de equipe, recibo).
+  lifecycleEmailsOptOut Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
