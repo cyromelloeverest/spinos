@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Search, Loader2, X, Target } from "lucide-react";
+import { Search, Loader2, X, Target, AlertTriangle } from "lucide-react";
 
 const PROGRESS_MESSAGES = [
   "Vasculhando sinais públicos de compra…",
@@ -17,11 +17,13 @@ export function SearchButton({
   disabledTitle,
   remainingSearches,
   isTrialing,
+  icpTooGeneric,
 }: {
   disabled: boolean;
   disabledTitle?: string;
   remainingSearches?: number | null;
   isTrialing?: boolean;
+  icpTooGeneric?: boolean;
 }) {
   const { pending } = useFormStatus();
   const [open, setOpen] = useState(false);
@@ -89,7 +91,12 @@ export function SearchButton({
             {pending ? (
               <SearchingPhase onDismiss={closeModal} />
             ) : (
-              <ConfirmPhase remainingSearches={remainingSearches} isTrialing={isTrialing} onCancel={closeModal} />
+              <ConfirmPhase
+                remainingSearches={remainingSearches}
+                isTrialing={isTrialing}
+                icpTooGeneric={icpTooGeneric}
+                onCancel={closeModal}
+              />
             )}
           </div>
         </div>
@@ -101,10 +108,12 @@ export function SearchButton({
 function ConfirmPhase({
   remainingSearches,
   isTrialing,
+  icpTooGeneric,
   onCancel,
 }: {
   remainingSearches?: number | null;
   isTrialing?: boolean;
+  icpTooGeneric?: boolean;
   onCancel: () => void;
 }) {
   return (
@@ -141,6 +150,23 @@ function ConfirmPhase({
         </p>
       ) : (
         <div className="mb-5" />
+      )}
+
+      {icpTooGeneric && (
+        <div
+          className="flex gap-2.5 rounded-[10px] border px-3.5 py-3 mb-5 text-left"
+          style={{ borderColor: "var(--warn)", background: "var(--card-hover)" }}
+        >
+          <AlertTriangle size={16} strokeWidth={2} className="flex-shrink-0 mt-0.5" style={{ color: "var(--warn)" }} />
+          <p className="text-[12.5px] leading-[1.55] m-0" style={{ color: "var(--fg-muted)" }}>
+            Seu ICP está bem amplo hoje (poucos detalhes preenchidos), o que tende a trazer oportunidades fracas —
+            e o teste grátis tem poucas buscas disponíveis.{" "}
+            <a href="/settings/icp" className="font-semibold" style={{ color: "var(--warn)" }}>
+              Refinar ICP antes de buscar
+            </a>
+            .
+          </p>
+        </div>
       )}
 
       <div className="flex items-center gap-2.5">

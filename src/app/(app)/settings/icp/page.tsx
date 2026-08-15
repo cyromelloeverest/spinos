@@ -66,8 +66,8 @@ export default async function IcpSettingsPage({
         <FormField
           label="Segmentos-alvo"
           name="segments"
-          placeholder="Ex: Metalúrgica, Fabricante de equipamentos"
-          hint="separados por vírgula"
+          placeholder="Ex: indústria metalúrgica, clínicas veterinárias, distribuidoras de material de construção"
+          hint="separados por vírgula — evite algo genérico como só 'empresas B2B', isso deixa a busca fraca"
           defaultValue={icp.segments.join(", ")}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

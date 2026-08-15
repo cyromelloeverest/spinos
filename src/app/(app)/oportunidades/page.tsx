@@ -19,6 +19,7 @@ import { purchaseCredits } from "@/lib/actions/credits";
 import { CREDIT_PACK } from "@/lib/credit-pack";
 import { formatLocation } from "@/lib/format-location";
 import { logError } from "@/lib/log-error";
+import { isIcpTooGeneric } from "@/lib/icp-quality";
 
 const URGENCY_CONFIG: Record<string, { label: string; icon: typeof Flame; color: string }> = {
   ALTA: { label: "Alta", icon: Flame, color: "var(--primary)" },
@@ -67,9 +68,10 @@ export default async function OpportunitiesPage({
   let searchesThisMonth = 0;
   let searchesAllTime = 0;
   let latestMission: Prisma.MissionModel | null = null;
+  let icp: Prisma.ICPModel | null = null;
   let dbError = false;
   try {
-    [opportunities, organization, searchesThisMonth, searchesAllTime, latestMission] = await withOrgContext(
+    [opportunities, organization, searchesThisMonth, searchesAllTime, latestMission, icp] = await withOrgContext(
       organizationId,
       (tx) =>
         Promise.all([
@@ -81,6 +83,7 @@ export default async function OpportunitiesPage({
           // em vez de encadear depois de saber se está em trial.
           tx.searchRun.count({ where: { organizationId } }),
           tx.mission.findFirst({ where: { organizationId }, orderBy: { createdAt: "desc" } }),
+          tx.iCP.findFirst({ where: { organizationId, isActive: true }, orderBy: { createdAt: "desc" } }),
         ]),
     );
   } catch (err) {
@@ -114,6 +117,10 @@ export default async function OpportunitiesPage({
   const remainingSearches = Math.max(maxSearches - searchesUsed - 1, 0);
   const userBlocked = Boolean(membership?.searchBlocked);
   const searchDisabled = !anthropicConfigured || onCooldown || atPlanLimit || atSearchLimit || userBlocked;
+  // Só avisa no trial — é onde a busca grátis vale só 1 tentativa (brief
+  // 2026-08-14). Fora do trial, um ICP amplo pode ser escolha deliberada,
+  // não vale interromper quem já paga.
+  const icpTooGeneric = isTrialing && (icp ? isIcpTooGeneric(icp) : false);
   const disabledTitle = !anthropicConfigured
     ? "Configure ANTHROPIC_API_KEY no .env para ativar"
     : userBlocked
@@ -184,6 +191,7 @@ export default async function OpportunitiesPage({
               disabledTitle={disabledTitle}
               remainingSearches={remainingSearches}
               isTrialing={isTrialing}
+              icpTooGeneric={icpTooGeneric}
             />
           </form>
           {showCreditPurchase && (
