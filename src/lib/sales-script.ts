@@ -26,7 +26,7 @@ ${opp.execSummary}
 MENSAGEM PRONTA (WhatsApp ou e-mail)
 "Olá! Somos a ${opp.orgName}. ${opp.suggestedApproach} Podemos marcar uma conversa rápida essa semana?"
 
-MENSAGEM DE CONEXÃO NO LINKEDIN (máx. 300 caracteres)
+MENSAGEM DE CONEXÃO NO LINKEDIN (máx. 200 caracteres)
 "${buildLinkedinNote(opp)}"
 
 QUEM PROCURAR
@@ -39,7 +39,10 @@ SE ELE(A) HESITAR, PROVAVELMENTE VAI DIZER
 ${bulletList(opp.objections)}`;
 }
 
-const LINKEDIN_NOTE_LIMIT = 300;
+// LinkedIn corta a nota de pedido de conexão em 200 caracteres de verdade —
+// 300 (valor anterior) deixava o texto sendo truncado pelo próprio LinkedIn
+// no meio de uma frase, de um jeito que a gente não controlava.
+const LINKEDIN_NOTE_LIMIT = 200;
 
 function buildLinkedinNote(opp: ScriptInput): string {
   const primeiroNome = opp.contactName ? opp.contactName.split(" ")[0] : null;
