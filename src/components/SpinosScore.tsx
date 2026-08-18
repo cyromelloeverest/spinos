@@ -14,9 +14,9 @@ function tierOf(value: number): Tier {
   return { bg: "var(--card-hover)", fg: "var(--fg-muted)", border: "var(--border)", ring: "var(--border-strong)" };
 }
 
-const BADGE_CONFIG: Record<"card" | "compact", { box: number; font: number; radius: number }> = {
-  card: { box: 64, font: 27, radius: 16 },
-  compact: { box: 44, font: 17, radius: 12 },
+const BADGE_CONFIG: Record<"card" | "compact", { box: number; font: number; stroke: number }> = {
+  card: { box: 60, font: 21, stroke: 5 },
+  compact: { box: 42, font: 15, stroke: 3.5 },
 };
 
 export function SpinosScore({ value, variant = "card" }: { value: number; variant?: SpinosScoreVariant }) {
@@ -25,26 +25,63 @@ export function SpinosScore({ value, variant = "card" }: { value: number; varian
   return <ScoreBadge value={value} variant={variant} />;
 }
 
+// Anel de progresso reaproveitado do hero, só que em escala de badge — o
+// pedido era "premium, como o Score médio" em vez do quadrado sólido antigo.
 function ScoreBadge({ value, variant }: { value: number; variant: "card" | "compact" }) {
   const config = BADGE_CONFIG[variant];
   const tier = tierOf(value);
+  const radius = (config.box - config.stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.max(0, Math.min(100, value));
+  const offset = circumference * (1 - clamped / 100);
+
   return (
     <div
-      className="flex items-center justify-center font-bold flex-shrink-0"
+      className="relative flex-shrink-0"
       style={{
         width: config.box,
         height: config.box,
-        borderRadius: config.radius,
-        fontFamily: "var(--font-mono)",
-        fontVariantNumeric: "tabular-nums",
-        fontSize: config.font,
-        letterSpacing: "-0.02em",
-        background: tier.bg,
-        color: tier.fg,
-        border: `1px solid ${tier.border}`,
+        filter: variant === "card" ? "drop-shadow(0 1px 2px rgba(15, 23, 42, 0.08))" : undefined,
       }}
     >
-      {value}
+      <svg
+        width={config.box}
+        height={config.box}
+        viewBox={`0 0 ${config.box} ${config.box}`}
+        style={{ transform: "rotate(-90deg)" }}
+      >
+        <circle
+          cx={config.box / 2}
+          cy={config.box / 2}
+          r={radius}
+          fill="none"
+          stroke="var(--border)"
+          strokeWidth={config.stroke}
+        />
+        <circle
+          cx={config.box / 2}
+          cy={config.box / 2}
+          r={radius}
+          fill="none"
+          stroke={tier.ring}
+          strokeWidth={config.stroke}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+        />
+      </svg>
+      <div
+        className="absolute inset-0 flex items-center justify-center font-bold"
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontVariantNumeric: "tabular-nums",
+          fontSize: config.font,
+          letterSpacing: "-0.02em",
+          color: "var(--fg)",
+        }}
+      >
+        {value}
+      </div>
     </div>
   );
 }
