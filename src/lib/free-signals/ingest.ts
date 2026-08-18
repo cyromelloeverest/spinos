@@ -4,8 +4,9 @@ import { prismaAdmin } from "@/lib/prisma-admin";
 import { findBestMatch } from "@/lib/opportunity-engine/company-matching";
 import { fetchRssSignalCandidates } from "./rss-news";
 import { extractCompanySignalsFromRss } from "./extract-rss-signals";
-import { fetchPncpSignalCandidates } from "./pncp";
+import { fetchPncpSignalCandidates, fetchPncpWinnersSignalCandidates } from "./pncp";
 import { fetchBcbSignalCandidates, BCB_SOURCE_URL } from "./bcb";
+import { fetchDecisionMakerByCnpj } from "./cnpj-enrichment";
 import type { SignalCategory } from "@/generated/prisma/enums";
 
 export type IngestedSignal = { signalId: string; companyId: string };
@@ -23,6 +24,35 @@ async function targetStates(): Promise<string[]> {
   return states.size > 0 ? [...states] : FALLBACK_STATES;
 }
 
+// Teto por execução — enriquecimento é 1 chamada externa por empresa, e
+// isso já rodou uma vez de menos (o timeout de hoje) pra arriscar de novo
+// sem limite. Lotes de 10 em paralelo em vez de sequencial, não pra
+// paralelizar tudo de uma vez.
+const MAX_DECISION_MAKER_ENRICHMENTS = 20;
+const ENRICHMENT_BATCH_SIZE = 10;
+
+// Grava o decisor achado via QSA da Receita (ver cnpj-enrichment.ts) no
+// metadata da empresa — dado a mais pra eventualmente entrar no prompt da
+// IA (src/lib/free-signals/match.ts), não substitui o que a IA já acha via
+// busca na web. Só roda pra empresa privada com CNPJ completo (14 dígitos)
+// — nem todo Company tem isso (Banco Central só dá a raiz de 8).
+async function enrichNewCompaniesWithDecisionMaker(companies: { id: string; cnpj: string | null }[]): Promise<void> {
+  const eligible = companies.filter((c) => c.cnpj?.length === 14).slice(0, MAX_DECISION_MAKER_ENRICHMENTS);
+  for (let i = 0; i < eligible.length; i += ENRICHMENT_BATCH_SIZE) {
+    const batch = eligible.slice(i, i + ENRICHMENT_BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map(async (c) => ({ id: c.id, info: await fetchDecisionMakerByCnpj(c.cnpj!) })),
+    );
+    for (const r of results) {
+      if (!r.info) continue;
+      await prismaAdmin.company.update({
+        where: { id: r.id },
+        data: { metadata: { decisionMakerName: r.info.name, decisionMakerRole: r.info.role, decisionMakerSource: "cnpj_qsa" } },
+      });
+    }
+  }
+}
+
 // Coleta gratuita (RSS + PNCP) e grava como Company/Signal globais — sem
 // custo de web_search, sem tocar em cota/crédito de nenhuma organização
 // (essa etapa nem sabe quais organizações existem). O match por cliente
@@ -30,9 +60,10 @@ async function targetStates(): Promise<string[]> {
 export async function ingestFreeSignals(): Promise<IngestedSignal[]> {
   const states = await targetStates();
 
-  const [rssItems, pncpItems, bcbItems] = await Promise.all([
+  const [rssItems, pncpItems, pncpWinnerItems, bcbItems] = await Promise.all([
     fetchRssSignalCandidates(),
     fetchPncpSignalCandidates(states),
+    fetchPncpWinnersSignalCandidates(),
     fetchBcbSignalCandidates(),
   ]);
   const extractedRss = await extractCompanySignalsFromRss(rssItems);
@@ -124,6 +155,86 @@ export async function ingestFreeSignals(): Promise<IngestedSignal[]> {
         },
       }));
     result.push({ signalId: record.id, companyId: company.id });
+  }
+
+  // PNCP vencedores: contrato já assinado com a empresa que venceu — sinal
+  // de crescimento real dela, diferente do ramo acima (que é o anúncio do
+  // edital, lado de quem compra). Volume alto o bastante (até ~250/dia,
+  // validado ao vivo) pra valer o mesmo tratamento em lote do ramo BCB —
+  // uma query por item já deu timeout uma vez hoje, não repete o erro.
+  if (pncpWinnerItems.length > 0) {
+    const winnerCnpjs = pncpWinnerItems.map((i) => i.cnpj);
+    const existingWinnerCompanies = await prismaAdmin.company.findMany({ where: { cnpj: { in: winnerCnpjs } } });
+    const existingWinnerCnpjs = new Set(existingWinnerCompanies.map((c) => c.cnpj));
+
+    const seenWinnerCnpjs = new Set<string>();
+    const newWinnerCompanyItems = pncpWinnerItems.filter((i) => {
+      if (existingWinnerCnpjs.has(i.cnpj) || seenWinnerCnpjs.has(i.cnpj)) return false;
+      seenWinnerCnpjs.add(i.cnpj);
+      return true;
+    });
+    if (newWinnerCompanyItems.length > 0) {
+      await prismaAdmin.company.createMany({
+        data: newWinnerCompanyItems.map((i) => ({
+          name: i.razaoSocial,
+          cnpj: i.cnpj,
+          city: i.municipioNome,
+          state: i.ufSigla,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    const allWinnerCompanies = await prismaAdmin.company.findMany({ where: { cnpj: { in: winnerCnpjs } } });
+    const winnerCompanyIdByCnpj = new Map(allWinnerCompanies.map((c) => [c.cnpj!, c.id]));
+    const winnerCompanyIds = allWinnerCompanies.map((c) => c.id);
+
+    // Decisor via CNPJ (QSA da Receita) só nas empresas privadas realmente
+    // novas — reprocessar as já existentes todo dia seria chamada de API
+    // externa desperdiçada pra dado que não muda de um dia pro outro. Teto
+    // + lotes paralelos pelo mesmo motivo do resto deste arquivo: nunca
+    // laço sequencial de chamada externa item a item.
+    const newWinnerCompanies = allWinnerCompanies.filter((c) =>
+      newWinnerCompanyItems.some((i) => i.cnpj === c.cnpj),
+    );
+    await enrichNewCompaniesWithDecisionMaker(newWinnerCompanies);
+
+    const existingWinnerSignals = await prisma.signal.findMany({
+      where: { companyId: { in: winnerCompanyIds } },
+      select: { companyId: true, sourceUrl: true },
+    });
+    const existingWinnerKeys = new Set(existingWinnerSignals.map((s) => `${s.companyId}|${s.sourceUrl}`));
+
+    const newWinnerSignalItems = pncpWinnerItems.filter((i) => {
+      const companyId = winnerCompanyIdByCnpj.get(i.cnpj);
+      return companyId && !existingWinnerKeys.has(`${companyId}|${i.sourceUrl}`);
+    });
+    if (newWinnerSignalItems.length > 0) {
+      await prisma.signal.createMany({
+        data: newWinnerSignalItems.map((i) => {
+          const companyId = winnerCompanyIdByCnpj.get(i.cnpj)!;
+          return {
+            companyId,
+            category: "AWARD",
+            sourceType: "pncp_winner_free",
+            sourceUrl: i.sourceUrl,
+            title: `Venceu contrato público: ${i.objetoContrato}`.slice(0, 200),
+            description: i.valorGlobal
+              ? `Contrato com ${i.orgaoRazaoSocial} — valor R$ ${i.valorGlobal.toLocaleString("pt-BR")}. ${i.objetoContrato}`
+              : `Contrato com ${i.orgaoRazaoSocial}. ${i.objetoContrato}`,
+            detectedAt: i.dataAssinatura,
+            confidence: 1.0,
+            rawData: { numeroControlePNCP: i.numeroControlePNCP },
+          };
+        }),
+      });
+    }
+
+    const allWinnerSignals = await prisma.signal.findMany({
+      where: { companyId: { in: winnerCompanyIds }, sourceUrl: { in: pncpWinnerItems.map((i) => i.sourceUrl) } },
+      select: { id: true, companyId: true },
+    });
+    for (const s of allWinnerSignals) result.push({ signalId: s.id, companyId: s.companyId });
   }
 
   // Banco Central: só a raiz do CNPJ (8 dígitos, validado com chamada real
