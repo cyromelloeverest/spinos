@@ -5,6 +5,7 @@ import { findBestMatch } from "@/lib/opportunity-engine/company-matching";
 import { fetchRssSignalCandidates } from "./rss-news";
 import { extractCompanySignalsFromRss } from "./extract-rss-signals";
 import { fetchPncpSignalCandidates } from "./pncp";
+import { fetchBcbSignalCandidates, BCB_SOURCE_URL } from "./bcb";
 import type { SignalCategory } from "@/generated/prisma/enums";
 
 export type IngestedSignal = { signalId: string; companyId: string };
@@ -29,7 +30,11 @@ async function targetStates(): Promise<string[]> {
 export async function ingestFreeSignals(): Promise<IngestedSignal[]> {
   const states = await targetStates();
 
-  const [rssItems, pncpItems] = await Promise.all([fetchRssSignalCandidates(), fetchPncpSignalCandidates(states)]);
+  const [rssItems, pncpItems, bcbItems] = await Promise.all([
+    fetchRssSignalCandidates(),
+    fetchPncpSignalCandidates(states),
+    fetchBcbSignalCandidates(),
+  ]);
   const extractedRss = await extractCompanySignalsFromRss(rssItems);
 
   const result: IngestedSignal[] = [];
@@ -116,6 +121,46 @@ export async function ingestFreeSignals(): Promise<IngestedSignal[]> {
           detectedAt: item.dataPublicacaoPncp,
           confidence: 1.0,
           rawData: { numeroControlePNCP: item.numeroControlePNCP },
+        },
+      }));
+    result.push({ signalId: record.id, companyId: company.id });
+  }
+
+  // Banco Central: só a raiz do CNPJ (8 dígitos, validado com chamada real
+  // à API antes de escrever isso — a lista não devolve o número completo).
+  // Mesmo espírito do ramo PNCP acima — upsert idempotente, sinal criado só
+  // na primeira vez que essa raiz aparece. Isso já dá o efeito de "avisa
+  // quando é novo" sem precisar comparar contra uma lista do dia anterior:
+  // na primeira execução, todo o mercado atual vira sinal de uma vez
+  // (prospecção imediata); dali em diante, só CNPJ que nunca vimos antes
+  // gera sinal novo (entrante de verdade).
+  for (const item of bcbItems) {
+    const company = await prismaAdmin.company.upsert({
+      where: { cnpj: item.cnpj },
+      update: {},
+      create: {
+        name: item.nomeInstituicao,
+        cnpj: item.cnpj,
+        city: item.municipio,
+        state: item.uf,
+        segment: item.segmento,
+      },
+    });
+
+    const existing = await prisma.signal.findFirst({ where: { companyId: company.id, sourceUrl: BCB_SOURCE_URL } });
+    const record =
+      existing ??
+      (await prisma.signal.create({
+        data: {
+          companyId: company.id,
+          category: "REGULATORY",
+          sourceType: "bcb_free",
+          sourceUrl: BCB_SOURCE_URL,
+          title: `Autorizada pelo Banco Central: ${item.segmento}`.slice(0, 200),
+          description: `${item.nomeInstituicao} consta como ${item.segmento} autorizada a funcionar pelo Banco Central.`,
+          detectedAt: new Date(),
+          confidence: 1.0,
+          rawData: { segmento: item.segmento },
         },
       }));
     result.push({ signalId: record.id, companyId: company.id });
