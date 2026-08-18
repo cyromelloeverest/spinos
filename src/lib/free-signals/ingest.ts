@@ -128,42 +128,68 @@ export async function ingestFreeSignals(): Promise<IngestedSignal[]> {
 
   // Banco Central: só a raiz do CNPJ (8 dígitos, validado com chamada real
   // à API antes de escrever isso — a lista não devolve o número completo).
-  // Mesmo espírito do ramo PNCP acima — upsert idempotente, sinal criado só
-  // na primeira vez que essa raiz aparece. Isso já dá o efeito de "avisa
-  // quando é novo" sem precisar comparar contra uma lista do dia anterior:
-  // na primeira execução, todo o mercado atual vira sinal de uma vez
-  // (prospecção imediata); dali em diante, só CNPJ que nunca vimos antes
-  // gera sinal novo (entrante de verdade).
-  for (const item of bcbItems) {
-    const company = await prismaAdmin.company.upsert({
-      where: { cnpj: item.cnpj },
-      update: {},
-      create: {
-        name: item.nomeInstituicao,
-        cnpj: item.cnpj,
-        city: item.municipio,
-        state: item.uf,
-        segment: item.segmento,
-      },
-    });
+  // Mesmo espírito do ramo PNCP acima (dedup por CNPJ, sinal criado só na
+  // primeira vez que a raiz aparece — já dá "avisa quando é novo" de graça,
+  // sem comparar contra uma lista do dia anterior), mas em lote: a lista do
+  // BCB vem inteira a cada chamada (~700 itens, não só os novos do período
+  // como no PNCP), então uma query por item estourava o tempo da função
+  // serverless. Aqui são só ~5 queries no total, não ~700×3.
+  if (bcbItems.length > 0) {
+    const cnpjs = bcbItems.map((i) => i.cnpj);
+    const existingCompanies = await prismaAdmin.company.findMany({ where: { cnpj: { in: cnpjs } } });
+    const existingCnpjs = new Set(existingCompanies.map((c) => c.cnpj));
 
-    const existing = await prisma.signal.findFirst({ where: { companyId: company.id, sourceUrl: BCB_SOURCE_URL } });
-    const record =
-      existing ??
-      (await prisma.signal.create({
-        data: {
-          companyId: company.id,
-          category: "REGULATORY",
-          sourceType: "bcb_free",
-          sourceUrl: BCB_SOURCE_URL,
-          title: `Autorizada pelo Banco Central: ${item.segmento}`.slice(0, 200),
-          description: `${item.nomeInstituicao} consta como ${item.segmento} autorizada a funcionar pelo Banco Central.`,
-          detectedAt: new Date(),
-          confidence: 1.0,
-          rawData: { segmento: item.segmento },
-        },
-      }));
-    result.push({ signalId: record.id, companyId: company.id });
+    const newItems = bcbItems.filter((i) => !existingCnpjs.has(i.cnpj));
+    if (newItems.length > 0) {
+      await prismaAdmin.company.createMany({
+        data: newItems.map((i) => ({
+          name: i.nomeInstituicao,
+          cnpj: i.cnpj,
+          city: i.municipio,
+          state: i.uf,
+          segment: i.segmento,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    // Recarrega tudo de uma vez (já existentes + recém-criadas) — dá o id
+    // real de cada uma sem precisar de uma query por item.
+    const allCompanies = await prismaAdmin.company.findMany({ where: { cnpj: { in: cnpjs } } });
+    const companyIds = allCompanies.map((c) => c.id);
+
+    const existingSignals = await prisma.signal.findMany({
+      where: { companyId: { in: companyIds }, sourceUrl: BCB_SOURCE_URL },
+      select: { companyId: true },
+    });
+    const companiesWithSignal = new Set(existingSignals.map((s) => s.companyId));
+    const itemByCnpj = new Map(bcbItems.map((i) => [i.cnpj, i]));
+
+    const newSignalCompanies = allCompanies.filter((c) => !companiesWithSignal.has(c.id));
+    if (newSignalCompanies.length > 0) {
+      await prisma.signal.createMany({
+        data: newSignalCompanies.map((c) => {
+          const item = itemByCnpj.get(c.cnpj!)!;
+          return {
+            companyId: c.id,
+            category: "REGULATORY",
+            sourceType: "bcb_free",
+            sourceUrl: BCB_SOURCE_URL,
+            title: `Autorizada pelo Banco Central: ${item.segmento}`.slice(0, 200),
+            description: `${item.nomeInstituicao} consta como ${item.segmento} autorizada a funcionar pelo Banco Central.`,
+            detectedAt: new Date(),
+            confidence: 1.0,
+            rawData: { segmento: item.segmento },
+          };
+        }),
+      });
+    }
+
+    const allSignals = await prisma.signal.findMany({
+      where: { companyId: { in: companyIds }, sourceUrl: BCB_SOURCE_URL },
+      select: { id: true, companyId: true },
+    });
+    for (const s of allSignals) result.push({ signalId: s.id, companyId: s.companyId });
   }
 
   return result;
