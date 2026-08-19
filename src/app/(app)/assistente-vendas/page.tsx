@@ -13,7 +13,11 @@ function fetchActiveOpportunities(tx: Prisma.TransactionClient, organizationId: 
     where: {
       organizationId,
       status: { not: "DISMISSED" },
-      stage: { notIn: ["VENDIDO", "PERDIDO"] },
+      // NOT stage: { notIn: [...] } de propósito — em SQL, "NOT IN" com uma
+      // coluna que tem valor NULL nunca dá true (lógica de 3 valores), então
+      // toda oportunidade recém-criada (stage ainda null, o caso mais comum
+      // de "oportunidade nova") sumia daqui. OR explícito com null resolve.
+      OR: [{ stage: null }, { stage: { notIn: ["VENDIDO", "PERDIDO"] } }],
     },
     include: { company: true },
     orderBy: { score: "desc" },
