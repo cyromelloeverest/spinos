@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-org";
 import { withOrgContext } from "@/lib/db/with-org-context";
+import { NOVA_STAGE_ID } from "@/lib/pipeline-stages";
 
 async function requireOrgId(): Promise<string> {
   const orgId = await getCurrentOrganizationId();
@@ -40,11 +41,17 @@ export async function setStage(
   const organizationId = await requireOrgId();
   const userId = await getCurrentUserId();
 
+  // NOVA_STAGE_ID é o sentinel client-side da coluna "Oportunidades" no
+  // quadro — não existe no enum, volta pra stage: null de verdade.
+  const isBackToOportunidades = stage === NOVA_STAGE_ID;
+
   await withOrgContext(organizationId, async (tx) => {
     const updated = await tx.opportunityScore.update({
       where: { id: opportunityScoreId, organizationId },
       data: {
-        stage: stage as "CONTATO_FEITO" | "VISITA_AGENDADA" | "PROPOSTA_ENVIADA" | "VENDIDO" | "PERDIDO",
+        stage: isBackToOportunidades
+          ? null
+          : (stage as "CONTATO_FEITO" | "VISITA_AGENDADA" | "PROPOSTA_ENVIADA" | "VENDIDO" | "PERDIDO"),
         stageUpdatedAt: new Date(),
         lastActionByUserId: userId,
         lastActionAt: new Date(),
@@ -85,6 +92,9 @@ export async function setStage(
 
   revalidatePath("/");
   revalidatePath("/pipeline");
+  // Só importa quando isBackToOportunidades, mas revalidar sempre é
+  // inofensivo e mais simples do que condicionar.
+  revalidatePath("/oportunidades");
 }
 
 export async function dismissOpportunity(opportunityScoreId: string) {

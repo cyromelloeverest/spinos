@@ -3,6 +3,7 @@ import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { PipelineBoard, type PipelineCard } from "@/components/PipelineBoard";
+import { NOVA_STAGE_ID } from "@/lib/pipeline-stages";
 import { logError } from "@/lib/log-error";
 
 function daysInStage(stageUpdatedAt: Date | null): string {
@@ -16,9 +17,13 @@ function daysInStage(stageUpdatedAt: Date | null): string {
 function fetchPipelineOpportunities(organizationId: string) {
   return withOrgContext(organizationId, (tx) =>
     tx.opportunityScore.findMany({
-      where: { organizationId, stage: { not: null } },
+      // Inclui stage: null agora — vira a primeira coluna do quadro
+      // ("Oportunidades", ver NOVA_STAGE_ID). status ainda filtra
+      // DISMISSED, senão uma oportunidade descartada na tela de
+      // Oportunidades reaparecia aqui.
+      where: { organizationId, status: { not: "DISMISSED" } },
       include: { company: true, lastActionByUser: true },
-      orderBy: { stageUpdatedAt: "desc" },
+      orderBy: [{ stageUpdatedAt: "desc" }, { computedAt: "desc" }],
     }),
   );
 }
@@ -43,7 +48,7 @@ export default async function PipelinePage() {
     city: opp.company.city,
     state: opp.company.state,
     score: opp.score,
-    stage: opp.stage!,
+    stage: opp.stage ?? NOVA_STAGE_ID,
     daysLabel: daysInStage(opp.stageUpdatedAt),
     lastActionByName: opp.lastActionByUser?.name || opp.lastActionByUser?.email || null,
   }));
@@ -55,7 +60,7 @@ export default async function PipelinePage() {
           Pipeline comercial
         </h1>
         <p className="m-0 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
-          Oportunidades que você já começou a trabalhar. Arraste os cards entre as colunas para atualizar o estágio.
+          Da oportunidade nova até vendida ou perdida. Arraste os cards entre as colunas para atualizar o estágio.
         </p>
       </div>
 

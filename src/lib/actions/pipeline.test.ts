@@ -104,4 +104,14 @@ describe("setStage — captura de Feedback", () => {
     expect(feedbackDeleteMany).toHaveBeenCalledWith({ where: { opportunityScoreId: "opp-1" } });
     expect(feedbackUpsert).not.toHaveBeenCalled();
   });
+
+  it("NOVA (coluna 'Oportunidades' do quadro) grava stage: null de verdade, não a string do sentinel", async () => {
+    await setStage("opp-1", "NOVA");
+
+    expect(opportunityScoreUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ stage: null }) }),
+    );
+    expect(feedbackDeleteMany).toHaveBeenCalledWith({ where: { opportunityScoreId: "opp-1" } });
+    expect(feedbackUpsert).not.toHaveBeenCalled();
+  });
 });

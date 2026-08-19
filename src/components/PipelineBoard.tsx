@@ -4,7 +4,13 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { setStage, type LossReason } from "@/lib/actions/pipeline";
 import { SpinosScore } from "./SpinosScore";
-import { PIPELINE_STAGE_ORDER, PIPELINE_STAGE_LABEL, pipelineStageColor } from "@/lib/pipeline-stages";
+import {
+  PIPELINE_STAGE_ORDER,
+  PIPELINE_STAGE_LABEL,
+  pipelineStageColor,
+  NOVA_STAGE_ID,
+  NOVA_STAGE_LABEL,
+} from "@/lib/pipeline-stages";
 
 export type PipelineCard = {
   id: string;
@@ -17,7 +23,10 @@ export type PipelineCard = {
   lastActionByName: string | null;
 };
 
-const COLUMNS = PIPELINE_STAGE_ORDER.map((stage) => ({ stage, label: PIPELINE_STAGE_LABEL[stage] }));
+const COLUMNS = [
+  { stage: NOVA_STAGE_ID, label: NOVA_STAGE_LABEL },
+  ...PIPELINE_STAGE_ORDER.map((stage) => ({ stage, label: PIPELINE_STAGE_LABEL[stage] })),
+];
 
 const LOSS_REASONS: { value: LossReason; label: string }[] = [
   { value: "NOT_INTERESTED", label: "Não teve interesse" },
