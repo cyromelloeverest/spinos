@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { confirmAuthLink } from "@/lib/actions/auth";
+import { ConfirmButton } from "@/components/ConfirmButton";
 
 const TITLE_BY_TYPE: Record<string, string> = {
   recovery: "Confirmar redefinição de senha",
@@ -45,13 +46,7 @@ export default async function ConfirmPage({
           <input type="hidden" name="token_hash" value={params.token_hash ?? ""} />
           <input type="hidden" name="type" value={params.type ?? ""} />
           <input type="hidden" name="next" value={params.next ?? "/"} />
-          <button
-            type="submit"
-            className="w-full text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer"
-            style={{ background: "var(--primary)", borderColor: "var(--primary)", color: "#ffffff" }}
-          >
-            Confirmar agora
-          </button>
+          <ConfirmButton />
         </form>
       </div>
     </div>
