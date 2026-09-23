@@ -69,7 +69,7 @@ const WEB_SEARCH_PER_CALL_USD = 0.01;
 async function logSearchUsage(
   organizationId: string,
   mode: "discovery" | "targeted",
-  outcome: "ok" | "empty" | "parse_error",
+  outcome: "ok" | "empty" | "parse_error" | "no_search",
   usage:
     | {
         input_tokens: number | null;
@@ -157,6 +157,28 @@ const DECISION_MAKER_NAME_INSTRUCTION =
 const NO_FABRICATION_INSTRUCTION =
   "Nunca afirme como fato algo que você não confirmou numa fonte pública real e específica (site oficial, LinkedIn, notícia, cadastro público, edital) — vale pra cidade, estado, porte/número de funcionários, tecnologia usada e qualquer outro dado factual. Sem confirmação real, deixe city/state null (nunca estime pela proximidade com a contratante ou porque bateria com o ICP) e, se mencionar porte/tamanho em execSummary ou reasoning, deixe explícito que é estimativa, não fato confirmado. Nunca use uma URL de página de resultado de busca (google.com/search, bing.com/search etc.) como sourceUrl de um sinal — só URLs de páginas de conteúdo real. Se não encontrar nenhuma fonte real específica, prefira sourceUrl null (ou deixar signals vazio) a inventar uma URL só pra preencher o campo.";
 
+// Em 2026-09-23 a IA devolveu lista vazia em 39 tokens, sem nenhuma
+// pesquisa na web, num ICP que na reprodução exata achou 4 empresas reais
+// — falha intermitente do modelo, não "pesquisou e não achou". Ver
+// skippedSearch() abaixo, que trata isso no código além do prompt.
+const MUST_SEARCH_INSTRUCTION =
+  "Antes de responder, você DEVE usar a ferramenta web_search pelo menos uma vez — uma resposta sem nenhuma pesquisa feita não é aceitável, mesmo que o ICP pareça restritivo.";
+
+const MAX_ATTEMPTS_WHEN_SKIPPING_SEARCH = 2;
+
+// "Vazio" só é resultado legítimo se a IA de fato pesquisou. Sem `usage` na
+// resposta (defensivo, a API real sempre manda) não assume que pulou.
+function skippedSearch(response: {
+  parsed_output: { opportunities: unknown[] } | null;
+  usage?: { server_tool_use?: { web_search_requests: number } | null } | null;
+}): boolean {
+  if (!response.usage) return false;
+  return (
+    response.parsed_output?.opportunities.length === 0 &&
+    (response.usage.server_tool_use?.web_search_requests ?? 0) === 0
+  );
+}
+
 function buildDiscoveryPrompt(org: OrgProfile, icp: IcpProfile): string {
   return `Você é um Diretor de Inteligência Comercial. Sua tarefa é encontrar, usando busca na web, empresas reais com sinais públicos recentes de que estão iniciando um ciclo de compra que combina com o ICP abaixo.
 
@@ -164,6 +186,8 @@ ${icpBlock(org, icp)}
 Busque sinais públicos reais (notícias, vagas de emprego, editais, investimentos, expansões, mudanças de liderança) publicados recentemente. Para cada empresa candidata encontrada, preencha o schema com pelo menos uma fonte real (URL verificável) por sinal citado. Não invente sinais nem URLs. Priorize 3 a 6 oportunidades de alta qualidade em vez de uma lista longa e genérica.
 
 Se, dentro dos critérios exatos de raio/cidades/estados/segmentos informados, você não encontrar nenhuma empresa real com sinal público verificável, AMPLIE a busca antes de desistir: considere cidades vizinhas, o estado inteiro, ou segmentos correlatos ao ICP. Deixe isso evidente no campo reasoning das oportunidades encontradas assim quando tiver ampliado o critério original. Só retorne uma lista vazia se, mesmo depois de ampliar, genuinamente não houver nenhuma evidência pública real — nunca invente uma empresa ou sinal só para preencher a lista.
+
+${MUST_SEARCH_INSTRUCTION}
 
 ${DECISION_MAKER_NAME_INSTRUCTION}
 
@@ -181,6 +205,8 @@ ${icpBlock(org, icp)}
 EMPRESA-ALVO PRA ANALISAR (e só ela): ${companyName}${location ? ` — ${location}` : ""}
 
 Pesquise sinais públicos reais e recentes sobre essa empresa específica (notícias, vagas de emprego, editais, investimentos, expansões, mudanças de liderança) e avalie se ela é uma oportunidade comercial real pra contratante, considerando o ICP acima. Preencha EXATAMENTE uma oportunidade no schema, sempre que confirmar que essa empresa existe de verdade — mesmo que não encontre nenhum sinal forte de ciclo de compra agora, preencha assim mesmo com um score mais baixo e um reasoning honesto explicando a ausência de sinais recentes (não deixe a lista vazia só por falta de sinal forte). Isso vale pra score/reasoning/approach, que são análise e recomendação, não fato — mas cidade, estado e porte SÓ entram se confirmados de verdade (ver regra abaixo). Só deixe a lista vazia se genuinamente não conseguir confirmar que essa empresa existe.
+
+${MUST_SEARCH_INSTRUCTION}
 
 ${DECISION_MAKER_NAME_INSTRUCTION}
 
@@ -279,16 +305,26 @@ async function executeSearch(
 
   let response;
   try {
-    response = await client.messages.parse({
-      model: "claude-opus-5",
-      max_tokens: 16000,
-      thinking: { type: "adaptive" },
-      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 10 }],
-      output_config: {
-        format: zodOutputFormat(OpportunitySearchResultSchema),
-      },
-      messages: [{ role: "user", content: buildSearchPrompt(organization, icp) }],
-    });
+    for (let attempt = 1; ; attempt++) {
+      response = await client.messages.parse({
+        model: "claude-opus-5",
+        max_tokens: 16000,
+        thinking: { type: "adaptive" },
+        tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 10 }],
+        output_config: {
+          format: zodOutputFormat(OpportunitySearchResultSchema),
+        },
+        messages: [{ role: "user", content: buildSearchPrompt(organization, icp) }],
+      });
+      if (!skippedSearch(response)) break;
+      // A tentativa vazia custou (pouco) mesmo assim — fica registrada, o
+      // log nunca é apagado. Se a segunda também pular a pesquisa, cai no
+      // catch abaixo: erro com reembolso total, não um "nada encontrado".
+      await logSearchUsage(organizationId, mode, "no_search", response.usage);
+      if (attempt >= MAX_ATTEMPTS_WHEN_SKIPPING_SEARCH) {
+        throw new Error("IA devolveu lista vazia sem pesquisar, mesmo após retentativa");
+      }
+    }
   } catch (err) {
     // A busca falhou antes de produzir resultado — não deve consumir o
     // limite de 1 busca a cada 2 dias nem o limite de buscas/mês, então

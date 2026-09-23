@@ -878,3 +878,104 @@ describe("logSearchUsage — custo real por busca (item 4 do brief 2026-08-11)",
     expect(searchUsageLogCreate).not.toHaveBeenCalled();
   });
 });
+
+describe("IA devolve lista vazia sem pesquisar — falha intermitente vista em 2026-09-23", () => {
+  const usageSearched = {
+    input_tokens: 100_000,
+    output_tokens: 13_000,
+    cache_creation_input_tokens: 0,
+    cache_read_input_tokens: 0,
+    server_tool_use: { web_search_requests: 10 },
+  };
+  // Formato real da resposta que deu "sem resultados" pro Sakatec: 39 tokens
+  // de saída, nenhuma pesquisa na web.
+  const usageSkipped = {
+    input_tokens: 9105,
+    output_tokens: 39,
+    cache_creation_input_tokens: 0,
+    cache_read_input_tokens: 0,
+    server_tool_use: null,
+  };
+  const oneOpportunity = {
+    companyName: "Empresa X",
+    city: "SP",
+    state: "SP",
+    score: 70,
+    urgency: "MEDIA",
+    headline: "H",
+    execSummary: "E",
+    reasoning: "R",
+    buyerArea: "Comercial",
+    decisionMaker: "Diretor",
+    decisionMakerName: null,
+    approach: "A",
+    commercialArguments: [],
+    objections: [],
+    signals: [],
+  };
+
+  beforeEach(() => {
+    organizationFindUnique.mockResolvedValue({ ...baseOrg, plan: "ENTERPRISE", lastSearchAt: null });
+    companyFindMany.mockResolvedValue([]);
+    companyCreate.mockResolvedValue({ id: "company-1", name: "Empresa X", city: "SP", state: "SP" });
+    opportunityScoreUpsert.mockResolvedValue({ id: "score-1" });
+  });
+
+  it("refaz a chamada 1 vez quando vem vazio sem nenhuma pesquisa, e usa o resultado da segunda", async () => {
+    parseMock
+      .mockResolvedValueOnce({ parsed_output: { opportunities: [] }, usage: usageSkipped })
+      .mockResolvedValueOnce({ parsed_output: { opportunities: [oneOpportunity] }, usage: usageSearched });
+
+    const result = await searchOpportunities("org-1");
+
+    expect(result).toEqual({ status: "ok", count: 1 });
+    expect(parseMock).toHaveBeenCalledTimes(2);
+    // O custo da tentativa vazia fica registrado mesmo assim.
+    expect(searchUsageLogCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({ outcome: "no_search", webSearchCount: 0, outputTokens: 39 }),
+    });
+  });
+
+  it("vazio COM pesquisas feitas continua sendo resultado legítimo — não refaz a chamada", async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] }, usage: usageSearched });
+
+    const result = await searchOpportunities("org-1");
+
+    expect(result).toEqual({ status: "empty" });
+    expect(parseMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("duas tentativas sem pesquisar viram erro com reembolso total (sem cooldown, sem gastar cota)", async () => {
+    parseMock.mockResolvedValue({ parsed_output: { opportunities: [] }, usage: usageSkipped });
+
+    const result = await searchOpportunities("org-1");
+
+    expect(result).toEqual({
+      status: "error",
+      message: "Não foi possível completar a busca agora. Tente novamente em instantes.",
+    });
+    expect(parseMock).toHaveBeenCalledTimes(2);
+    expect(organizationUpdate).toHaveBeenLastCalledWith({ where: { id: "org-1" }, data: { lastSearchAt: null } });
+    expect(searchRunDelete).toHaveBeenCalledWith({ where: { id: "run-1" } });
+  });
+
+  it("a busca dirigida tem a mesma proteção", async () => {
+    parseMock
+      .mockResolvedValueOnce({ parsed_output: { opportunities: [] }, usage: usageSkipped })
+      .mockResolvedValueOnce({ parsed_output: { opportunities: [oneOpportunity] }, usage: usageSearched });
+
+    const result = await searchSpecificCompany("org-1", "Empresa X", null);
+
+    expect(result).toEqual({ status: "ok", count: 1 });
+    expect(parseMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("o prompt exige explicitamente usar web_search antes de responder", async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] }, usage: usageSearched });
+
+    await searchOpportunities("org-1");
+
+    const sentPrompt = parseMock.mock.calls[0][0].messages[0].content as string;
+    expect(sentPrompt).toContain("DEVE usar a ferramenta web_search");
+  });
+});

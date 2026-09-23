@@ -144,7 +144,7 @@ model SearchUsageLog {
   id                  String   @id @default(cuid())
   organizationId      String
   mode                String // "discovery" | "targeted"
-  outcome             String // "ok" | "empty" | "parse_error" | "api_error"
+  outcome             String // "ok" | "empty" | "parse_error" | "api_error" | "no_search"
   inputTokens         Int
   outputTokens        Int
   cacheCreationTokens Int
