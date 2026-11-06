@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireBiddingAccess } from "@/lib/licitacoes/access";
 
 export default async function LicitacoesPage() {
@@ -11,6 +12,13 @@ export default async function LicitacoesPage() {
       <p className="text-[13.5px] leading-[1.6] m-0" style={{ color: "var(--fg-muted)" }}>
         Módulo em beta. As ferramentas de análise de editais estão sendo liberadas por etapas.
       </p>
+      <Link
+        href="/licitacoes/perfil"
+        className="inline-block mt-5 text-[13px] font-semibold px-4 py-2 rounded-[10px] no-underline"
+        style={{ background: "var(--primary)", color: "#ffffff" }}
+      >
+        Perfil de habilitação
+      </Link>
     </div>
   );
 }
