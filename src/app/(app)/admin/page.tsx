@@ -4,7 +4,7 @@ import { prismaAdmin } from "@/lib/prisma-admin";
 import { isCurrentUserSuperAdmin } from "@/lib/auth/current-org";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { isTrialExpired, trialDaysLeft } from "@/lib/trial";
-import { extendTrial, removeTrialLimit, adminInviteUser, adminRemoveUser, adminCancelInvite, adminToggleSearchBlock } from "@/lib/actions/admin";
+import { extendTrial, removeTrialLimit, adminInviteUser, adminRemoveUser, adminCancelInvite, adminToggleSearchBlock, setBiddingEnabled } from "@/lib/actions/admin";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { PlanSelect } from "@/components/PlanSelect";
 import { ConfirmDeleteOrgButton } from "@/components/ConfirmDeleteOrgButton";
@@ -283,6 +283,19 @@ export default async function AdminPage({
                       </Td>
                       <Td>
                         <PlanSelect organizationId={org.id} currentPlan={org.plan} />
+                        <form action={setBiddingEnabled.bind(null, org.id, !org.biddingEnabled)} className="mt-1.5">
+                          <button
+                            type="submit"
+                            className="text-[11px] font-medium px-2 py-1 rounded-[8px] border cursor-pointer"
+                            style={
+                              org.biddingEnabled
+                                ? { background: "var(--primary)", borderColor: "var(--primary)", color: "#ffffff" }
+                                : { background: "transparent", borderColor: "var(--border)", color: "var(--fg-faint)" }
+                            }
+                          >
+                            {org.biddingEnabled ? "Licitações: liberado" : "Liberar Licitações"}
+                          </button>
+                        </form>
                       </Td>
                       <Td>
                         <div className="flex flex-col gap-1.5 min-w-[160px]">

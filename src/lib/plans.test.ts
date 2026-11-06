@@ -52,6 +52,12 @@ describe("PLANS", () => {
     expect(PLANS.ENTERPRISE.features.inteligenciaCompetitiva).toBe(true);
   });
 
+  it("licitações não está incluído em nenhum plano (liberação manual por organização)", () => {
+    for (const plan of Object.values(PLANS)) {
+      expect(plan.features.licitacoes).toBe(false);
+    }
+  });
+
   it("cada plano tem um stripePriceId único e um preço mensal positivo", () => {
     const priceIds = new Set<string>();
     for (const plan of Object.values(PLANS)) {

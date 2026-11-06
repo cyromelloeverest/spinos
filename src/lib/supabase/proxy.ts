@@ -13,14 +13,26 @@ const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/convite", "/aceitar-convit
 // não dá pra prever/allowlistar domínio (isso já mordeu a gente uma vez com
 // o favicon do Google redirecionando pra gstatic.com). <img> não executa
 // nada, então abrir img-src pra https: não reintroduz risco de XSS.
+// connect-src libera só a origem exata do projeto Supabase (nunca um
+// curinga): o navegador envia o PDF do edital direto pro Storage por URL
+// assinada (módulo Licitações), sem passar pelo limite de corpo das funções.
+function supabaseOrigin(): string | null {
+  try {
+    return process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin : null;
+  } catch {
+    return null;
+  }
+}
+
 function buildCspHeader(nonce: string): string {
+  const supabase = supabaseOrigin();
   return [
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' https: data:`,
     `font-src 'self'`,
-    `connect-src 'self'`,
+    `connect-src 'self'${supabase ? ` ${supabase}` : ""}`,
     `object-src 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,

@@ -79,22 +79,32 @@ model Organization {
   staleOpportunitiesEmailSentAt DateTime?
   // Descadastro desses e-mails de engajamento — não afeta e-mails
   // transacionais (redefinição de senha, convite de equipe, recibo).
-  lifecycleEmailsOptOut Boolean @default(false)
+  lifecycleEmailsOptOut         Boolean   @default(false)
+
+  // Módulo Licitações (beta) — liberação por organização, somada à flag
+  // futura por plano (plans.ts features.licitacoes). Padrão false: nenhuma
+  // organização existente vê o módulo até um super-admin liberar em /admin.
+  biddingEnabled Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users                 Membership[]
-  icps                  ICP[]
-  opportunityScores     OpportunityScore[]
-  feedbacks             Feedback[]
-  chatConversations     ChatConversation[]
-  crmExports            CrmExport[]
-  invites               Invite[]
-  searchRuns            SearchRun[]
-  searchUsageLogs       SearchUsageLog[]
-  missions              Mission[]
-  creditPurchases       CreditPurchase[]
+  tenders            Tender[]
+  bidderProfile      BidderProfile?
+  bidderDocuments    BidderDocument[]
+  bidderCertificates BidderCertificate[]
+
+  users             Membership[]
+  icps              ICP[]
+  opportunityScores OpportunityScore[]
+  feedbacks         Feedback[]
+  chatConversations ChatConversation[]
+  crmExports        CrmExport[]
+  invites           Invite[]
+  searchRuns        SearchRun[]
+  searchUsageLogs   SearchUsageLog[]
+  missions          Mission[]
+  creditPurchases   CreditPurchase[]
 
   @@map("organizations")
 }
@@ -558,4 +568,316 @@ model CrmExport {
   opportunityScore OpportunityScore @relation(fields: [opportunityScoreId], references: [id], onDelete: Cascade)
 
   @@map("crm_exports")
+}
+
+// ============================================================
+// MÓDULO LICITAÇÕES (beta) — tudo por organização, com RLS.
+// Tabelas-filhas carregam organizationId e uma FK composta
+// (tenderId, organizationId) → tenders(id, organizationId), então o banco
+// garante que um filho nunca aponta pra licitação de outra organização.
+// Documentos de habilitação da empresa NUNCA vão pra IA — só o texto
+// estruturado do perfil (descrição, número, validade).
+// ============================================================
+
+enum TenderStage {
+  IDENTIFICADA
+  EM_ANALISE
+  AGUARDANDO_DECISAO
+  APROVADA
+  PREPARANDO_DOCUMENTACAO
+  PROPOSTA_PRONTA
+  PROPOSTA_ENVIADA
+  EM_JULGAMENTO
+  VENCIDA
+  PERDIDA
+  DESCARTADA
+}
+
+enum TenderDocumentKind {
+  EDITAL
+  TERMO_REFERENCIA
+  ANEXO
+  RETIFICACAO
+  ESCLARECIMENTO
+  COMPROVANTE
+  OUTRO
+}
+
+enum TextExtractionStatus {
+  PENDENTE
+  OK
+  SEM_TEXTO
+  FALHOU
+}
+
+enum TenderAnalysisStatus {
+  PENDENTE
+  PROCESSANDO
+  CONCLUIDA
+  FALHOU
+}
+
+// Classificação sai de uma regra em código aplicada às notas e bloqueadores,
+// não da IA sozinha — não significa habilitação confirmada nem vitória.
+enum TenderViabilityClass {
+  RECOMENDADA
+  EXIGE_AVALIACAO
+  NAO_RECOMENDADA
+}
+
+enum TenderDecision {
+  PARTICIPAR
+  NAO_PARTICIPAR
+}
+
+enum HabilitacaoCategory {
+  SOCIETARIO
+  CERTIDAO
+  ECONOMICO_FINANCEIRA
+  ATESTADO
+  DECLARACAO
+  PROPOSTA_COMERCIAL
+  ANEXO_ESPECIFICO
+}
+
+enum ChecklistItemStatus {
+  PENDENTE
+  EM_ANDAMENTO
+  PRONTO
+  NECESSITA_VALIDACAO
+  NAO_APLICAVEL
+}
+
+model BidderProfile {
+  id                    String   @id @default(cuid())
+  organizationId        String   @unique
+  services              String[]
+  regions               String[]
+  technicalCapabilities String?
+  teamAvailable         String?
+  // Custos de referência e margem mínima alimentam o simulador.
+  referenceCosts        Json?
+  minMarginPct          Float?
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("bidder_profiles")
+}
+
+model BidderDocument {
+  id                String              @id @default(cuid())
+  organizationId    String
+  category          HabilitacaoCategory
+  name              String
+  number            String?
+  issuer            String?
+  issuedAt          DateTime?
+  expiresAt         DateTime?
+  version           Int                 @default(1)
+  previousVersionId String?
+  fileName          String?
+  storagePath       String?
+  sha256            String?
+  createdById       String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  certificates   BidderCertificate[]
+  checklistItems TenderChecklistItem[]
+
+  @@index([organizationId, category])
+  @@map("bidder_documents")
+}
+
+model BidderCertificate {
+  id               String    @id @default(cuid())
+  organizationId   String
+  title            String
+  contractingParty String?
+  periodStart      DateTime?
+  periodEnd        DateTime?
+  quantities       String?
+  documentId       String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  document     BidderDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@map("bidder_certificates")
+}
+
+model Tender {
+  id                String      @id @default(cuid())
+  organizationId    String
+  agency            String
+  editalNumber      String?
+  processNumber     String?
+  modality          String?
+  object            String
+  description       String?
+  city              String?
+  state             String?
+  scope             String?
+  estimatedValue    Float?
+  opensAt           DateTime?
+  questionsDeadline DateTime?
+  sourcePortal      String?
+  officialUrl       String?
+  stage             TenderStage @default(IDENTIFICADA)
+  stageUpdatedAt    DateTime    @default(now())
+  responsibleUserId String?
+  notes             String?
+  // Dados de demonstração só existem em organização de demonstração.
+  isFictitious      Boolean     @default(false)
+
+  viabilityScores     Json?
+  viabilityClass      TenderViabilityClass?
+  viabilityComputedAt DateTime?
+  decision            TenderDecision?
+  decisionReason      String?
+  decidedById         String?
+  decidedAt           DateTime?
+
+  protocolNumber String?
+  closeReason    String?
+  closeNotes     String?
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  documents    TenderDocument[]
+  analyses     TenderAnalysis[]
+  checklist    TenderChecklistItem[]
+  scenarios    TenderCostScenario[]
+  stageEvents  TenderStageEvent[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId, stage])
+  @@index([organizationId, opensAt])
+  @@map("tenders")
+}
+
+model TenderDocument {
+  id               String               @id @default(cuid())
+  tenderId         String
+  organizationId   String
+  kind             TenderDocumentKind
+  fileName         String
+  storagePath      String
+  mimeType         String
+  sizeBytes        Int
+  sha256           String
+  pageCount        Int?
+  extractionStatus TextExtractionStatus @default(PENDENTE)
+  uploadedById     String?
+  createdAt        DateTime             @default(now())
+
+  tender Tender               @relation(fields: [tenderId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  pages  TenderDocumentPage[]
+
+  @@unique([id, organizationId])
+  @@index([tenderId])
+  @@map("tender_documents")
+}
+
+model TenderDocumentPage {
+  id             String @id @default(cuid())
+  documentId     String
+  organizationId String
+  page           Int
+  text           String
+
+  document TenderDocument @relation(fields: [documentId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@unique([documentId, page])
+  @@map("tender_document_pages")
+}
+
+model TenderAnalysis {
+  id               String               @id @default(cuid())
+  tenderId         String
+  organizationId   String
+  version          Int
+  status           TenderAnalysisStatus @default(PENDENTE)
+  model            String?
+  result           Json?
+  sourceCheck      Json?
+  inputTokens      Int                  @default(0)
+  outputTokens     Int                  @default(0)
+  estimatedCostUSD Float                @default(0)
+  creditsCharged   Int                  @default(0)
+  error            String?
+  requestedById    String?
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  createdAt        DateTime             @default(now())
+
+  tender Tender @relation(fields: [tenderId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@unique([tenderId, version])
+  @@map("tender_analyses")
+}
+
+model TenderChecklistItem {
+  id               String              @id @default(cuid())
+  tenderId         String
+  organizationId   String
+  category         HabilitacaoCategory
+  name             String
+  description      String?
+  source           Json?
+  assigneeUserId   String?
+  dueDate          DateTime?
+  status           ChecklistItemStatus @default(PENDENTE)
+  bidderDocumentId String?
+  notes            String?
+  position         Int                 @default(0)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  tender         Tender          @relation(fields: [tenderId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  bidderDocument BidderDocument? @relation(fields: [bidderDocumentId], references: [id], onDelete: SetNull)
+
+  @@index([tenderId])
+  @@map("tender_checklist_items")
+}
+
+model TenderCostScenario {
+  id             String   @id @default(cuid())
+  tenderId       String
+  organizationId String
+  name           String
+  inputs         Json
+  proposalValues Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tender Tender @relation(fields: [tenderId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@index([tenderId])
+  @@map("tender_cost_scenarios")
+}
+
+model TenderStageEvent {
+  id             String       @id @default(cuid())
+  tenderId       String
+  organizationId String
+  fromStage      TenderStage?
+  toStage        TenderStage
+  userId         String?
+  reason         String?
+  createdAt      DateTime     @default(now())
+
+  tender Tender @relation(fields: [tenderId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@index([tenderId, createdAt])
+  @@map("tender_stage_events")
 }

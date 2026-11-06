@@ -76,6 +76,26 @@ export async function removeTrialLimit(organizationId: string) {
   revalidatePath("/admin");
 }
 
+// Libera/bloqueia o módulo Licitações (beta) para uma organização. Padrão é
+// bloqueado; fica registrado no log de auditoria quem mudou e para qual valor.
+export async function setBiddingEnabled(organizationId: string, enabled: boolean) {
+  const actorUserId = await requireSuperAdmin();
+
+  await prismaAdmin.organization.update({
+    where: { id: organizationId },
+    data: { biddingEnabled: enabled },
+  });
+  await logSecurityEvent({
+    type: "admin.bidding_toggled",
+    actorUserId,
+    organizationId,
+    targetId: organizationId,
+    metadata: { enabled },
+  });
+
+  revalidatePath("/admin");
+}
+
 export async function adminInviteUser(organizationId: string, formData: FormData) {
   const actorUserId = await requireSuperAdmin();
 

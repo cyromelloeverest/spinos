@@ -30,6 +30,10 @@ export type PlanDefinition = {
     // Ainda não é enforced — "/inteligencia-competitiva" é só uma página
     // "em breve" sem nenhum backend real por trás.
     inteligenciaCompetitiva: boolean;
+    // Módulo Licitações (beta). Enforced em src/lib/licitacoes/access.ts,
+    // somado à liberação manual por organização (Organization.biddingEnabled).
+    // Nenhum plano inclui por enquanto: só super-admin libera, org a org.
+    licitacoes: boolean;
   };
   priceMonthlyBRL: number;
   stripePriceId: string;
@@ -45,7 +49,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxIcps: 1,
     alertsFrequency: "weekly",
     supportTier: "Padrão",
-    features: { crmExport: false, inteligenciaCompetitiva: false },
+    features: { crmExport: false, inteligenciaCompetitiva: false, licitacoes: false },
     priceMonthlyBRL: 309,
     stripePriceId: "price_1U3mz9EqWpT7TrUVKCOoNqE4",
   },
@@ -61,7 +65,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxIcps: 1,
     alertsFrequency: "daily",
     supportTier: "Prioritário",
-    features: { crmExport: true, inteligenciaCompetitiva: false },
+    features: { crmExport: true, inteligenciaCompetitiva: false, licitacoes: false },
     priceMonthlyBRL: 649,
     stripePriceId: "price_1U3mzAEqWpT7TrUVKTqZGbiO",
   },
@@ -74,7 +78,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxIcps: 1,
     alertsFrequency: "realtime",
     supportTier: "Onboarding + CS dedicado + SLA",
-    features: { crmExport: true, inteligenciaCompetitiva: true },
+    features: { crmExport: true, inteligenciaCompetitiva: true, licitacoes: false },
     priceMonthlyBRL: 1699,
     stripePriceId: "price_1U3mzAEqWpT7TrUVo5lX85N1",
   },
