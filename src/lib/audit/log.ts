@@ -37,6 +37,7 @@ export type SecurityEventType =
   | "licitacoes.document_rejected"
   | "licitacoes.document_removed"
   | "licitacoes.document_downloaded"
+  | "licitacoes.analysis_started"
   | "privacy.data_exported"
   | "privacy.deletion_requested"
   | "privacy.deletion_completed"
