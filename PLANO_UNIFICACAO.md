@@ -1,6 +1,33 @@
 # Plano de unificação da plataforma Spinos
 
-Data: 2026-11-15. Status: **proposta para aprovação. Nada foi implementado.**
+Data: 2026-11-15. Status: **em aprovação. Decisões D1, D5 e D8 já tomadas. Única implementação feita: remoção do módulo Licitações.**
+
+## Atualização de 2026-11-15 (respostas às decisões e pesquisas)
+
+**Decisões tomadas por Cyro**
+
+| # | Decisão | Efeito no plano |
+|---|---|---|
+| D1 | **Remover o módulo Licitações** | Código e migração de remoção prontos e commitados (`e2fd9d4`). Falta publicar e aplicar a migração. As 10 tabelas, o bucket e o log estavam vazios. Seção 8 fica sem pendência |
+| D5 | **Investigar a base da Receita** | Aprovada. Primeiro passo da semana 1 |
+| D8 | **Sem ambiente de testes** | Aceito. Hoje são 4 a 13 usuários. O risco R4 continua, com mitigação: flag por organização (WP0), migrações só aditivas, backup diário do Supabase Pro. WP0 cai para 2 a 3 dias |
+
+**Pesquisas feitas**
+
+1. **CNPJ alfanumérico.** A Receita começou a emitir CNPJ com letras e números em julho de 2026 ([notícia da Receita](https://www.gov.br/receitafederal/pt-br/assuntos/noticias/2026/julho/receita-federal-gera-o-primeiro-cnpj-em-formato-alfanumerico)). Isso afeta o modelo: `cnpj` deve ser texto de 14 caracteres alfanuméricos (sem validação "só dígitos"), e a extração de sócios pela BrasilAPI e a ingestão da base da Receita precisam aceitar o novo formato. O CRM hoje exige 14 dígitos. Entra em WP1 e WP4.
+2. **Regras de publicidade do contador.** O código antigo (Resolução CFC 803/1996) foi substituído pela NBC PG 01, em vigor desde 01/06/2019. Pelas fontes secundárias que li, o marketing **não é proibido**, mas a divulgação deve ser informativa e discreta, sem mercantilização, sem propaganda de preço ou "menor preço" e sem falar mal de colegas. Conteúdo educativo e diagnóstico gratuito aparecem como formas aceitas. Fontes: [Jornal Contábil](https://www.jornalcontabil.com.br/conheca-as-regras-do-cfc-e-crc-e-divulgue-sua-marca-de-maneira-correta/), [CRC-MS](https://crcms.org.br/?p=24609), [CFC](https://cfc.org.br/noticias/codigo-de-etica-profissional-do-contador-e-atualizado-saiba-o-que-mudou/). **Não confirmei a numeração dos itens na norma vigente.** Consequência para o pacote: modelos de landing e mensagens sem preço, sem promessa de resultado e sem comparação com colegas, centrados em diagnóstico e conteúdo. O texto oficial da NBC PG 01 deve ser lido antes de fechar o pacote (WP2).
+3. **Google Ads.** Ver a recomendação abaixo (seção 4.5).
+
+**Google Ads: o que encaixa (substitui a recomendação da seção 4.5)**
+
+- A busca mostrou que, em setembro de 2026, o nível de acesso passou a ser **do projeto no Google Cloud**, não mais do token de desenvolvedor ([Google Ads API, níveis de acesso](https://developers.google.com/google-ads/api/docs/access-levels)). O nível Basic permite até 15 mil operações por dia e a aprovação é automática; o Standard não tem tempo de análise publicado.
+- **Não consegui confirmar** se, com um projeto nesse nível, o Spinos pode ler a conta de um cliente que **não** está ligada à nossa conta de gerente (MCC), só com o consentimento do dono da conta. Um tópico no fórum oficial pergunta exatamente isso e não tem resposta conclusiva. Isso precisa de teste real ou de resposta do time de conformidade do Google.
+- O que o Pulse faz hoje (copiar o acesso da agência para todos os clientes) **não serve** para o produto: o acesso de um cliente enxergaria tudo da agência.
+- **Recomendação:**
+  1. **Camada 1: não usar a API do Google Ads.** O rastreio de origem até o contrato não precisa dela: a landing captura `gclid` e UTM, e o CRM mostra de qual anúncio veio cada contrato. Só o custo por lead exige o valor investido.
+  2. **Investimento na camada 1:** campo manual ou importação de CSV por campanha. Simples e suficiente para os fundadores.
+  3. **Camada 2:** cada escritório conecta a **própria** conta por consentimento (OAuth), usando um projeto Google Cloud do Spinos. Pedir o nível de acesso **na semana 4**, para a análise não travar a camada 2. Se o Google exigir vínculo por MCC, a alternativa é o cliente aceitar um convite de vínculo (fluxo mais pesado, mas permitido).
+  4. **Alternativa para custo sem a API de anúncios:** puxar custo pelo GA4 quando a conta de anúncios estiver ligada a ele. Provável, **não confirmado**.
 
 Como ler as estimativas: são "dias úteis de trabalho assistido por Claude, uma pessoa em tempo integral", com margem de erro de ±40%. Fato confirmado no código vem com o caminho do arquivo. Quando não consegui confirmar, está escrito "não confirmado".
 
@@ -16,7 +43,7 @@ Como ler as estimativas: são "dias úteis de trabalho assistido por Claude, uma
 
 **4. A meta de 30 dias é possível só com uma versão mínima e escopo congelado.** Cortei um MVP de **cerca de 30 dias úteis** (seção 5.3) que dá para os 10 fundadores usarem e pagarem. A chance de escorregar de 1 a 2 semanas é real. O que o MVP entrega: prospecção por pacote de nicho de contabilidade, funil configurável, contatos por conta, uma landing page caindo no Spinos, origem do lead e um painel mínimo de resultados.
 
-**5. Recomendo congelar o módulo Licitações** nas etapas 0 a 3 (já feitas). Ele não ajuda a chegar nos próximos escritórios contábeis pagantes (seção 8).
+**5. Recomendei congelar o módulo Licitações; a decisão foi removê-lo.** Ele não ajudava a chegar nos próximos escritórios contábeis pagantes (seção 8).
 
 **6. A tese tem uma contradição que o plano corrige.** A tabela de riscos diz que o cancelamento é contido por "relatórios mostrando leads e reuniões desde o primeiro mês", mas os relatórios estão na camada 2 (dias 61 a 120). O relatório de origem até o contrato **não precisa do Pulse**: sai dos dados do próprio CRM. Por isso entra um painel mínimo na camada 1 (pacote WP6). Os conectores do Pulse (Google Ads, Meta) entram na camada 2, para custo por lead e CAC.
 
@@ -375,14 +402,14 @@ Soma 35 contra 30. Para chegar nos 30: o item 4 pode entrar como segunda onda (o
 
 | # | Decisão | Minha recomendação |
 |---|---|---|
-| D1 | **Congelar o módulo Licitações** (etapas 4 a 8 e o plano de busca de licitações) | Congelar. Fica no ar, atrás de flag, só para a Everest. Retomar depois do portão do dia 30 |
+| D1 | ~~Congelar o módulo Licitações~~ | **Decidido: remover.** Feito no código; falta publicar e aplicar a migração |
 | D2 | **O banco e o login do Spinos viram o núcleo único?** (os outros três continuam separados até migrarem) | Sim, nesta ordem: Spinos, depois CRM, Sites, Pulse |
 | D3 | **Destino do Sites:** (A) ponte transitória e depois unificar o banco, ou (B) manter o banco do Sites separado para sempre, só integrando por API | A, com data para acabar a ponte. B contradiz o requisito de "módulos internos, não integração por API" |
 | D4 | **Quem escreve o pacote de contabilidade** (etapas do funil, mensagens, modelos de landing, vocabulário)? Precisa de conhecimento do nicho | Você, com os clientes contábeis da carteira, em uma sessão de 2 a 3 horas; eu escrevo e você revisa |
-| D5 | **Investigação da base da Receita (3 dias) antes de fixar o escopo do MVP** | Aprovar já. É o maior risco e é barato de testar |
+| D5 | ~~Investigação da base da Receita~~ | **Aprovada** |
 | D6 | **Planos e preços no produto:** Essencial, Crescimento e Aceleração (R$ 497, 997, 1.997 + setup R$ 1.500) contra o `plans.ts` atual (R$ 309, 649, 1.699), e como travar o preço de fundador por 12 meses | Redefinir `plans.ts` pela tese; preço de fundador por cupom ou preço personalizado no Stripe. Confirmar limites por plano (contas, usuários, buscas) |
 | D7 | **E-mail frio em massa fica fora da camada 1** | Concordo em deixar fora; abordagem por WhatsApp e LinkedIn feita pelo usuário, e e-mail só com descadastro e na camada 3 |
-| D8 | **Ambiente de testes** (segundo projeto Supabase ou ramo de banco, mais custo) | Criar antes de abrir para fundadores |
+| D8 | ~~Ambiente de testes~~ | **Decidido: não terá.** Mitigação na atualização do topo |
 | D9 | **Capacidade:** uma pessoa (Claude + você revisando) ou uma segunda pessoa de código | Uma pessoa para o MVP; segunda só depois do modelo unificado pronto (WP1), com áreas de arquivo separadas |
 
 ---
