@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Users, Plug, LogOut, X, ShieldCheck, ScanSearch, Gavel, ChevronsUpDown, Check } from "lucide-react";
+import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Users, Plug, LogOut, X, ShieldCheck, ScanSearch, ChevronsUpDown, Check } from "lucide-react";
 import { switchOrganization } from "@/lib/actions/organization";
 import { initials } from "@/lib/initials";
 
@@ -12,10 +12,6 @@ export type OrgProfile = {
   segment: string | null;
   city: string | null;
   state: string | null;
-  // Módulo Licitações liberado para esta organização (flag + plano, já
-  // resolvido no servidor). Só controla a visibilidade do menu — a
-  // segurança de verdade é requireBiddingAccess() em cada rota/ação.
-  biddingEnabled?: boolean;
 } | null;
 
 export type OrgMembership = { organizationId: string; name: string; role: string };
@@ -30,8 +26,6 @@ const navItems = [
   { href: "/historico", label: "Histórico", icon: History },
   { href: "/playbooks", label: "Playbooks", icon: BookOpen },
 ];
-
-const biddingItem = { href: "/licitacoes", label: "Licitações", icon: Gavel, beta: true };
 
 const configItems = [
   { href: "/settings/empresa", label: "Perfil da empresa", icon: Building2, enabled: true },
@@ -92,8 +86,8 @@ export function Rail({
       </div>
 
       <nav className="flex flex-col gap-0.5">
-        {(organization?.biddingEnabled ? [...navItems, biddingItem] : navItems).map((item) => {
-          const active = pathname === item.href || (item.href === "/licitacoes" && pathname.startsWith("/licitacoes"));
+        {navItems.map((item) => {
+          const active = pathname === item.href;
           const Icon = item.icon;
           return (
             <Link
@@ -109,14 +103,6 @@ export function Rail({
             >
               <Icon size={16} strokeWidth={1.75} className="flex-shrink-0" />
               <span className="truncate">{item.label}</span>
-              {"beta" in item && item.beta && (
-                <span
-                  className="text-[9px] font-semibold uppercase rounded-full px-1.5 py-[1px] flex-shrink-0 ml-auto"
-                  style={{ background: "var(--dark-hover)", color: "var(--dark-fg-muted)", letterSpacing: "0.04em" }}
-                >
-                  Beta
-                </span>
-              )}
               {"comingSoon" in item && item.comingSoon && (
                 <span
                   className="text-[9px] font-semibold uppercase rounded-full px-1.5 py-[1px] flex-shrink-0 ml-auto"

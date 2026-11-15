@@ -1,4 +1,3 @@
-import { isBiddingEnabled } from "@/lib/licitacoes/gating";
 import { type OrgProfile, type OrgMembership } from "@/components/Rail";
 import { AppShell } from "@/components/AppShell";
 import { TrialExpired } from "@/components/TrialExpired";
@@ -16,12 +15,10 @@ async function getOrganizationProfile(
     const org = await withOrgContext(organizationId, (tx) =>
       tx.organization.findUnique({
         where: { id: organizationId },
-        select: { name: true, segment: true, city: true, state: true, trialEndsAt: true, plan: true, biddingEnabled: true },
+        select: { name: true, segment: true, city: true, state: true, trialEndsAt: true },
       }),
     );
-    if (!org) return null;
-    const { plan, biddingEnabled, ...rest } = org;
-    return { ...rest, biddingEnabled: isBiddingEnabled({ plan, biddingEnabled }) };
+    return org ?? null;
   } catch (err) {
     logError("layout: falha ao carregar perfil da organização", err, { organizationId });
     return null;
