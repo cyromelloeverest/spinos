@@ -102,6 +102,24 @@ Como ler as estimativas: são "dias úteis de trabalho assistido por Claude, uma
 
 ---
 
+## Atualização 4 de 2026-11-16 (visão de produto)
+
+**O que o Cyro quer que o Spinos seja:** um app único que reúne **todo o marketing do cliente**: busca de oportunidades, CRM, site e informação. **Não precisa ser completo no início.** O critério de sucesso é o cliente contratar pensando: *"agora comecei a resolver o meu marketing"*.
+
+**O que isso muda no plano**
+
+1. **Largura antes de profundidade.** Cada módulo existe e funciona sozinho, mas o valor da v1 está em estarem **conectados** (o lead da página cai no CRM, o CRM mostra de onde veio, o painel conta o resultado). Reforça a decisão de "módulos em versão enxuta".
+2. **A jornada dos primeiros 7 dias vira a espinha do produto.** O cliente deve sentir, no primeiro uso: (1) escolhe o nicho e preenche o perfil; (2) já vê uma lista de oportunidades; (3) publica um site ou landing a partir de um briefing curto; (4) vê os leads chegando no CRM; (5) recebe um resumo semanal de como está o marketing. O assistente de configuração (WP7) deixa de ser "mínimo assistido" e passa a ser **autoatendimento de verdade** (+2 a 3 dias no MVP).
+3. **O "Site" entra no produto, em modelo.** O Everest Sites já converte um briefing em site de forma determinística (`contentFromBriefing`), e o modelo de conteúdo já suporta várias páginas. A v1 oferece um **site pequeno em modelo do pacote** (início, serviços, contato e as landing pages), preenchido por formulário, **sem customização por cliente**. A tese tinha o site completo como adicional por puxar o produto de volta para serviço; a regra continua: **o que for sob medida segue como serviço da agência.**
+4. **Sem configuração obrigatória.** Tudo nasce preenchido pelo pacote de nicho (funil, mensagens, modelos). O cliente ajusta depois, se quiser.
+5. **Preço de entrada.** "Começar a resolver meu marketing" combina com o plano de entrada (R$ 309). O plano de entrada precisa entregar a jornada inteira, ainda que com limites menores.
+
+**Ainda em aberto, para o Cyro responder**
+- "Site" é um site pequeno em modelo (início, serviços, contato) mais as landing pages, ou só landing pages?
+- "Informação" é o painel e relatório de resultados do marketing, ou também conteúdo (textos, posts, informativos) pronto para o escritório usar com os clientes dele?
+
+---
+
 ## 0. Resumo executivo
 
 **1. A unificação é viável, mas não do jeito "juntar os quatro códigos".** Os quatro sistemas têm bancos, logins e premissas de tenant diferentes (seção 1). O caminho que sobrevive é: o Spinos vira o núcleo (banco, login, tenant), e CRM, Pulse e Sites entram como módulos **portando o modelo e a lógica**, não copiando o código inteiro.
