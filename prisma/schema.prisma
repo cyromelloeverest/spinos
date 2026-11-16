@@ -106,6 +106,10 @@ model Organization {
   origins           Origin[]
   automations       Automation[]
   automationRuns    AutomationRun[]
+  sites             Site[]
+  siteVersions      SiteVersion[]
+  siteDomains       SiteDomain[]
+  siteEvents        SiteEvent[]
 
   @@map("organizations")
 }
@@ -939,4 +943,119 @@ model AutomationRun {
   @@unique([organizationId, dedupeKey])
   @@index([organizationId, createdAt])
   @@map("automation_runs")
+}
+
+// ============================================================
+// SITE E LANDING PAGES (motor do Everest Sites, dados no banco do Spinos).
+// O rascunho e cada versão publicada são o documento do motor ({ schemaVersion,
+// content, media, posts }), validado por src/lib/sites/content. A leitura pública
+// por domínio usa o papel administrativo (só do publicado); tudo que o cliente edita
+// passa por RLS.
+// ============================================================
+
+enum SiteDomainKind {
+  SUBDOMAIN
+  CUSTOM
+}
+
+enum SiteDomainStatus {
+  PENDING
+  ACTIVE
+  ERROR
+}
+
+enum SiteEventType {
+  VIEW
+  CLICK
+  FORM
+  VITALS
+}
+
+model Site {
+  id                 String   @id @default(cuid())
+  organizationId     String
+  name               String
+  templateKey        String?
+  draft              Json
+  draftRevision      Int      @default(1)
+  publishedVersionId String?
+  indexable          Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  versions     SiteVersion[]
+  domains      SiteDomain[]
+  events       SiteEvent[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId])
+  @@map("sites")
+}
+
+model SiteVersion {
+  id             String   @id @default(cuid())
+  siteId         String
+  organizationId String
+  version        Int
+  content        Json
+  publishedById  String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site         Site         @relation(fields: [siteId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@unique([siteId, version])
+  @@map("site_versions")
+}
+
+model SiteDomain {
+  id             String           @id @default(cuid())
+  siteId         String
+  organizationId String
+  hostname       String           @unique
+  kind           SiteDomainKind
+  isPrimary      Boolean          @default(false)
+  status         SiteDomainStatus @default(PENDING)
+  createdAt      DateTime         @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site         Site         @relation(fields: [siteId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@index([siteId])
+  @@map("site_domains")
+}
+
+// Visitas e cliques sem cookie. O visitante é um hash diário de IP + navegador:
+// nenhum dado pessoal é guardado. Também serve de contador de envios do formulário.
+model SiteEvent {
+  id             String        @id @default(cuid())
+  siteId         String
+  organizationId String
+  type           SiteEventType
+  path           String?
+  target         String?
+  visitorHash    String
+  referrerHost   String?
+  utmSource      String?
+  utmMedium      String?
+  utmCampaign    String?
+  device         String?
+  country        String?
+  // Clique de conversão: whatsapp, phone, email, cta, outbound, form, game.
+  label          String?
+  // Core Web Vitals (ms; cls em milésimos).
+  lcp            Int?
+  inp            Int?
+  cls            Int?
+  ttfb           Int?
+  fcp            Int?
+  createdAt      DateTime      @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site         Site         @relation(fields: [siteId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@index([siteId, createdAt])
+  @@index([siteId, type, visitorHash, createdAt])
+  @@map("site_events")
 }

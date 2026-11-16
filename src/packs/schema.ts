@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CONFIG_SCHEMAS, type AutomationKey } from "@/lib/automations/recipes";
+import { ICONS } from "@/lib/sites/content/sections";
 
 // Pacote de nicho: tudo que muda de um nicho para outro, como DADO validado. Entrar em
 // um nicho novo é criar uma pasta em src/packs/<nicho>/ com um pack.json; nenhuma regra
@@ -29,6 +30,78 @@ const message = z
   });
 
 const automationEntry = z.object({ enabled: z.boolean(), config: z.unknown() });
+
+
+// Modelo de site e páginas de captação do nicho. Os textos moram aqui (nunca no código) e usam
+// as variáveis abaixo, preenchidas com o briefing do cliente quando o site é criado.
+export const SITE_VARIABLES = ["negocio", "cidade", "responsavel", "registro"] as const;
+// Responsável e registro profissional só podem aparecer no aviso do rodapé: são opcionais no briefing.
+const SITE_FOOTER_ONLY_VARIABLES = ["responsavel", "registro"];
+
+const siteItem = z.object({ title: z.string().min(1).max(80), description: z.string().max(400).optional(), icon: z.enum(ICONS).optional() });
+
+const sitePage = z.object({
+  key: z.string().regex(/^[a-z0-9-]+$/),
+  // "" é a página inicial; as demais são um segmento em minúsculas.
+  slug: z.string().regex(/^$|^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  title: z.string().min(1).max(80),
+  // Página de captação: cabeçalho enxuto (logo e botão), um único objetivo.
+  landing: z.boolean().default(false),
+  showInMenu: z.boolean().default(true),
+  seoTitle: z.string().min(1).max(100),
+  seoDescription: z.string().min(1).max(220),
+  kind: z.enum(["page", "service", "about", "contact", "guide"]).optional(),
+  hero: z.object({
+    eyebrow: z.string().max(60).optional(),
+    heading: z.string().min(1).max(160),
+    highlight: z.string().max(80).optional(),
+    subheading: z.string().max(480).optional(),
+    badges: z.array(z.string().min(1).max(60)).max(4).default([]),
+    ctaLabel: z.string().min(1).max(40),
+  }),
+  about: z.object({ heading: z.string().min(1).max(120), body: z.string().min(1).max(2000), highlights: z.array(z.string().min(1).max(80)).max(6).default([]) }).optional(),
+  services: z.object({ heading: z.string().min(1).max(120), intro: z.string().max(400).optional(), items: z.array(siteItem).min(1).max(12) }).optional(),
+  benefits: z.object({ heading: z.string().min(1).max(120), intro: z.string().max(400).optional(), items: z.array(siteItem).min(1).max(8) }).optional(),
+  steps: z.object({ heading: z.string().min(1).max(120), intro: z.string().max(400).optional(), items: z.array(z.object({ title: z.string().min(1).max(80), description: z.string().max(400).optional() })).min(2).max(8) }).optional(),
+  faq: z.object({ heading: z.string().min(1).max(120), items: z.array(z.object({ question: z.string().min(1).max(200), answer: z.string().min(1).max(1500) })).min(1).max(20) }).optional(),
+  closing: z.object({ heading: z.string().min(1).max(120), body: z.string().max(300).optional(), ctaLabel: z.string().min(1).max(40) }).optional(),
+  contact: z
+    .object({
+      heading: z.string().min(1).max(120),
+      intro: z.string().max(600).optional(),
+      submitLabel: z.string().max(40).optional(),
+      messageLabel: z.string().max(60).optional(),
+      messagePlaceholder: z.string().max(200).optional(),
+    })
+    .optional(),
+});
+
+export const siteTemplate = z
+  .object({
+    colors: z.object({ primary: z.string().regex(/^#[0-9a-fA-F]{6}$/), secondary: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), accent: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional() }),
+    tagline: z.string().max(160).optional(),
+    // Nichos regulados exigem identificar o responsável e o registro profissional no material de divulgação.
+    requireRegistration: z.boolean().default(false),
+    footerNotice: z.string().max(400).optional(),
+    pages: z.array(sitePage).min(1).max(12),
+  })
+  .superRefine((t, ctx) => {
+    if (!t.pages.some((p) => p.slug === "")) ctx.addIssue({ code: "custom", message: "O modelo de site precisa de uma página inicial" });
+    const slugs = t.pages.map((p) => p.slug);
+    if (new Set(slugs).size !== slugs.length) ctx.addIssue({ code: "custom", message: "Páginas do modelo de site com o mesmo endereço" });
+    for (const p of t.pages) {
+      if (p.hero.highlight && !p.hero.heading.includes(p.hero.highlight)) ctx.addIssue({ code: "custom", message: `O destaque precisa ser um trecho do título (${p.key})` });
+    }
+    const pagesText = JSON.stringify(t.pages);
+    const everything = pagesText + (t.footerNotice ?? "") + (t.tagline ?? "");
+    for (const m of everything.matchAll(VARIABLE_RE)) {
+      if (!(SITE_VARIABLES as readonly string[]).includes(m[1])) ctx.addIssue({ code: "custom", message: `Variável desconhecida {{${m[1]}}} no modelo de site` });
+    }
+    for (const name of SITE_FOOTER_ONLY_VARIABLES) {
+      if (new RegExp(`\\{\\{\\s*${name}\\s*\\}\\}`).test(pagesText + (t.tagline ?? ""))) ctx.addIssue({ code: "custom", message: `{{${name}}} só pode aparecer no aviso do rodapé` });
+    }
+    if (t.requireRegistration && !t.footerNotice) ctx.addIssue({ code: "custom", message: "Nicho que exige registro profissional precisa de um aviso no rodapé" });
+  });
 
 export const NichePackSchema = z
   .object({
@@ -64,6 +137,8 @@ export const NichePackSchema = z
     // Regras do que o conteúdo gerado pode e não pode dizer neste nicho.
     contentRules: z.array(z.string()).max(20),
     contentTopics: z.array(z.object({ title: z.string(), angle: z.string() })).max(40),
+    // Modelo de site e de páginas de captação (opcional: nicho sem modelo usa o do pacote geral).
+    site: siteTemplate.optional(),
   })
   .superRefine((p, ctx) => {
     const keys = p.pipeline.stages.map((s) => s.key);

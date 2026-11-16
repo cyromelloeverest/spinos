@@ -15,7 +15,8 @@ vi.mock("@/lib/auth/current-org", () => ({
   getCurrentMembership: async () => ({ organizationId: "org-A", userId: "user-1", role: "OWNER" }),
   isCurrentUserSuperAdmin: async () => false,
 }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("@/lib/prisma-admin", () => ({ get prismaAdmin() { return h.prisma; } }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock("next/navigation", () => ({
   redirect: (to: string) => { throw new Error(`REDIRECT:${to}`); },
   notFound: () => { throw new Error("NOT_FOUND"); },
@@ -69,12 +70,12 @@ afterAll(async () => {
 
 describe("as telas montam com dados reais em todos os estados", () => {
   it("dashboard", async () => {
-    const Page = (await import("@/app/(app)/page")).default;
+    const Page = (await import("@/app/(platform)/(app)/page")).default;
     const el = await Page({ searchParams: Promise.resolve({}) });
     expect(el).toBeTruthy();
   });
   it("pipeline: as 3 negociações e a coluna 'Oportunidades' (sem as descartadas)", async () => {
-    const Page = (await import("@/app/(app)/pipeline/page")).default;
+    const Page = (await import("@/app/(platform)/(app)/pipeline/page")).default;
     const el = (await Page({ searchParams: Promise.resolve({ owner: "all" }) })) as { props: { children: Array<{ props?: { initialCards?: { id: string; stage: string }[]; stages?: unknown[] } }> } };
     const board = el.props.children.find((c) => c?.props?.initialCards);
     const cards = board!.props!.initialCards!;
@@ -86,7 +87,7 @@ describe("as telas montam com dados reais em todos os estados", () => {
     expect(board!.props!.stages).toHaveLength(5);
   });
   it("pipeline com a gaveta aberta e o filtro 'Minhas' monta, e a gaveta renderiza em HTML", async () => {
-    const Page = (await import("@/app/(app)/pipeline/page")).default;
+    const Page = (await import("@/app/(platform)/(app)/pipeline/page")).default;
     const el = (await Page({ searchParams: Promise.resolve({ owner: "me", abrir: ids.inPipeline!, erro: "Algo deu errado" }) })) as { props: { children: Array<{ props?: { data?: unknown } } | false | null> } };
     const drawerEl = el.props.children.find((c) => c && typeof c === "object" && c.props?.data) as { type: unknown; props: Record<string, unknown> };
     expect(drawerEl).toBeTruthy();
@@ -100,7 +101,7 @@ describe("as telas montam com dados reais em todos os estados", () => {
     expect(renderToStaticMarkup(createElement(freshDrawer.type as never, freshDrawer.props as never))).toContain("Mover para o pipeline");
   });
   it("atividades, em cada aba", async () => {
-    const Page = (await import("@/app/(app)/atividades/page")).default;
+    const Page = (await import("@/app/(platform)/(app)/atividades/page")).default;
     for (const aba of ["atrasadas", "hoje", "proximas", "concluidas"]) {
       expect(await Page({ searchParams: Promise.resolve({ aba, owner: "all" }) })).toBeTruthy();
     }
@@ -111,37 +112,60 @@ describe("as telas montam com dados reais em todos os estados", () => {
       await tx.$executeRaw`SELECT set_config('app.current_org_id', ${"org-A"}, true)`;
       await createLead(tx, { organizationId: "org-A", userId: "user-1" }, { name: "Lead Fumaça", company: "Empresa Fumaça", phone: "11988887777", originKey: "site" });
     });
-    const Leads = (await import("@/app/(app)/leads/page")).default;
+    const Leads = (await import("@/app/(platform)/(app)/leads/page")).default;
     const leadsHtml = renderToStaticMarkup((await Leads({ searchParams: Promise.resolve({}) })) as never);
     expect(leadsHtml).toContain("Lead Fumaça");
     expect(leadsHtml).toContain("Cadastrar lead");
-    const Contatos = (await import("@/app/(app)/contatos/page")).default;
+    const Contatos = (await import("@/app/(platform)/(app)/contatos/page")).default;
     const contatosHtml = renderToStaticMarkup((await Contatos({ searchParams: Promise.resolve({ q: "Fumaça" }) })) as never);
     expect(contatosHtml).toContain("Lead Fumaça");
     expect(contatosHtml).toContain("a registrar");
-    const Auto = (await import("@/app/(app)/automacoes/page")).default;
+    const Auto = (await import("@/app/(platform)/(app)/automacoes/page")).default;
     const autoHtml = renderToStaticMarkup((await Auto({ searchParams: Promise.resolve({}) })) as never);
     for (const title of ["Lead sem resposta", "Rodízio de leads", "Tarefas por etapa", "Follow-up de proposta", "Negociação sem próximo passo", "Venda fechada", "Retomar perdidos"]) expect(autoHtml).toContain(title);
   });
+  it("meu site: sem site mostra o formulário; criar, publicar e ver o estado no ar", async () => {
+    const Page = (await import("@/app/(platform)/(app)/meu-site/page")).default;
+    const empty = renderToStaticMarkup((await Page({ searchParams: Promise.resolve({}) })) as never);
+    expect(empty).toContain("Criar meu site");
+    const { createMySite, publishMySite } = await import("@/lib/actions/sites");
+    const form = new FormData();
+    for (const [k, v] of Object.entries({ name: "Padaria Fumaça", city: "Jundiaí", state: "SP", whatsapp: "(11) 98765-4321" })) form.set(k, v);
+    await expect(createMySite(form)).rejects.toThrow("REDIRECT:/meu-site?criado=1");
+    const draftHtml = renderToStaticMarkup((await Page({ searchParams: Promise.resolve({ criado: "1" }) })) as never);
+    expect(draftHtml).toContain("Rascunho, fora do ar");
+    expect(draftHtml).toContain("padaria-fumaca.sites.spinos.com.br");
+    expect(draftHtml).toContain("Liberar para o Google");
+    const site = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_org_id', ${"org-A"}, true)`;
+      return tx.site.findFirstOrThrow({ where: { organizationId: "org-A" } });
+    });
+    await expect(publishMySite(site.id)).rejects.toThrow("REDIRECT:/meu-site?publicado=1");
+    const liveHtml = renderToStaticMarkup((await Page({ searchParams: Promise.resolve({ publicado: "1" }) })) as never);
+    expect(liveHtml).toContain("No ar");
+    expect(liveHtml).toContain("Tirar do ar");
+    // Briefing inválido volta para a tela com a explicação, sem criar nada.
+    await expect(createMySite(new FormData())).rejects.toThrow(/REDIRECT:\/meu-site\?erro=/);
+  }, 30_000);
   it("oportunidades", async () => {
-    const Page = (await import("@/app/(app)/oportunidades/page")).default;
+    const Page = (await import("@/app/(platform)/(app)/oportunidades/page")).default;
     expect(await Page({ searchParams: Promise.resolve({}) } as never)).toBeTruthy();
   });
   it("histórico", async () => {
-    const Page = (await import("@/app/(app)/historico/page")).default;
+    const Page = (await import("@/app/(platform)/(app)/historico/page")).default;
     expect(await Page()).toBeTruthy();
   });
   it("assistente de vendas", async () => {
-    const Page = (await import("@/app/(app)/assistente-vendas/page")).default;
+    const Page = (await import("@/app/(platform)/(app)/assistente-vendas/page")).default;
     expect(await Page({ searchParams: Promise.resolve({}) })).toBeTruthy();
   });
   it("ficha da empresa (com e sem negociação)", async () => {
-    const Page = (await import("@/app/(app)/company/[id]/page")).default;
+    const Page = (await import("@/app/(platform)/(app)/company/[id]/page")).default;
     expect(await Page({ params: Promise.resolve({ id: ids.fresh! }) })).toBeTruthy();
     expect(await Page({ params: Promise.resolve({ id: ids.inPipeline! }) })).toBeTruthy();
   });
   it("exportação CSV traz a etapa de cada oportunidade", async () => {
-    const { GET } = await import("@/app/(app)/export/route");
+    const { GET } = await import("@/app/(platform)/(app)/export/route");
     const res = await GET();
     const text = await res.text();
     if (res.status === 200) {

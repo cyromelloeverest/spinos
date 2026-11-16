@@ -160,5 +160,426 @@
     { "title": "Sinais de que está na hora de revisar a contabilidade da empresa", "angle": "Crescimento, nova filial, mudança de sócios, atraso de obrigações." },
     { "title": "O que é BPO financeiro e quando faz sentido terceirizar", "angle": "Explicação do serviço e de suas etapas, sem promessas." },
     { "title": "Como organizar os documentos da empresa para o fechamento mensal", "angle": "Passo a passo prático com exemplos." }
-  ]
+  ],
+  "site": {
+    "colors": {
+      "primary": "#1d4ed8"
+    },
+    "tagline": "Contabilidade para empresas em {{cidade}} e região",
+    "requireRegistration": true,
+    "footerNotice": "{{negocio}}. Responsável técnico: {{responsavel}}, Contador(a), {{registro}}. Conteúdo de caráter informativo, sem promessa de resultado.",
+    "pages": [
+      {
+        "key": "inicio",
+        "slug": "",
+        "title": "Início",
+        "seoTitle": "Contabilidade para empresas em {{cidade}} | {{negocio}}",
+        "seoDescription": "{{negocio}}: contabilidade, abertura de empresas, departamento pessoal e orientação tributária para empresas de {{cidade}} e região.",
+        "hero": {
+          "heading": "Contabilidade para empresas em {{cidade}}",
+          "highlight": "Contabilidade",
+          "subheading": "A {{negocio}} cuida da parte contábil, fiscal e de pessoal da sua empresa, para você acompanhar os números com clareza e cumprir as obrigações no prazo.",
+          "badges": [
+            "Atendimento em {{cidade}} e região"
+          ],
+          "ctaLabel": "Falar com o escritório"
+        },
+        "about": {
+          "heading": "Sobre o escritório",
+          "body": "A {{negocio}} atende empresas de {{cidade}} e região com contabilidade, abertura e legalização de empresas, folha de pagamento e orientação tributária. O trabalho é técnico e transparente: cada obrigação, cada prazo e cada imposto da empresa é explicado em linguagem clara.",
+          "highlights": [
+            "Contabilidade, fiscal e departamento pessoal",
+            "Abertura e legalização de empresas",
+            "Orientação tributária conforme o regime da empresa"
+          ]
+        },
+        "services": {
+          "heading": "Áreas de atuação",
+          "intro": "Serviços contábeis e de apoio à gestão da empresa.",
+          "items": [
+            {
+              "title": "Contabilidade para empresas",
+              "description": "Escrituração, balanços, demonstrações e apuração de impostos conforme o regime tributário da empresa.",
+              "icon": "document"
+            },
+            {
+              "title": "Abertura e legalização de empresas",
+              "description": "Registro, CNPJ, inscrições e licenças, com orientação sobre o enquadramento e as obrigações iniciais.",
+              "icon": "building"
+            },
+            {
+              "title": "Departamento pessoal",
+              "description": "Folha de pagamento, admissões, rescisões e obrigações trabalhistas e previdenciárias.",
+              "icon": "users"
+            },
+            {
+              "title": "Orientação e planejamento tributário",
+              "description": "Análise do regime tributário e das obrigações da empresa, com base na legislação vigente.",
+              "icon": "chart"
+            }
+          ]
+        },
+        "faq": {
+          "heading": "Perguntas frequentes",
+          "items": [
+            {
+              "question": "Quando devo procurar um contador?",
+              "answer": "O ideal é antes de abrir a empresa: a escolha do tipo societário e do regime tributário influencia os impostos e as obrigações. Em empresas já em funcionamento, mudanças como nova filial, entrada de sócio ou crescimento do faturamento são bons momentos para revisar a situação contábil."
+            },
+            {
+              "question": "Qual a diferença entre MEI, Simples Nacional e Lucro Presumido?",
+              "answer": "São regimes de tributação com regras, limites de faturamento e obrigações diferentes. A escolha depende da atividade, do faturamento e da estrutura da empresa e deve ser analisada caso a caso, com base na legislação vigente."
+            },
+            {
+              "question": "Como funciona a troca de contador?",
+              "answer": "A empresa comunica a mudança ao contador atual, que entrega a documentação contábil, e o novo escritório assume a escrituração e as obrigações a partir de uma data combinada. Cada etapa é explicada para que não haja interrupção nos prazos."
+            }
+          ]
+        },
+        "closing": {
+          "heading": "Converse com o escritório",
+          "body": "Conte a situação da sua empresa e veja como podemos ajudar.",
+          "ctaLabel": "Falar pelo WhatsApp"
+        }
+      },
+      {
+        "key": "servicos",
+        "slug": "servicos",
+        "title": "Serviços",
+        "kind": "service",
+        "seoTitle": "Serviços contábeis | {{negocio}}",
+        "seoDescription": "Contabilidade, abertura de empresas, departamento pessoal e orientação tributária em {{cidade}}.",
+        "hero": {
+          "heading": "Serviços contábeis para a sua empresa",
+          "highlight": "Serviços contábeis",
+          "subheading": "Conheça as áreas em que a {{negocio}} atua e como começamos o trabalho com uma nova empresa.",
+          "badges": [],
+          "ctaLabel": "Falar com o escritório"
+        },
+        "services": {
+          "heading": "O que fazemos",
+          "items": [
+            {
+              "title": "Contabilidade para empresas",
+              "description": "Escrituração, balanços, demonstrações e apuração de impostos conforme o regime tributário da empresa.",
+              "icon": "document"
+            },
+            {
+              "title": "Abertura e legalização de empresas",
+              "description": "Registro, CNPJ, inscrições e licenças, com orientação sobre o enquadramento e as obrigações iniciais.",
+              "icon": "building"
+            },
+            {
+              "title": "Departamento pessoal",
+              "description": "Folha de pagamento, admissões, rescisões e obrigações trabalhistas e previdenciárias.",
+              "icon": "users"
+            },
+            {
+              "title": "Orientação e planejamento tributário",
+              "description": "Análise do regime tributário e das obrigações da empresa, com base na legislação vigente.",
+              "icon": "chart"
+            }
+          ]
+        },
+        "steps": {
+          "heading": "Como começamos",
+          "items": [
+            {
+              "title": "Conversa inicial",
+              "description": "Entendemos a atividade, o porte e a situação atual da empresa."
+            },
+            {
+              "title": "Levantamento",
+              "description": "Conferimos o regime tributário, os documentos e as obrigações em andamento."
+            },
+            {
+              "title": "Organização da rotina",
+              "description": "Combinamos prazos, responsáveis e a forma de envio dos documentos."
+            },
+            {
+              "title": "Acompanhamento",
+              "description": "Cuidamos das obrigações no prazo e esclarecemos as dúvidas ao longo do mês."
+            }
+          ]
+        }
+      },
+      {
+        "key": "contato",
+        "slug": "contato",
+        "title": "Contato",
+        "kind": "contact",
+        "seoTitle": "Contato | {{negocio}}",
+        "seoDescription": "Fale com a {{negocio}}, escritório de contabilidade em {{cidade}}.",
+        "hero": {
+          "heading": "Fale com o escritório",
+          "highlight": "escritório",
+          "subheading": "Conte sobre a sua empresa e retornamos o contato pelo canal que você preferir.",
+          "badges": [],
+          "ctaLabel": "Falar pelo WhatsApp"
+        },
+        "contact": {
+          "heading": "Fale conosco",
+          "intro": "Preencha o formulário ou chame pelo WhatsApp.",
+          "submitLabel": "Enviar mensagem",
+          "messageLabel": "Como podemos ajudar?",
+          "messagePlaceholder": "Conte, em poucas palavras, a situação da sua empresa."
+        }
+      },
+      {
+        "key": "abertura-de-empresa",
+        "slug": "abertura-de-empresa",
+        "title": "Abertura de empresa",
+        "landing": true,
+        "showInMenu": false,
+        "kind": "service",
+        "seoTitle": "Abertura de empresa em {{cidade}} | {{negocio}}",
+        "seoDescription": "Orientação na escolha do tipo societário e do regime tributário, registro, CNPJ e inscrições para abrir sua empresa em {{cidade}}.",
+        "hero": {
+          "heading": "Abertura de empresa em {{cidade}}, do registro ao primeiro mês",
+          "highlight": "Abertura de empresa",
+          "subheading": "A {{negocio}} orienta a escolha do tipo societário e do regime tributário e cuida do registro, do CNPJ e das inscrições necessárias.",
+          "badges": [
+            "Atendimento em {{cidade}} e região"
+          ],
+          "ctaLabel": "Quero abrir minha empresa"
+        },
+        "benefits": {
+          "heading": "O que está incluído",
+          "items": [
+            {
+              "title": "Registro e CNPJ",
+              "description": "Acompanhamento do registro da empresa e da obtenção do CNPJ.",
+              "icon": "document"
+            },
+            {
+              "title": "Enquadramento tributário",
+              "description": "Orientação sobre o regime tributário aplicável à atividade e ao porte da empresa.",
+              "icon": "chart"
+            },
+            {
+              "title": "Inscrições e licenças",
+              "description": "Inscrições estadual e municipal e licenças exigidas para a atividade.",
+              "icon": "check"
+            },
+            {
+              "title": "Obrigações do primeiro mês",
+              "description": "Explicação das obrigações iniciais para a empresa começar com a rotina em ordem.",
+              "icon": "calendar"
+            }
+          ]
+        },
+        "steps": {
+          "heading": "Como funciona",
+          "items": [
+            {
+              "title": "Dados e documentos dos sócios",
+              "description": "Reunimos as informações necessárias para o registro."
+            },
+            {
+              "title": "Tipo societário e regime",
+              "description": "Explicamos as opções e como cada uma influencia impostos e obrigações."
+            },
+            {
+              "title": "Registro e CNPJ",
+              "description": "Acompanhamos o processo nos órgãos competentes."
+            },
+            {
+              "title": "Início da rotina contábil",
+              "description": "Organizamos as obrigações e os prazos da nova empresa."
+            }
+          ]
+        },
+        "faq": {
+          "heading": "Dúvidas sobre abertura de empresa",
+          "items": [
+            {
+              "question": "Quanto tempo leva para abrir uma empresa?",
+              "answer": "O prazo depende do tipo de empresa, da atividade, do município e dos órgãos envolvidos. Na conversa inicial explicamos as etapas e o prazo esperado para o seu caso."
+            },
+            {
+              "question": "Por que contar com um contador na abertura?",
+              "answer": "O registro envolve escolhas, como o regime tributário, que influenciam os impostos e as obrigações da empresa. O acompanhamento contábil ajuda a fazer essas escolhas com base na legislação vigente."
+            }
+          ]
+        },
+        "contact": {
+          "heading": "Quero abrir minha empresa",
+          "intro": "Conte um pouco sobre a atividade que pretende exercer e retornamos o contato.",
+          "submitLabel": "Enviar",
+          "messageLabel": "Qual é a atividade da empresa?",
+          "messagePlaceholder": "Ex.: loja de roupas, clínica, consultoria, restaurante"
+        }
+      },
+      {
+        "key": "imposto-de-renda",
+        "slug": "imposto-de-renda",
+        "title": "Imposto de Renda",
+        "landing": true,
+        "showInMenu": false,
+        "kind": "service",
+        "seoTitle": "Declaração de Imposto de Renda em {{cidade}} | {{negocio}}",
+        "seoDescription": "Organização de documentos e preparo da declaração de Imposto de Renda de pessoa física e de sócios, em {{cidade}} e região.",
+        "hero": {
+          "heading": "Imposto de Renda: declaração conferida e entregue no prazo",
+          "highlight": "Imposto de Renda",
+          "subheading": "Organizamos os documentos e preparamos a declaração de pessoa física e de sócios, com orientação sobre as regras do ano-calendário.",
+          "badges": [
+            "Atendimento em {{cidade}} e região"
+          ],
+          "ctaLabel": "Quero declarar com o escritório"
+        },
+        "benefits": {
+          "heading": "Como ajudamos",
+          "items": [
+            {
+              "title": "Lista de documentos",
+              "description": "Indicamos o que separar conforme a sua situação.",
+              "icon": "document"
+            },
+            {
+              "title": "Conferência das informações",
+              "description": "Conferimos rendimentos, despesas, bens e dívidas antes do envio.",
+              "icon": "search"
+            },
+            {
+              "title": "Entrega dentro do prazo",
+              "description": "A declaração é transmitida dentro do prazo oficial da Receita Federal.",
+              "icon": "clock"
+            },
+            {
+              "title": "Orientação sobre pendências",
+              "description": "Esclarecemos dúvidas e orientamos caso haja pendências com a Receita Federal.",
+              "icon": "shield"
+            }
+          ]
+        },
+        "steps": {
+          "heading": "Passo a passo",
+          "items": [
+            {
+              "title": "Envio dos documentos",
+              "description": "Você envia os comprovantes do ano-calendário."
+            },
+            {
+              "title": "Conferência e preparo",
+              "description": "Conferimos os dados e preparamos a declaração."
+            },
+            {
+              "title": "Revisão com você",
+              "description": "Revisamos juntos antes de transmitir."
+            },
+            {
+              "title": "Transmissão e recibo",
+              "description": "Transmitimos a declaração e entregamos o recibo."
+            }
+          ]
+        },
+        "faq": {
+          "heading": "Dúvidas sobre o Imposto de Renda",
+          "items": [
+            {
+              "question": "Quem precisa declarar o Imposto de Renda?",
+              "answer": "As regras de obrigatoriedade, como limites de rendimentos e situações específicas, são definidas pela Receita Federal a cada ano. Consulte a norma vigente ou fale com o escritório para verificar o seu caso."
+            },
+            {
+              "question": "Que documentos devo separar?",
+              "answer": "Em geral: informes de rendimentos, comprovantes de despesas dedutíveis, informações sobre bens, direitos e dívidas e a declaração do ano anterior. A lista completa depende da sua situação."
+            }
+          ]
+        },
+        "contact": {
+          "heading": "Quero declarar com o escritório",
+          "intro": "Deixe seus dados e retornamos o contato para combinar os próximos passos.",
+          "submitLabel": "Enviar",
+          "messageLabel": "Observações",
+          "messagePlaceholder": "Ex.: sou sócio de empresa, tenho imóveis, tenho dependentes"
+        }
+      },
+      {
+        "key": "troca-de-contador",
+        "slug": "troca-de-contador",
+        "title": "Troca de contador",
+        "landing": true,
+        "showInMenu": false,
+        "kind": "service",
+        "seoTitle": "Troca de contador em {{cidade}} | {{negocio}}",
+        "seoDescription": "Entenda como funciona a mudança de escritório de contabilidade e como a {{negocio}} cuida da transição das obrigações da empresa.",
+        "hero": {
+          "heading": "Troca de contador sem interromper as obrigações da empresa",
+          "highlight": "Troca de contador",
+          "subheading": "Explicamos o passo a passo da mudança e cuidamos da transição para que os prazos fiscais sigam em dia.",
+          "badges": [
+            "Atendimento em {{cidade}} e região"
+          ],
+          "ctaLabel": "Quero entender como funciona"
+        },
+        "benefits": {
+          "heading": "Como cuidamos da transição",
+          "items": [
+            {
+              "title": "Levantamento da situação atual",
+              "description": "Conferimos o que está em andamento e o que está pendente.",
+              "icon": "search"
+            },
+            {
+              "title": "Solicitação da documentação",
+              "description": "Orientamos a empresa na solicitação dos documentos ao contador anterior.",
+              "icon": "document"
+            },
+            {
+              "title": "Continuidade das obrigações",
+              "description": "Combinamos a data de início para que os prazos sigam em dia.",
+              "icon": "calendar"
+            },
+            {
+              "title": "Esclarecimento de dúvidas",
+              "description": "Explicamos cada etapa em linguagem clara.",
+              "icon": "handshake"
+            }
+          ]
+        },
+        "steps": {
+          "heading": "Como funciona a mudança",
+          "items": [
+            {
+              "title": "Conversa e levantamento",
+              "description": "Entendemos a situação atual da empresa."
+            },
+            {
+              "title": "Comunicação ao contador atual",
+              "description": "A empresa comunica a mudança e solicita a documentação."
+            },
+            {
+              "title": "Recebimento da documentação",
+              "description": "Conferimos o que foi entregue."
+            },
+            {
+              "title": "Início da rotina com a {{negocio}}",
+              "description": "Assumimos a escrituração e as obrigações na data combinada."
+            }
+          ]
+        },
+        "faq": {
+          "heading": "Dúvidas sobre a troca de contador",
+          "items": [
+            {
+              "question": "Como funciona a mudança de contador?",
+              "answer": "A empresa comunica a mudança ao contador atual, que entrega a documentação contábil, e o novo escritório assume a escrituração e as obrigações a partir de uma data combinada."
+            },
+            {
+              "question": "A troca interrompe as obrigações da empresa?",
+              "answer": "Com planejamento, não deve haver interrupção: combinamos uma data de início e conferimos o que está pendente. Para saber o que se aplica ao seu caso, converse com o escritório."
+            }
+          ]
+        },
+        "contact": {
+          "heading": "Quero conversar sobre a troca",
+          "intro": "Deixe seus dados e retornamos o contato.",
+          "submitLabel": "Enviar",
+          "messageLabel": "Observações",
+          "messagePlaceholder": "Conte, se quiser, como é o atendimento atual da empresa"
+        }
+      }
+    ]
+  }
 }

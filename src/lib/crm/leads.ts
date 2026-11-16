@@ -13,7 +13,11 @@ export class LeadValidationError extends Error {
 }
 
 export class DuplicateLeadError extends Error {
-  constructor(public existingAccountName: string) {
+  constructor(
+    public existingAccountName: string,
+    public existingAccountId: string | null = null,
+    public existingContactId: string | null = null,
+  ) {
     super(`Já existe um contato com esse telefone ou e-mail (${existingAccountName}).`);
     this.name = "DuplicateLeadError";
   }
@@ -56,7 +60,7 @@ export async function createLead(tx: Tx, ctx: { organizationId: string; userId: 
     },
     include: { account: { select: { name: true } } },
   });
-  if (clash) throw new DuplicateLeadError(clash.account?.name ?? clash.name);
+  if (clash) throw new DuplicateLeadError(clash.account?.name ?? clash.name, clash.accountId, clash.id);
 
   const pipeline = await getDefaultPipeline(tx, organizationId);
   const stage = firstOpenStage(pipeline);

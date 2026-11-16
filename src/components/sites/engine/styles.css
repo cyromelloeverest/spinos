@@ -1,0 +1,5181 @@
+/*
+ * Shared styles for @everest/sections. Imported by apps/sites (and later by
+ * the admin preview) after Tailwind. Tones work by re-pointing the theme
+ * variables, so anything inside a dark band (cards, borders, muted text)
+ * adapts without per-component dark styles.
+ */
+
+@layer components {
+  .tone-light {
+    background: var(--surface);
+    color: var(--ink);
+  }
+
+  .tone-muted {
+    background: var(--surface-alt);
+    color: var(--ink);
+  }
+
+  .tone-dark {
+    --ink: var(--on-dark);
+    --muted: var(--muted-on-dark);
+    --line: rgb(255 255 255 / 0.12);
+    --surface: var(--dark-raised);
+    --surface-alt: var(--dark);
+    --brand-text: var(--brand-bright);
+    background: var(--dark);
+    color: var(--ink);
+  }
+
+  .tone-brand {
+    --ink: var(--brand-on-primary);
+    --muted: color-mix(in srgb, var(--brand-on-primary) 78%, transparent);
+    --line: color-mix(in srgb, var(--brand-on-primary) 20%, transparent);
+    --surface: color-mix(in srgb, var(--brand-primary) 80%, black);
+    --brand-text: var(--brand-on-primary);
+    background: var(--brand-primary);
+    color: var(--ink);
+  }
+
+  /* Cards: solid on plain bands, frosted glass when the section sits on a photo. */
+  .card-surface {
+    background: var(--surface);
+  }
+
+  /* On a photo, cards are a deep tint of the brand's dark tone: readable, still showing a hint of the photo. */
+  .has-backdrop .card-surface {
+    background: color-mix(in srgb, var(--dark) 78%, transparent);
+    border-color: rgb(255 255 255 / 0.14);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    backdrop-filter: blur(14px) saturate(140%);
+  }
+
+  .glass {
+    background: rgb(255 255 255 / 0.08);
+    border-color: rgb(255 255 255 / 0.18);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    backdrop-filter: blur(16px) saturate(140%);
+  }
+
+  /*
+   * Icon tile: soft brand gradient, a glossy top highlight and a colored
+   * shadow. Built from theme variables, so it is light on light bands and
+   * dark with a glowing icon on dark ones.
+   */
+  .icon-tile {
+    position: relative;
+    isolation: isolate;
+    color: var(--brand-text);
+    background: linear-gradient(150deg, color-mix(in srgb, var(--brand-primary) 20%, var(--surface)), color-mix(in srgb, var(--brand-primary) 6%, var(--surface)) 70%);
+    border: 1px solid color-mix(in srgb, var(--brand-primary) 22%, transparent);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.55),
+      0 14px 28px -14px color-mix(in srgb, var(--brand-primary) 60%, transparent);
+  }
+
+  .icon-tile::before {
+    content: "";
+    position: absolute;
+    inset: 1px 1px 50% 1px;
+    z-index: -1;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.55), transparent);
+  }
+
+  .tone-dark .icon-tile,
+  .has-backdrop .icon-tile {
+    background: linear-gradient(150deg, #1d2130, #0c0e15 75%);
+    border-color: color-mix(in srgb, var(--brand-bright) 35%, transparent);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      0 0 0 1px rgb(0 0 0 / 0.4),
+      0 16px 32px -12px color-mix(in srgb, var(--brand-primary) 70%, transparent);
+  }
+
+  .tone-dark .icon-tile::before,
+  .has-backdrop .icon-tile::before {
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.1), transparent);
+  }
+
+  .tone-dark .icon-tile,
+  .has-backdrop .icon-tile {
+    color: color-mix(in srgb, var(--brand-bright) 65%, white);
+  }
+
+  .tone-dark .icon-tile svg,
+  .has-backdrop .icon-tile svg {
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--brand-bright) 80%, transparent));
+  }
+
+  /* Fallback art when a section has no photo: brand glow + fine grid, never an empty box. */
+  .brand-pattern {
+    background-color: var(--dark);
+    background-image:
+      radial-gradient(circle at 78% 22%, color-mix(in srgb, var(--brand-primary) 55%, transparent), transparent 55%),
+      radial-gradient(circle at 12% 88%, color-mix(in srgb, var(--brand-accent) 35%, transparent), transparent 50%),
+      repeating-linear-gradient(90deg, rgb(255 255 255 / 0.04) 0 1px, transparent 1px 64px),
+      repeating-linear-gradient(0deg, rgb(255 255 255 / 0.04) 0 1px, transparent 1px 64px);
+  }
+}
+
+/* Entrance animation driven by scroll position: pure CSS, ignored by browsers without support. */
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: es-reveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 22%;
+  }
+}
+
+@keyframes es-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none;
+  }
+}
+
+/* ---- Motion ------------------------------------------------------------ */
+
+/* Slow, endless zoom on hero photos ("Ken Burns"). */
+.ken-burns {
+  animation: es-ken-burns 22s ease-in-out infinite alternate;
+  transform-origin: 60% 40%;
+}
+
+@keyframes es-ken-burns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+
+/* Photos drift slightly slower than the page while scrolling. */
+@supports (animation-timeline: view()) {
+  .parallax {
+    animation: es-parallax linear both;
+    animation-timeline: view();
+    /* A variable, so a style can switch the zoom off (the minifier drops a plain "scale" override). */
+    scale: var(--parallax-scale, 1.18);
+  }
+
+  /* Images uncover from the bottom as they enter the screen. */
+  .reveal-image {
+    animation: es-reveal-image linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 35%;
+  }
+}
+
+@keyframes es-parallax {
+  from {
+    translate: 0 -7%;
+  }
+  to {
+    translate: 0 7%;
+  }
+}
+
+@keyframes es-reveal-image {
+  from {
+    clip-path: inset(100% 0 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Hero headline: words rise out of their own masks on load, then the rest fades up. */
+.word-mask {
+  display: inline-block;
+  overflow: clip;
+  overflow-clip-margin: 0.12em;
+  vertical-align: bottom;
+  padding-bottom: 0.06em;
+}
+
+.word-rise {
+  display: inline-block;
+  animation: es-word-rise 1s cubic-bezier(0.2, 0.7, 0.15, 1) both;
+}
+
+@keyframes es-word-rise {
+  from {
+    transform: translateY(105%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.rise-in {
+  animation: es-rise-in 0.9s cubic-bezier(0.2, 0.7, 0.15, 1) both;
+}
+
+@keyframes es-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A cut-out image bobbing slowly, as if floating. */
+.float-soft {
+  animation: es-float 6s ease-in-out infinite;
+}
+
+@keyframes es-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(-1deg);
+  }
+}
+
+/* Marquee: two copies of the list slide left forever; hovering pauses it. */
+.marquee-track {
+  animation: es-marquee var(--marquee-duration, 40s) linear infinite;
+}
+
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes es-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-outline {
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
+@supports (animation-timeline: view()) {
+  /* Manifesto: each word goes from faint to full as the section crosses the screen. */
+  .statement {
+    view-timeline-name: --es-statement;
+  }
+
+  .statement-word {
+    animation: es-word-fill linear both;
+    animation-timeline: --es-statement;
+  }
+}
+
+@keyframes es-word-fill {
+  from {
+    opacity: 0.16;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  /* The header gains a soft shadow once the page starts moving under it. */
+  .site-header {
+    animation: es-header-lift linear both;
+    animation-timeline: scroll();
+    animation-range: 0 160px;
+  }
+
+  /* Reading progress bar on articles. */
+  .read-progress {
+    animation: es-read-progress linear both;
+    animation-timeline: scroll();
+  }
+}
+
+@keyframes es-header-lift {
+  to {
+    box-shadow: 0 12px 32px -16px rgb(0 0 0 / 0.22);
+  }
+}
+
+@keyframes es-read-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/*
+ * Editorial style: no zoom or parallax (photos stay sharp at their real size),
+ * no glowing tiles, no word-by-word reveals. Content still fades in gently.
+ */
+[data-style="editorial"] .ken-burns,
+[data-style="editorial"] .parallax,
+[data-style="layered"] .ken-burns,
+[data-style="layered"] .parallax {
+  animation: none !important;
+  scale: none !important;
+  translate: none !important;
+  transform: none !important;
+  --parallax-scale: 1;
+}
+
+[data-style="editorial"] .statement-word,
+[data-style="layered"] .statement-word {
+  animation: none !important;
+  opacity: 1 !important;
+}
+
+[data-style="editorial"] .icon-tile,
+[data-style="executivo"] .icon-tile {
+  background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
+  border-color: color-mix(in srgb, var(--brand-primary) 18%, transparent);
+  box-shadow: none;
+}
+
+[data-style="editorial"] .icon-tile::before,
+[data-style="executivo"] .icon-tile::before {
+  display: none;
+}
+
+[data-style="editorial"] .icon-tile svg,
+[data-style="executivo"] .icon-tile svg {
+  filter: none !important;
+}
+
+[data-style="editorial"] .tone-dark .icon-tile,
+[data-style="editorial"] .has-backdrop .icon-tile,
+[data-style="executivo"] :is(.tone-dark, .tone-brand, .has-backdrop) .icon-tile {
+  background: rgb(255 255 255 / 0.06);
+  border-color: rgb(255 255 255 / 0.14);
+  color: var(--brand-bright);
+}
+
+/* Shared by the "split" numbers and quotes: neutral defaults for every style. */
+.stat-card {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+.stat-chip {
+  color: var(--brand-text);
+  background: color-mix(in srgb, var(--brand-primary) 12%, transparent);
+}
+
+.quote-card {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+.deco-ring {
+  display: none;
+}
+
+.path-line {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--brand-text) 80%, transparent), color-mix(in srgb, var(--brand-text) 6%, transparent));
+}
+
+.path-node {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: color-mix(in srgb, var(--brand-text) 55%, transparent);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--brand-primary) 10%, transparent);
+}
+
+.group:hover .path-node {
+  color: var(--brand-on-primary);
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+}
+
+.path-card {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+.showcase-hero {
+  background:
+    radial-gradient(50% 45% at 50% 100%, color-mix(in srgb, var(--brand-primary) 45%, transparent), transparent 75%),
+    radial-gradient(40% 50% at 0% 0%, color-mix(in srgb, var(--brand-primary) 18%, transparent), transparent 70%),
+    var(--dark);
+}
+
+.browser-frame {
+  background: color-mix(in srgb, white 6%, var(--dark));
+  border-color: rgb(255 255 255 / 0.14);
+  box-shadow: 0 -30px 80px -30px color-mix(in srgb, var(--brand-primary) 55%, transparent);
+}
+
+.screen-shot {
+  isolation: isolate;
+}
+
+.screen-shot::before {
+  content: "";
+  position: absolute;
+  inset: 8% -4% -10%;
+  z-index: -1;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--brand-primary) 45%, transparent), transparent);
+  filter: blur(36px);
+}
+
+.phone-frame {
+  border-color: #0b0d12;
+  background: #0b0d12;
+  box-shadow: 0 30px 60px -20px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+
+.offer-card {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+.tool-panel,
+.tool-result,
+.tool-choice > span,
+label.tool-choice,
+.tool-input {
+  border-color: var(--line);
+}
+
+.tool-panel {
+  background: var(--surface);
+}
+
+.tool-result {
+  background: color-mix(in srgb, var(--brand-primary) 7%, transparent);
+  border-color: color-mix(in srgb, var(--brand-primary) 30%, transparent);
+}
+
+label.tool-choice:has(input:checked) {
+  border-color: color-mix(in srgb, var(--brand-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
+}
+
+.tool-input:focus-within {
+  border-color: var(--brand-primary);
+}
+
+.compare-card {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+.compare-after {
+  border-color: color-mix(in srgb, var(--brand-primary) 50%, transparent);
+  background:
+    radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--brand-primary) 14%, transparent), transparent 60%),
+    var(--surface);
+}
+
+.offer-featured {
+  border-color: color-mix(in srgb, var(--brand-primary) 55%, transparent);
+  box-shadow: 0 24px 60px -30px color-mix(in srgb, var(--brand-primary) 60%, transparent);
+}
+
+.lead-panel {
+  background:
+    radial-gradient(70% 55% at 50% 38%, color-mix(in srgb, var(--brand-primary) 70%, transparent), transparent 75%),
+    linear-gradient(165deg, color-mix(in srgb, var(--brand-primary) 55%, var(--dark)) 0%, var(--dark) 85%);
+}
+
+.lead-panel .deco-ring {
+  color: color-mix(in srgb, white 35%, transparent);
+}
+
+/*
+ * Layered style: dark bands become panels with one large rounded corner,
+ * lit by soft brand gradients; cards are translucent with a fine brand
+ * border on dark, and lightly tinted on light bands. Static like editorial.
+ */
+[data-style="layered"] body {
+  --button-radius: 999px;
+  --panel-radius: clamp(2.5rem, 7vw, 7.5rem);
+}
+
+[data-style="layered"] main > section.tone-dark:not(.hero-immersive),
+[data-style="layered"] main > section.tone-brand {
+  border-radius: 0 var(--panel-radius) 0 var(--panel-radius);
+  overflow: hidden;
+}
+
+[data-style="layered"] main > section.tone-dark:not(.has-backdrop):not(.hero-immersive) {
+  background:
+    radial-gradient(55% 80% at 0% 100%, color-mix(in srgb, var(--brand-primary) 30%, transparent), transparent 70%),
+    radial-gradient(45% 60% at 100% 0%, color-mix(in srgb, var(--brand-primary) 16%, transparent), transparent 70%),
+    var(--dark);
+}
+
+[data-style="layered"] main > section.tone-brand {
+  background:
+    radial-gradient(60% 90% at 100% 0%, color-mix(in srgb, white 18%, transparent), transparent 70%),
+    linear-gradient(135deg, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 70%, var(--dark)));
+}
+
+/* The hero is the first panel: its lower-left corner curves into the page. */
+[data-style="layered"] main > .hero-immersive:first-child {
+  border-bottom-left-radius: var(--panel-radius);
+}
+
+/* Light bands sit on a cool grey so the white cards and the dark panels both read as layers. */
+[data-style="layered"] .tone-muted {
+  background: color-mix(in srgb, var(--brand-primary) 3%, #f3f4f6);
+}
+
+[data-style="layered"] .tone-light .card-surface,
+[data-style="layered"] .tone-muted .card-surface,
+[data-style="layered"] .stat-card {
+  background: color-mix(in srgb, var(--brand-primary) 4%, white);
+  border-color: color-mix(in srgb, var(--brand-primary) 20%, white);
+  box-shadow: none;
+}
+
+[data-style="layered"] .path-card,
+[data-style="layered"] .tone-dark .card-surface,
+[data-style="layered"] .tone-dark .stat-card,
+[data-style="layered"] .quote-card,
+[data-style="layered"] .glass {
+  background: color-mix(in srgb, white 4%, transparent);
+  border-color: color-mix(in srgb, var(--brand-bright) 45%, transparent);
+  box-shadow: none;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+[data-style="layered"] .glass {
+  background: color-mix(in srgb, var(--dark) 55%, transparent);
+}
+
+[data-style="layered"] .tone-dark .path-node {
+  background: color-mix(in srgb, var(--dark) 60%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+[data-style="layered"] .tone-dark .group:hover .path-node {
+  background: var(--brand-primary);
+}
+
+[data-style="layered"] .icon-tile {
+  color: var(--brand-text);
+  background: color-mix(in srgb, var(--brand-primary) 10%, white);
+  border-color: color-mix(in srgb, var(--brand-primary) 18%, white);
+  box-shadow: none;
+}
+
+[data-style="layered"] .icon-tile::before {
+  display: none;
+}
+
+[data-style="layered"] .icon-tile svg {
+  filter: none !important;
+}
+
+[data-style="layered"] .tone-dark .icon-tile,
+[data-style="layered"] .has-backdrop .icon-tile {
+  background: color-mix(in srgb, white 5%, transparent);
+  border-color: color-mix(in srgb, var(--brand-bright) 45%, transparent);
+  color: var(--brand-bright);
+}
+
+/* Strip items become light cards that lift on hover. */
+[data-style="layered"] .strip-list {
+  gap: 1rem;
+}
+
+[data-style="layered"] .strip-list > li {
+  flex-direction: column;
+  padding: 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 16%, white);
+  border-radius: calc(var(--brand-radius) * 1.2);
+  background: color-mix(in srgb, var(--brand-primary) 4%, white);
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+[data-style="layered"] .strip-list > li:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--brand-primary) 40%, white);
+  box-shadow: 0 18px 40px -24px color-mix(in srgb, var(--brand-primary) 55%, transparent);
+}
+
+[data-style="layered"] .deco-ring {
+  display: block;
+  color: color-mix(in srgb, var(--brand-bright) 75%, transparent);
+}
+
+/* Shared look of numbered and letter cards (any style). */
+.numbered-card {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+a.numbered-card:hover {
+  border-color: color-mix(in srgb, var(--brand-primary) 55%, transparent);
+}
+
+/*
+ * Impacto: an all-dark site in the brand's dark tone. Section titles are
+ * uppercase in an expanded width with the keyword in the brand color,
+ * eyebrows carry a dash, cards are dark with fine borders and the bands
+ * sit on a faint grid with a warm glow. Static, like editorial.
+ */
+[data-style="impacto"] body {
+  --surface: color-mix(in srgb, var(--dark) 90%, white);
+  --surface-alt: var(--dark);
+  --ink: var(--on-dark);
+  --muted: var(--muted-on-dark);
+  --line: rgb(255 255 255 / 0.09);
+  --brand-text: var(--brand-primary);
+  --button-radius: 999px;
+  background: var(--dark);
+  color: var(--ink);
+}
+
+[data-style="impacto"] .tone-light,
+[data-style="impacto"] .tone-muted,
+[data-style="impacto"] .tone-dark:not(.has-backdrop):not(.hero-immersive) {
+  --surface: color-mix(in srgb, var(--dark) 90%, white);
+  --surface-alt: var(--dark);
+  --ink: var(--on-dark);
+  --muted: var(--muted-on-dark);
+  --line: rgb(255 255 255 / 0.09);
+  --brand-text: var(--brand-primary);
+  color: var(--ink);
+  background:
+    radial-gradient(60% 50% at 85% 0%, color-mix(in srgb, var(--brand-primary) 9%, transparent), transparent 70%),
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.025) 0 1px, transparent 1px 96px),
+    var(--dark);
+  border-top: 1px solid rgb(255 255 255 / 0.06);
+}
+
+[data-style="impacto"] .tone-dark,
+[data-style="impacto"] .has-backdrop,
+[data-style="impacto"] .hero-immersive {
+  --brand-text: var(--brand-primary);
+}
+
+[data-style="impacto"] main h1,
+[data-style="impacto"] main h2 {
+  text-transform: uppercase;
+  font-stretch: 125%;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.02;
+}
+
+/* The manifesto sentence reads like a section title. */
+[data-style="impacto"] main p.font-heading {
+  text-transform: uppercase;
+  font-stretch: 125%;
+  font-weight: 700;
+}
+
+[data-style="impacto"] main h3 {
+  font-stretch: 112%;
+}
+
+[data-style="impacto"] .eyebrow::before {
+  content: "— ";
+}
+
+[data-style="impacto"] .card-surface,
+[data-style="impacto"] .stat-card,
+[data-style="impacto"] .path-card,
+[data-style="impacto"] .quote-card,
+[data-style="impacto"] .offer-card,
+[data-style="impacto"] .compare-card:not(.compare-after),
+[data-style="impacto"] .tool-panel,
+[data-style="impacto"] .numbered-card,
+[data-style="impacto"] .strip-list > li {
+  background: color-mix(in srgb, white 2.5%, transparent);
+  border-color: rgb(255 255 255 / 0.09);
+  box-shadow: none;
+}
+
+[data-style="impacto"] .icon-tile {
+  color: var(--brand-primary);
+  background: color-mix(in srgb, var(--brand-primary) 10%, transparent);
+  border-color: color-mix(in srgb, var(--brand-primary) 30%, transparent);
+  box-shadow: none;
+}
+
+[data-style="impacto"] .icon-tile::before {
+  display: none;
+}
+
+[data-style="impacto"] .icon-tile svg {
+  filter: none !important;
+}
+
+[data-style="impacto"] .ken-burns,
+[data-style="impacto"] .parallax {
+  animation: none !important;
+  scale: none !important;
+  transform: none !important;
+  --parallax-scale: 1;
+}
+
+/*
+ * Academia: the look of a gym site. Dark bands without grids or glows, big
+ * condensed uppercase headings, photos doing the talking, solid bands in the
+ * brand color and the featured plan filled with it. Icons sit plain, never in
+ * tiles, and eyebrows carry no dash: nothing that reads like a template.
+ */
+[data-style="academia"] body {
+  --surface: color-mix(in srgb, var(--dark) 90%, white);
+  --surface-alt: var(--dark);
+  --ink: var(--on-dark);
+  --muted: var(--muted-on-dark);
+  --line: rgb(255 255 255 / 0.1);
+  --brand-text: var(--brand-primary);
+  --button-radius: 999px;
+  background: var(--dark);
+  color: var(--ink);
+}
+
+[data-style="academia"] .tone-light,
+[data-style="academia"] .tone-muted,
+[data-style="academia"] .tone-dark:not(.has-backdrop):not(.hero-immersive) {
+  --surface: color-mix(in srgb, var(--dark) 90%, white);
+  --surface-alt: var(--dark);
+  --ink: var(--on-dark);
+  --muted: var(--muted-on-dark);
+  --line: rgb(255 255 255 / 0.1);
+  --brand-text: var(--brand-primary);
+  color: var(--ink);
+  background: var(--dark);
+}
+
+[data-style="academia"] .tone-muted {
+  --surface: color-mix(in srgb, var(--dark) 84%, white);
+  background: color-mix(in srgb, var(--dark) 94%, white);
+}
+
+[data-style="academia"] .tone-dark,
+[data-style="academia"] .has-backdrop,
+[data-style="academia"] .hero-immersive {
+  --brand-text: var(--brand-primary);
+}
+
+[data-style="academia"] main h1,
+[data-style="academia"] main h2,
+[data-style="academia"] main p.font-heading {
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: -0.005em;
+  line-height: 0.92;
+}
+
+[data-style="academia"] main h1 {
+  font-size: clamp(3.25rem, 8vw, 7rem);
+}
+
+[data-style="academia"] main h2 {
+  font-size: clamp(2.6rem, 5.4vw, 4.6rem);
+}
+
+[data-style="academia"] main h3 {
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+[data-style="academia"] .eyebrow {
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+[data-style="academia"] .card-surface,
+[data-style="academia"] .stat-card,
+[data-style="academia"] .path-card,
+[data-style="academia"] .quote-card,
+[data-style="academia"] .offer-card,
+[data-style="academia"] .numbered-card,
+[data-style="academia"] .strip-list > li {
+  background: var(--surface);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+[data-style="academia"] .icon-tile {
+  width: auto;
+  height: auto;
+  justify-content: flex-start;
+  color: var(--brand-text);
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+
+[data-style="academia"] .icon-tile::before {
+  display: none;
+}
+
+[data-style="academia"] .icon-tile svg {
+  filter: none !important;
+}
+
+/* Photo cards: the photo and a big title, no index or rule. */
+[data-style="academia"] .panel-index,
+[data-style="academia"] .panel-rule {
+  display: none;
+}
+
+[data-style="academia"] .panel-title {
+  text-transform: uppercase;
+  font-weight: 800;
+  font-size: 2.4rem;
+  line-height: 0.95;
+}
+
+/* The manifesto is the loudest line of the page. */
+[data-style="academia"] .statement {
+  padding-block: clamp(6rem, 13vw, 10rem);
+}
+
+[data-style="academia"] .statement p.font-heading {
+  font-size: clamp(2.8rem, 6.6vw, 6rem);
+  line-height: 0.95;
+}
+
+/* Gym photos show people: keep heads in the frame of a wide cover. */
+[data-style="academia"] .hero-immersive img {
+  object-position: 50% 22%;
+}
+
+/* The featured plan is filled with the brand color, its button turns dark. */
+[data-style="academia"] .offer-featured {
+  --ink: var(--brand-on-primary);
+  --muted: color-mix(in srgb, var(--brand-on-primary) 75%, transparent);
+  background: var(--brand-primary);
+  color: var(--brand-on-primary);
+  box-shadow: none;
+}
+
+[data-style="academia"] .offer-featured [data-cta] {
+  background: var(--dark);
+  color: var(--on-dark);
+}
+
+[data-style="academia"] .offer-featured > span:first-child {
+  background: var(--dark);
+  color: var(--brand-primary);
+}
+
+/*
+ * Ambiental: corporate environmental look (Ambipar-like, and the brand's own
+ * social posts). Uppercase bold headings in the dark tone, a curved band in a
+ * primary→secondary gradient that sweeps across the bottom of the cover and of
+ * every dark band, pill eyebrows, rounded photo panels, soft white cards and
+ * faint diagonal stripes on the light bands. Static, like editorial.
+ */
+[data-style="ambiental"] {
+  --swoosh-band: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 200' preserveAspectRatio='none'%3E%3Cpath d='M0 172 C 520 160 1000 112 1440 36 L1440 0 C 1000 78 520 136 0 150 Z'/%3E%3C/svg%3E");
+  --swoosh-cover: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 200' preserveAspectRatio='none'%3E%3Cpath d='M0 200 L0 170 C 520 158 1000 110 1440 34 L1440 200 Z'/%3E%3C/svg%3E");
+  --swoosh-h: clamp(56px, 9vw, 140px);
+}
+
+[data-style="ambiental"] main h1,
+[data-style="ambiental"] main h2,
+[data-style="ambiental"] main p.font-heading {
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.04;
+}
+
+[data-style="ambiental"] .tone-light main h2,
+[data-style="ambiental"] main .tone-light h2,
+[data-style="ambiental"] main .tone-muted h2 {
+  color: var(--dark);
+}
+
+[data-style="ambiental"] main h3 {
+  font-weight: 700;
+}
+
+[data-style="ambiental"] .eyebrow {
+  display: inline-block;
+  padding: 0.45em 1.1em;
+  border-radius: 999px;
+  background: var(--dark);
+  color: var(--on-dark);
+  letter-spacing: 0.16em;
+}
+
+[data-style="ambiental"] .tone-dark .eyebrow,
+[data-style="ambiental"] .has-backdrop .eyebrow,
+[data-style="ambiental"] .hero-immersive .eyebrow {
+  background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary));
+  color: var(--brand-on-primary);
+}
+
+[data-style="ambiental"] .tone-muted {
+  background:
+    repeating-linear-gradient(135deg, color-mix(in srgb, var(--dark) 5%, transparent) 0 1px, transparent 1px 72px),
+    linear-gradient(160deg, #f6f7f9, #eceff3);
+}
+
+[data-style="ambiental"] .card-surface,
+[data-style="ambiental"] .stat-card,
+[data-style="ambiental"] .path-card,
+[data-style="ambiental"] .quote-card,
+[data-style="ambiental"] .offer-card,
+[data-style="ambiental"] .numbered-card,
+[data-style="ambiental"] .tool-panel {
+  border-color: transparent;
+  border-radius: 22px;
+  box-shadow: 0 18px 40px -24px color-mix(in srgb, var(--dark) 45%, transparent);
+}
+
+[data-style="ambiental"] .tone-light .card-surface,
+[data-style="ambiental"] .tone-muted .card-surface,
+[data-style="ambiental"] .tone-light .numbered-card,
+[data-style="ambiental"] .tone-muted .numbered-card,
+[data-style="ambiental"] .tone-light .path-card,
+[data-style="ambiental"] .tone-muted .path-card {
+  background: #fff;
+}
+
+[data-style="ambiental"] .icon-tile {
+  border-radius: 999px;
+  border: 0;
+  color: var(--brand-on-primary);
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+  box-shadow: none;
+}
+
+[data-style="ambiental"] .icon-tile::before {
+  display: none;
+}
+
+[data-style="ambiental"] .icon-tile svg {
+  filter: none !important;
+}
+
+[data-style="ambiental"] .ken-burns,
+[data-style="ambiental"] .parallax {
+  animation: none !important;
+  scale: none !important;
+  transform: none !important;
+  --parallax-scale: 1;
+}
+
+/* The swoosh: a gradient band and the next (light) band rising under it. */
+[data-style="ambiental"] .hero-immersive,
+[data-style="ambiental"] main > section.tone-dark {
+  padding-bottom: calc(var(--section-py) + var(--swoosh-h) * 0.95);
+}
+
+[data-style="ambiental"] .hero-immersive::before,
+[data-style="ambiental"] .hero-immersive::after,
+[data-style="ambiental"] main > section.tone-dark::before,
+[data-style="ambiental"] main > section.tone-dark::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px 0;
+  height: var(--swoosh-h);
+  pointer-events: none;
+  z-index: 2;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+[data-style="ambiental"] .hero-immersive::before,
+[data-style="ambiental"] main > section.tone-dark::before {
+  background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary));
+  -webkit-mask-image: var(--swoosh-band);
+  mask-image: var(--swoosh-band);
+}
+
+[data-style="ambiental"] .hero-immersive::after,
+[data-style="ambiental"] main > section.tone-dark::after {
+  /* The light band that follows (white), not the dark band's own surface. */
+  background: var(--swoosh-next, #fff);
+  -webkit-mask-image: var(--swoosh-cover);
+  mask-image: var(--swoosh-cover);
+}
+
+[data-style="ambiental"] .services-panels a > div,
+[data-style="ambiental"] .reveal-image {
+  border-radius: 28px;
+}
+
+@media (max-width: 639px) {
+  [data-style="ambiental"] main h2,
+  [data-style="ambiental"] main p.font-heading {
+    font-size: clamp(1.6rem, 7.4vw, 2.1rem);
+  }
+}
+
+/* The cover's glass card sits above the swoosh. */
+@media (min-width: 1024px) {
+  [data-style="ambiental"] .hero-callout {
+    bottom: calc(var(--swoosh-h) + 1.5rem);
+  }
+}
+
+/* A cut-out (mascot, product) stands free on a brand-gradient disc, as in the brand's posts. */
+[data-style="ambiental"] .product-panel {
+  overflow: visible;
+  box-shadow: none;
+  background: radial-gradient(circle at 50% 56%, color-mix(in srgb, var(--brand-secondary) 92%, white) 0, var(--brand-primary) 46%, transparent 46.5%);
+}
+
+[data-style="ambiental"] .product-panel img {
+  filter: drop-shadow(0 26px 30px color-mix(in srgb, var(--dark) 35%, transparent));
+}
+
+/* Behind photos the accent block takes the brand gradient; cut-outs already stand on their disc. */
+[data-style="ambiental"] .about-deco {
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+}
+
+/* Sub-brand logos keep their own colours: a white disc ringed in the brand gradient. */
+[data-style="ambiental"] .logo-panel {
+  border: 10px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(#fff, #fff) padding-box, linear-gradient(135deg, var(--brand-primary), var(--brand-secondary)) border-box;
+  box-shadow: 0 40px 70px -40px color-mix(in srgb, var(--dark) 45%, transparent);
+}
+
+[data-style="ambiental"] .about-deco:has(+ .logo-panel),
+[data-style="ambiental"] .about-deco:has(+ .product-panel) {
+  display: none;
+}
+
+/* Sub-brand logos in a strip read as logos, not as icons. */
+[data-style="ambiental"] .strip-list > li {
+  padding: 1.75rem;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 18px 40px -26px color-mix(in srgb, var(--dark) 45%, transparent);
+}
+
+[data-style="ambiental"] .strip-list img {
+  height: 3.75rem;
+  max-width: 15rem;
+}
+
+[data-style="ambiental"] .site-topbar {
+  background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary));
+}
+
+/*
+ * Engenharia: an engineering catalog. Black bands and warm off-white bands,
+ * every photo inside a circle ringed by a graduated dial (tick marks, like a
+ * gauge), red mono labels led by a dot, stats in circles with the last one
+ * filled red, and nothing else in color. Static.
+ */
+[data-style="engenharia"] body {
+  --paper: #ebe8e1;
+  --surface: #f4f2ed;
+  --surface-alt: var(--paper);
+  --line: rgb(17 17 17 / 0.12);
+  --button-radius: 999px;
+  background: var(--paper);
+}
+
+[data-style="engenharia"] .tone-light,
+[data-style="engenharia"] .tone-muted {
+  --surface: #f4f2ed;
+  --line: rgb(17 17 17 / 0.12);
+  background: var(--paper);
+}
+
+[data-style="engenharia"] .tone-dark:not(.has-backdrop):not(.hero-immersive) {
+  background: var(--dark);
+}
+
+[data-style="engenharia"] .site-header.tone-light {
+  background: #fff;
+}
+
+/* Menu in the heading face: larger, lighter tracking, ink on white. */
+[data-style="engenharia"] .site-header nav a:not([class*="bg-brand"]) {
+  font-family: var(--font-heading-family);
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+[data-style="engenharia"] .site-header nav a:not([class*="bg-brand"]):hover,
+[data-style="engenharia"] .site-header nav a:not([class*="bg-brand"])[aria-current="page"] {
+  color: var(--brand-primary);
+}
+
+[data-style="engenharia"] main h1,
+[data-style="engenharia"] main h2,
+[data-style="engenharia"] main p.font-heading {
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.04;
+}
+
+[data-style="engenharia"] .eyebrow {
+  font-family: var(--font-mono-family, ui-monospace, monospace);
+  font-weight: 500;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  color: var(--brand-primary);
+}
+
+[data-style="engenharia"] .eyebrow::before {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-right: 0.7em;
+  border-radius: 999px;
+  background: var(--brand-primary);
+  vertical-align: 0.1em;
+}
+
+[data-style="engenharia"] .card-surface,
+[data-style="engenharia"] .path-card,
+[data-style="engenharia"] .numbered-card,
+[data-style="engenharia"] .quote-card,
+[data-style="engenharia"] .offer-card,
+[data-style="engenharia"] .tool-panel,
+[data-style="engenharia"] .compare-card:not(.compare-after) {
+  background: transparent;
+  border-color: var(--line);
+  box-shadow: none !important;
+}
+
+[data-style="engenharia"] .tone-dark .card-surface,
+[data-style="engenharia"] .tone-dark .path-card,
+[data-style="engenharia"] .tone-dark .numbered-card {
+  border-color: rgb(255 255 255 / 0.12);
+}
+
+[data-style="engenharia"] .icon-tile {
+  color: var(--brand-primary);
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+[data-style="engenharia"] .icon-tile::before {
+  display: none;
+}
+
+[data-style="engenharia"] .icon-tile svg {
+  filter: none !important;
+}
+
+[data-style="engenharia"] main > :not(.hero-immersive) .ken-burns,
+[data-style="engenharia"] .parallax {
+  animation: none !important;
+  scale: none !important;
+  transform: none !important;
+  --parallax-scale: 1;
+}
+
+/* The dial: every photo in a circle, ringed by tick marks, with a red dot on the ring. */
+[data-style="engenharia"] .split-media,
+[data-style="engenharia"] .about-media:not(:has(.product-panel)):not(:has(.screen-shot)),
+[data-style="engenharia"] .card-media {
+  position: relative;
+  isolation: isolate;
+  aspect-ratio: 1;
+  padding: 7%;
+  border-radius: 999px;
+  overflow: visible;
+}
+
+[data-style="engenharia"] .split-media::before,
+[data-style="engenharia"] .about-media:not(:has(.product-panel)):not(:has(.screen-shot))::before,
+[data-style="engenharia"] .card-media::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 999px;
+  background: repeating-conic-gradient(from 0deg, currentColor 0 0.45deg, transparent 0.45deg 3deg);
+  opacity: 0.5;
+  -webkit-mask: radial-gradient(circle closest-side, transparent 0 calc(100% - 12px), #000 calc(100% - 12px) 100%, transparent 100%);
+  mask: radial-gradient(circle closest-side, transparent 0 calc(100% - 12px), #000 calc(100% - 12px) 100%, transparent 100%);
+}
+
+[data-style="engenharia"] .split-media::after,
+[data-style="engenharia"] .about-media:not(:has(.product-panel)):not(:has(.screen-shot))::after,
+[data-style="engenharia"] .card-media::after {
+  content: "";
+  position: absolute;
+  top: 14.6%;
+  right: 14.6%;
+  width: clamp(14px, 4%, 26px);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: var(--brand-primary);
+  translate: 50% -50%;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--brand-primary) 22%, transparent);
+}
+
+[data-style="engenharia"] .split-deco,
+[data-style="engenharia"] .about-media .about-deco {
+  display: none;
+}
+
+[data-style="engenharia"] .split-photo,
+[data-style="engenharia"] .about-photo,
+[data-style="engenharia"] .card-media > * {
+  aspect-ratio: 1 !important;
+  width: 100%;
+  height: auto;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+}
+
+[data-style="engenharia"] .card-media {
+  width: 78%;
+  margin: 2rem auto 0;
+}
+
+[data-style="engenharia"] .card-media + div {
+  text-align: center;
+}
+
+[data-style="engenharia"] .card-media + div h3 {
+  color: var(--ink);
+}
+
+/* Wide wordmarks stay small in the header so the menu and its button fit. */
+[data-style="engenharia"] .site-header img {
+  height: 1.6rem;
+  width: auto;
+}
+
+/* Three stats sit side by side, as in the catalog. */
+[data-style="engenharia"] dl:has(> .stat-card:nth-child(3):last-child) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Stats as circles; the last one is filled with the accent. */
+[data-style="engenharia"] .stat-card {
+  aspect-ratio: 1;
+  justify-content: center;
+  padding: 1.5rem;
+  border-radius: 999px;
+  border-color: currentColor;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-style="engenharia"] .stat-card .stat-chip {
+  display: none;
+}
+
+[data-style="engenharia"] .stat-card:last-child {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary);
+  color: var(--brand-on-primary);
+}
+
+[data-style="engenharia"] .stat-card:last-child dt {
+  color: color-mix(in srgb, var(--brand-on-primary) 85%, transparent);
+}
+
+/*
+ * Titles as in large industrial groups: uppercase, light weight, the
+ * highlighted words in black weight and the accent color. The cover title is
+ * much larger than the rest.
+ */
+[data-style="engenharia"] main h1,
+[data-style="engenharia"] main h2 {
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 0.98;
+}
+
+[data-style="engenharia"] main h2 {
+  font-size: clamp(2.1rem, 4.4vw, 3.9rem);
+}
+
+[data-style="engenharia"] main h1 .text-brand-text,
+[data-style="engenharia"] main h2 .text-brand-text,
+[data-style="engenharia"] main h1 .font-bold,
+[data-style="engenharia"] main h2 .font-bold {
+  font-weight: 800;
+}
+
+[data-style="engenharia"] .hero-immersive h1 {
+  font-size: clamp(2.7rem, 7.4vw, 6.6rem);
+  line-height: 0.94;
+}
+
+[data-style="engenharia"] .hero-immersive .max-w-3xl {
+  max-width: 54rem;
+}
+
+[data-style="engenharia"] .hero-immersive .eyebrow {
+  color: #fff;
+}
+
+/* Process panels edge to edge, side by side, joined by a hairline. */
+@media (min-width: 1024px) {
+  [data-style="engenharia"] .panel-grid {
+    grid-template-columns: repeat(var(--panels, 4), minmax(0, 1fr));
+    gap: 2px;
+    width: 100vw;
+    margin-inline: calc(50% - 50vw);
+  }
+
+  [data-style="engenharia"] .panel-grid:has(> li:nth-child(3):last-child) {
+    --panels: 3;
+  }
+}
+
+[data-style="engenharia"] .panel-grid div.group {
+  border-radius: 0;
+}
+
+@media (min-width: 1024px) {
+  [data-style="engenharia"] .panel-grid div.group {
+    aspect-ratio: 3 / 5;
+  }
+}
+
+/* On dark bands the large highlighted words keep the pure accent red (large text). */
+[data-style="engenharia"] .tone-dark h1 .text-brand-text,
+[data-style="engenharia"] .tone-dark h2 .text-brand-text {
+  color: color-mix(in srgb, var(--brand-primary) 88%, #fff);
+}
+
+[data-style="engenharia"] .panel-title {
+  font-weight: 300;
+  text-transform: uppercase;
+  font-size: clamp(1.7rem, 2.4vw, 2.3rem);
+}
+
+[data-style="engenharia"] .panel-index {
+  font-family: var(--font-mono-family, ui-monospace, monospace);
+  color: var(--brand-primary);
+}
+
+[data-style="engenharia"] .panel-rule {
+  background: var(--brand-primary);
+}
+
+/*
+ * Depth on the cover: while the page scrolls past the hero, its photo moves
+ * at a fraction of the speed (parallax) and the text drifts up and fades.
+ * Pure CSS (scroll-driven animation); browsers without it keep a still photo.
+ */
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* The page's own scroll (not view()): the hero clips its overflow, which would trap a view timeline. */
+    .hero-immersive .hero-depth {
+      animation: es-hero-depth linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 100vh;
+      transform-origin: 50% 0;
+    }
+
+    .hero-immersive:has(.hero-depth) > :not([aria-hidden]) {
+      animation: es-hero-lift linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 80vh;
+    }
+  }
+}
+
+@keyframes es-hero-depth {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.06);
+  }
+  to {
+    transform: translate3d(0, 38%, 0) scale(1.06);
+  }
+}
+
+/* Only a drift: fading the text would leave the buttons looking disabled. */
+@keyframes es-hero-lift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -8%, 0);
+  }
+}
+
+[data-style="editorial"] .hero-depth,
+[data-style="layered"] .hero-depth,
+[data-style="editorial"] .hero-immersive > *,
+[data-style="layered"] .hero-immersive > * {
+  animation: none !important;
+}
+
+/* An immersive hero opening the page slides under the translucent header. */
+main > .hero-immersive:first-child {
+  margin-top: -5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ken-burns,
+  .parallax,
+  .reveal-image,
+  .hero-slide,
+  .word-rise,
+  .rise-in,
+  .statement-word,
+  .float-soft,
+  .marquee-track {
+    animation: none !important;
+    scale: none;
+    translate: none;
+    clip-path: none;
+  --parallax-scale: 1;
+}
+  .hero-slide:not(:first-child) {
+    opacity: 0 !important;
+  }
+  .marquee-track {
+    flex-wrap: wrap;
+    width: auto;
+  }
+  .marquee-copy[aria-hidden] {
+    display: none;
+  }
+}
+
+/* ---- Style: industrial ----------------------------------------------------
+ * White and technical (catalog look): navy ink, hairlines instead of shadows,
+ * wide display headings, monospace labels and the CMYK rule of print. The
+ * accent color carries highlights; the primary (navy) carries buttons.
+ */
+
+[data-style="industrial"] body {
+  --surface: #ffffff;
+  --surface-alt: #f3f4f9;
+  --ink: var(--dark);
+  --muted: color-mix(in srgb, var(--dark) 62%, #8a90b0);
+  --line: color-mix(in srgb, var(--dark) 13%, white);
+  --brand-text: var(--brand-accent);
+  --button-radius: 3px;
+  --cmyk-k: #111111;
+  --cmyk-c: #00a3e0;
+  --cmyk-m: #e5157f;
+  --cmyk-y: #f2cf00;
+  background: #ffffff;
+  color: var(--ink);
+}
+
+[data-style="industrial"] .tone-dark {
+  --brand-text: color-mix(in srgb, var(--brand-accent) 70%, white);
+  /* A navy button would vanish on the navy band: buttons take the accent there. */
+  --brand-primary: var(--brand-accent);
+  --brand-on-primary: #ffffff;
+}
+
+[data-style="industrial"] .hero-immersive .machine-stage {
+  background: radial-gradient(closest-side, rgb(255 255 255 / 0.16), transparent);
+}
+
+[data-style="industrial"] main h1,
+[data-style="industrial"] main h2 {
+  font-stretch: 118%;
+  font-weight: 800;
+  letter-spacing: -0.012em;
+  line-height: 0.98;
+}
+
+[data-style="industrial"] main h3 {
+  font-stretch: 112%;
+  font-weight: 700;
+}
+
+[data-style="industrial"] .eyebrow {
+  font-family: var(--font-mono-family, ui-monospace, monospace);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+}
+
+/* Menu in a size that reads at a glance on a factory site (client asked for bigger letters). */
+@media (min-width: 1280px) {
+  [data-style="industrial"] .site-header nav {
+    gap: 1rem;
+  }
+  [data-style="industrial"] .site-header nav > div > a {
+    letter-spacing: 0.04em;
+  }
+  [data-style="industrial"] .site-header nav > a:last-child {
+    padding-inline: 1rem;
+    letter-spacing: 0.06em;
+  }
+}
+@media (min-width: 1440px) {
+  [data-style="industrial"] .site-header nav > div > a {
+    font-size: 0.8125rem;
+  }
+}
+
+/* Print's color bar under every label: K, Y, M, C. */
+[data-style="industrial"] .eyebrow::after,
+.cmyk-rule {
+  content: "";
+  display: block;
+  width: 106px;
+  height: 2px;
+  margin-top: 10px;
+  background: linear-gradient(
+    90deg,
+    var(--cmyk-k, #111) 0 22px,
+    transparent 22px 28px,
+    var(--cmyk-y, #f2cf00) 28px 50px,
+    transparent 50px 56px,
+    var(--cmyk-m, #e5157f) 56px 78px,
+    transparent 78px 84px,
+    var(--cmyk-c, #00a3e0) 84px 106px
+  );
+}
+
+[data-style="industrial"] .text-center > .eyebrow::after,
+[data-style="industrial"] .eyebrow.text-center::after {
+  margin-inline: auto;
+}
+
+[data-style="industrial"] .card-surface,
+[data-style="industrial"] .stat-card,
+[data-style="industrial"] .path-card,
+[data-style="industrial"] .numbered-card,
+[data-style="industrial"] .offer-card,
+[data-style="industrial"] .compare-card:not(.compare-after),
+[data-style="industrial"] .tool-panel {
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+[data-style="industrial"] .icon-tile {
+  color: var(--brand-accent);
+  background: color-mix(in srgb, var(--brand-accent) 8%, white);
+  border-color: color-mix(in srgb, var(--brand-accent) 25%, transparent);
+  box-shadow: none;
+}
+
+[data-style="industrial"] .icon-tile::before {
+  display: none;
+}
+
+[data-style="industrial"] .ken-burns {
+  animation: none !important;
+}
+
+/* Parallelogram label, as on the printed catalog. */
+.skew-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 28px;
+  font-family: var(--font-heading-family);
+  font-stretch: 110%;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.skew-tag::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid currentColor;
+  transform: skewX(-35deg);
+}
+
+.mono-label {
+  font-family: var(--font-mono-family, ui-monospace, monospace);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Hero "panels": the catalog cover. Diagonal panels, each with a machine on a steel-blue gradient. */
+.panel-strip {
+  display: grid;
+  grid-template-columns: repeat(var(--panels, 3), minmax(0, 1fr));
+  gap: clamp(8px, 1.2vw, 18px);
+}
+
+.panel {
+  position: relative;
+  aspect-ratio: 5 / 4;
+  clip-path: polygon(16% 0, 100% 0, 84% 100%, 0 100%);
+  background:
+    radial-gradient(90% 70% at 50% 40%, rgb(255 255 255 / 0.85), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--dark) 55%, #b9c0d8), #eef0f7 78%);
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.panel:nth-child(2) {
+  transform: translateY(-6%);
+}
+
+.panel img {
+  position: absolute;
+  inset: 8% 12% 6%;
+  width: 76%;
+  height: 86%;
+  object-fit: contain;
+  filter: drop-shadow(0 22px 22px rgb(20 22 60 / 0.28));
+}
+
+@media (max-width: 700px) {
+  .panel-strip {
+    grid-template-columns: 1fr;
+  }
+  .panel {
+    clip-path: polygon(8% 0, 100% 0, 92% 100%, 0 100%);
+    aspect-ratio: 16 / 10;
+  }
+  .panel:nth-child(2) {
+    transform: none;
+  }
+}
+
+/* The claim under the logo, in spaced capitals like the printed cover. */
+main h1.panels-claim {
+  letter-spacing: 0.4em !important;
+  font-stretch: 100% !important;
+  line-height: 1.6 !important;
+}
+
+/* The model on each cover panel, set on the lower edge like a catalog caption. */
+.panel {
+  margin: 0;
+}
+
+.panel-caption {
+  position: absolute;
+  left: 22%;
+  bottom: 7%;
+  z-index: 1;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #ffffff;
+  background: color-mix(in srgb, var(--dark) 82%, transparent);
+}
+
+@media (max-width: 700px) {
+  .panel-caption {
+    left: 12%;
+  }
+}
+
+/* Width ranges drawn to scale. */
+.range-track {
+  background-image: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px var(--tick, 25%));
+}
+
+.range-bar {
+  transform-origin: left center;
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .range-bar {
+      animation: es-range-grow linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 100%;
+    }
+  }
+}
+
+@keyframes es-range-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.c-k { background: var(--cmyk-k, #111); }
+.c-c { background: var(--cmyk-c, #00a3e0); }
+.c-m { background: var(--cmyk-m, #e5157f); }
+.c-y { background: var(--cmyk-y, #f2cf00); }
+.c-brand { background: var(--brand-primary); }
+
+/* Machine cut-outs float on a soft disc, like on the catalog pages. */
+.machine-stage {
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--dark) 7%, white), transparent);
+}
+
+.machine-stage img {
+  filter: drop-shadow(0 26px 28px rgb(20 22 60 / 0.22));
+}
+
+/* A long value (an e-mail, a server name) breaks inside the cell instead of pushing the page sideways on phones. */
+.spec-table td {
+  overflow-wrap: anywhere;
+}
+
+.spec-table tr + tr {
+  border-top: 1px solid var(--line);
+}
+
+/* Hollow highlight (headlineStyle "outline"): the stroke follows the text color of the band. */
+.headline-marker {
+  padding: 0 0.14em;
+  border-radius: 0.1em;
+  color: var(--brand-on-primary);
+  background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary));
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.headline-outline {
+  color: transparent;
+  -webkit-text-stroke: max(1.5px, 0.03em) var(--ink);
+  paint-order: stroke fill;
+}
+
+/*
+ * Engenharia cover in motion: the photo travels slowly sideways and back,
+ * like a part turning on the lathe, with a red scan line sweeping across.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  [data-style="engenharia"] .hero-immersive .ken-burns {
+    animation: es-eng-travel 16s ease-in-out infinite alternate;
+    transform-origin: 70% 50%;
+  }
+
+  [data-style="engenharia"] .hero-immersive::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: -5;
+    width: 18%;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand-primary) 16%, transparent) 70%, color-mix(in srgb, var(--brand-primary) 55%, transparent) 99%, transparent);
+    mix-blend-mode: screen;
+    animation: es-eng-scan 7s cubic-bezier(0.6, 0, 0.3, 1) 1.2s infinite;
+    translate: -100% 0;
+  }
+}
+
+@keyframes es-eng-travel {
+  from {
+    transform: scale(1.1) translate3d(3%, 0, 0);
+  }
+  to {
+    transform: scale(1.16) translate3d(-3%, -1%, 0);
+  }
+}
+
+@keyframes es-eng-scan {
+  0% {
+    translate: -100% 0;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    translate: 620% 0;
+    opacity: 0;
+  }
+}
+
+/*
+ * Promotora: an event promoter (e.g. Inmotion). Photo-led, deep brand bands,
+ * big numbers between thin dividers, the logo's geometry (two half discs and a
+ * circle, in rising tones) as the recurring shape: a large outline over the
+ * cover, small marks before the eyebrows and half discs overlapping photos.
+ */
+[data-style="promotora"] {
+  --promo-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 100'%3E%3Cpath d='M50 0A50 50 0 0 0 50 100Z' fill-opacity='.45'/%3E%3Cpath d='M100 0A50 50 0 0 0 100 100Z' fill-opacity='.72'/%3E%3Ccircle cx='150' cy='50' r='50'/%3E%3C/svg%3E");
+  --promo-outline: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-3 -3 206 106' fill='none' stroke='white' stroke-width='2.2'%3E%3Cpath d='M50 0A50 50 0 0 0 50 100Z'/%3E%3Cpath d='M100 0A50 50 0 0 0 100 100Z'/%3E%3Ccircle cx='150' cy='50' r='50'/%3E%3C/svg%3E");
+  --promo-half: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 100'%3E%3Cpath d='M50 0A50 50 0 0 0 50 100Z'/%3E%3C/svg%3E");
+}
+
+[data-style="promotora"] body {
+  --surface-alt: color-mix(in srgb, var(--brand-accent) 10%, white);
+}
+
+[data-style="promotora"] .tone-muted {
+  background: color-mix(in srgb, var(--brand-accent) 10%, white);
+}
+
+[data-style="promotora"] main h1,
+[data-style="promotora"] main h2 {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.06;
+}
+
+[data-style="promotora"] main h1 .text-brand-text,
+[data-style="promotora"] main h2 .text-brand-text {
+  font-weight: 800;
+}
+
+/* On photos and brand bands the contrast flips: the title in a light tint of the accent, the highlight in pure white. */
+[data-style="promotora"] .tone-dark :is(h1, h2),
+[data-style="promotora"] .tone-brand :is(h1, h2) {
+  color: color-mix(in srgb, var(--brand-accent) 50%, white);
+}
+
+[data-style="promotora"] .tone-dark :is(h1, h2) .text-brand-text,
+[data-style="promotora"] .tone-brand :is(h1, h2) .text-brand-text {
+  color: #fff;
+}
+
+[data-style="promotora"] .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--brand-secondary);
+}
+
+[data-style="promotora"] .eyebrow.text-center {
+  justify-content: center;
+}
+
+[data-style="promotora"] .tone-dark .eyebrow,
+[data-style="promotora"] .tone-brand .eyebrow {
+  color: color-mix(in srgb, var(--brand-accent) 70%, white);
+}
+
+[data-style="promotora"] .eyebrow::before {
+  content: "";
+  flex: none;
+  width: 2.4em;
+  height: 1.2em;
+  background: currentColor;
+  -webkit-mask: var(--promo-mark) center / contain no-repeat;
+  mask: var(--promo-mark) center / contain no-repeat;
+}
+
+/* Header: the wordmark at a readable size, the menu in sentence case. */
+[data-style="promotora"] .site-header img {
+  height: 1.55rem;
+  width: auto;
+}
+
+@media (min-width: 1024px) {
+  [data-style="promotora"] .site-header img {
+    height: 2.1rem;
+  }
+}
+
+[data-style="promotora"] .site-header nav a:not([class*="bg-brand"]) {
+  font-size: 0.92rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Cover: the logo's outline, large, drifting off the right edge. */
+[data-style="promotora"] .hero-immersive::after {
+  content: "";
+  position: absolute;
+  right: -8vw;
+  bottom: -6%;
+  z-index: -5;
+  width: min(62vw, 900px);
+  aspect-ratio: 2 / 1;
+  background: var(--promo-outline) center / contain no-repeat;
+  opacity: 0.32;
+  pointer-events: none;
+}
+
+/* Numbers between thin dividers, left-aligned, without icon tiles. */
+[data-style="promotora"] .numbers-row {
+  row-gap: 2rem;
+}
+
+[data-style="promotora"] .numbers-item {
+  align-items: flex-start;
+  padding: 0.5rem 1rem;
+  text-align: left;
+  border-color: rgb(255 255 255 / 0.18);
+}
+
+[data-style="promotora"] .numbers-item dd {
+  align-items: flex-start;
+}
+
+[data-style="promotora"] .numbers-item dd > :not(.numbers-value) {
+  display: none;
+}
+
+[data-style="promotora"] .numbers-value {
+  font-size: clamp(2rem, 4.6vw, 4.2rem);
+  white-space: nowrap;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+[data-style="promotora"] .numbers-item dt {
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Photos with the logo's shapes overlapping their corners. */
+[data-style="promotora"] .split-media,
+[data-style="promotora"] .about-media:not(:has(.product-panel)):not(:has(.screen-shot)) {
+  position: relative;
+  isolation: isolate;
+}
+
+[data-style="promotora"] .split-deco,
+[data-style="promotora"] .about-media .about-deco {
+  display: none;
+}
+
+[data-style="promotora"] .split-media::before,
+[data-style="promotora"] .about-media:not(:has(.product-panel)):not(:has(.screen-shot))::before {
+  content: "";
+  position: absolute;
+  left: -2.75rem;
+  bottom: 12%;
+  z-index: 1;
+  width: 5.5rem;
+  height: 11rem;
+  background: var(--brand-accent);
+  -webkit-mask: var(--promo-half) center / contain no-repeat;
+  mask: var(--promo-half) center / contain no-repeat;
+  pointer-events: none;
+}
+
+[data-style="promotora"] .split-media::after,
+[data-style="promotora"] .about-media:not(:has(.product-panel)):not(:has(.screen-shot))::after {
+  content: "";
+  position: absolute;
+  top: -2.5rem;
+  right: -2.5rem;
+  z-index: 1;
+  width: 7rem;
+  aspect-ratio: 1;
+  border: 3px solid var(--brand-secondary);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+[data-style="promotora"] .tone-brand .about-media::after,
+[data-style="promotora"] .tone-dark .about-media::after {
+  border-color: color-mix(in srgb, var(--brand-accent) 70%, white);
+}
+
+@media (max-width: 640px) {
+  [data-style="promotora"] .split-media::before,
+  [data-style="promotora"] .about-media::before {
+    left: -1rem;
+    width: 3rem;
+    height: 6rem;
+  }
+
+  [data-style="promotora"] .split-media::after,
+  [data-style="promotora"] .about-media::after {
+    top: -1.25rem;
+    right: -0.5rem;
+    width: 4rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  [data-style="promotora"] .numbers-item {
+    padding: 0.5rem 2rem;
+  }
+}
+
+/* Four events side by side on wide screens. */
+@media (min-width: 1024px) {
+  [data-style="promotora"] .panel-grid:has(> li:nth-child(4):last-child) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  [data-style="promotora"] .panel-grid:has(> li:nth-child(4):last-child) .panel-title {
+    font-size: 1.5rem;
+  }
+}
+
+[data-style="promotora"] .panel-index {
+  color: color-mix(in srgb, var(--brand-accent) 70%, white);
+}
+
+[data-style="promotora"] .calendar-date {
+  background: linear-gradient(160deg, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 70%, var(--brand-secondary)));
+}
+
+/* Icons in soft tiles of the brand tint; white on brand bands, where card titles turn white too. */
+[data-style="promotora"] .icon-tile {
+  color: var(--brand-primary);
+  background: color-mix(in srgb, var(--brand-accent) 22%, white);
+  border: 0;
+  box-shadow: none;
+}
+
+[data-style="promotora"] .icon-tile::before {
+  display: none;
+}
+
+[data-style="promotora"] :is(.tone-dark, .tone-brand) .icon-tile {
+  color: #fff;
+  background: rgb(255 255 255 / 0.1);
+}
+
+[data-style="promotora"] :is(.tone-dark, .tone-brand) h3 {
+  color: #fff;
+}
+
+/* Events on a brand band: panels edge to edge, joined by a hairline, taller. */
+@media (min-width: 1024px) {
+  [data-style="promotora"] .tone-dark .panel-grid {
+    width: 100vw;
+    margin-inline: calc(50% - 50vw);
+    gap: 2px;
+  }
+
+  [data-style="promotora"] .tone-dark .panel-grid div.group {
+    aspect-ratio: 3 / 4.4;
+    border-radius: 0;
+  }
+}
+
+[data-style="promotora"] .marquee-photo {
+  box-shadow: 0 18px 40px -24px rgb(0 0 0 / 0.45);
+}
+
+/* Moving words on a brand band: a light outline that reads on the deep color. */
+[data-style="promotora"] .tone-dark .marquee-outline {
+  -webkit-text-stroke-color: color-mix(in srgb, var(--brand-accent) 65%, white);
+  color: transparent;
+}
+
+[data-style="promotora"] .tone-dark.marquee {
+  border-color: rgb(255 255 255 / 0.08);
+}
+
+/*
+ * Feira: trade fairs of the print and packaging industry (e.g. Flexo &
+ * Labels). The brand manual's three gestures: layers (offset planes behind
+ * photos), cut-outs (one label-like cut corner on cards) and connections (a
+ * line ending in a dot before eyebrows). Mineral bands between white ones.
+ */
+[data-style="feira"] body {
+  --mineral: #edefea;
+  --surface-alt: var(--mineral);
+  --cut: 16px;
+}
+
+[data-style="feira"] .tone-muted {
+  background: var(--mineral);
+}
+
+[data-style="feira"] main h1,
+[data-style="feira"] main h2 {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+}
+
+[data-style="feira"] main :is(h1, h2) .text-brand-text {
+  font-weight: 700;
+}
+
+/* Connections: a line ending in a dot leads into every eyebrow. */
+[data-style="feira"] .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+}
+
+[data-style="feira"] .eyebrow.text-center {
+  justify-content: center;
+}
+
+[data-style="feira"] .eyebrow::before {
+  content: "";
+  flex: none;
+  width: 2.75em;
+  height: 0.55em;
+  background:
+    radial-gradient(circle at calc(100% - 0.275em) 50%, var(--brand-secondary) 0.275em, transparent 0.3em),
+    linear-gradient(var(--brand-secondary), var(--brand-secondary)) left center / calc(100% - 0.4em) 1.5px no-repeat;
+}
+
+/* Cut-outs: one controlled corner, like a die-cut label. */
+[data-style="feira"] :is(.card-surface, .numbered-card, .stat-card, .path-card, .offer-card, .calendar-list li > *) {
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%);
+}
+
+[data-style="feira"] .stat-card .stat-chip,
+[data-style="feira"] .icon-tile {
+  color: var(--brand-primary);
+  background: color-mix(in srgb, var(--brand-secondary) 22%, white);
+  box-shadow: none;
+}
+
+[data-style="feira"] .icon-tile::before {
+  display: none;
+}
+
+[data-style="feira"] :is(.tone-dark, .tone-brand) .icon-tile {
+  color: #fff;
+  background: rgb(255 255 255 / 0.1);
+}
+
+/* Layers: offset planes behind photos, in the brand and the secondary color. */
+[data-style="feira"] .split-media,
+[data-style="feira"] .about-media:not(:has(.product-panel)):not(:has(.screen-shot)) {
+  position: relative;
+  isolation: isolate;
+}
+
+[data-style="feira"] .split-deco,
+[data-style="feira"] .about-media .about-deco {
+  display: none;
+}
+
+[data-style="feira"] .split-media::before,
+[data-style="feira"] .about-media:not(:has(.product-panel)):not(:has(.screen-shot))::before {
+  content: "";
+  position: absolute;
+  inset: 1.75rem -1.75rem -1.75rem 1.75rem;
+  z-index: -1;
+  background: var(--brand-primary);
+  clip-path: polygon(0 0, calc(100% - 40px) 0, 100% 40px, 100% 100%, 0 100%);
+}
+
+[data-style="feira"] .split-media::after,
+[data-style="feira"] .about-media:not(:has(.product-panel)):not(:has(.screen-shot))::after {
+  content: "";
+  position: absolute;
+  top: -1.25rem;
+  left: -1.25rem;
+  z-index: -1;
+  width: 38%;
+  height: 34%;
+  background: color-mix(in srgb, var(--brand-secondary) 55%, white);
+}
+
+[data-style="feira"] .split-photo,
+[data-style="feira"] .about-photo {
+  border-radius: 0 !important;
+  clip-path: polygon(0 0, calc(100% - 40px) 0, 100% 40px, 100% 100%, 0 100%);
+}
+
+@media (max-width: 640px) {
+  [data-style="feira"] .split-media::before,
+  [data-style="feira"] .about-media::before {
+    inset: 1rem -0.75rem -0.75rem 1rem;
+  }
+}
+
+/* Calendar cards: the date panel in the deep tone. */
+[data-style="feira"] .calendar-date {
+  background: var(--dark);
+}
+
+/* ---- Banners hero: a single banner breathes slowly (several ones zoom in step with the cross-fade). */
+.banner-zoom {
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.banner-zoom-single {
+  animation: es-banner-breathe 18s ease-in-out infinite alternate;
+}
+
+@keyframes es-banner-breathe {
+  to {
+    transform: scale(1.035);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner-zoom,
+  .banner-progress-fill {
+    animation: none !important;
+    transform: none !important;
+  }
+  .banner-progress {
+    display: none;
+  }
+}
+
+/* Feira in motion: connections draw in, layers drift with the scroll, cut cards lift. */
+[data-style="feira"] .banner-progress-fill {
+  background: var(--brand-secondary);
+}
+
+@supports (animation-timeline: view()) {
+  [data-style="feira"] .eyebrow::before {
+    transform-origin: left center;
+    animation: es-feira-connect linear both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 30%;
+  }
+
+  [data-style="feira"] .split-media::before,
+  [data-style="feira"] .about-media:not(:has(.product-panel)):not(:has(.screen-shot))::before {
+    animation: es-feira-plane linear both;
+    animation-timeline: view();
+  }
+
+  [data-style="feira"] .split-media::after,
+  [data-style="feira"] .about-media:not(:has(.product-panel)):not(:has(.screen-shot))::after {
+    animation: es-feira-plane-small linear both;
+    animation-timeline: view();
+  }
+}
+
+@keyframes es-feira-connect {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes es-feira-plane {
+  from {
+    translate: -1.25rem -1.25rem;
+  }
+  to {
+    translate: 0.75rem 0.75rem;
+  }
+}
+
+@keyframes es-feira-plane-small {
+  from {
+    translate: 1.5rem 1.5rem;
+  }
+  to {
+    translate: -0.75rem -0.75rem;
+  }
+}
+
+[data-style="feira"] :is(.card-surface, .numbered-card, .stat-card, .path-card, .offer-card, .calendar-list li > *) {
+  transition:
+    transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.35s ease;
+}
+
+@media (hover: hover) {
+  [data-style="feira"] :is(.card-surface, .numbered-card, .stat-card, .path-card, .offer-card, .calendar-list li > *):hover {
+    transform: translateY(-6px);
+  }
+
+  [data-style="feira"] .calendar-list li > * img {
+    transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  [data-style="feira"] .calendar-list li > *:hover img {
+    transform: scale(1.05);
+  }
+
+  [data-style="feira"] .marquee-photo img {
+    transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  [data-style="feira"] .marquee-photo:hover img {
+    transform: scale(1.06);
+  }
+}
+
+/* Photo strip: cut corner like the cards; outline words in the brand blue, dots in place of diamonds. */
+[data-style="feira"] .marquee-photo {
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%);
+}
+
+[data-style="feira"] .marquee-outline {
+  -webkit-text-stroke-color: color-mix(in srgb, var(--brand-primary) 80%, transparent);
+}
+
+[data-style="feira"] .marquee-copy li > span[aria-hidden] {
+  rotate: none;
+  border-radius: 999px;
+  background: var(--brand-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-style="feira"] .eyebrow::before,
+  [data-style="feira"] .split-media::before,
+  [data-style="feira"] .split-media::after,
+  [data-style="feira"] .about-media::before,
+  [data-style="feira"] .about-media::after {
+    animation: none !important;
+  }
+}
+
+/* Stage hero: deep tone, a facet plane behind the machines (its gold edge never crosses the text). */
+.stage-hero {
+  background: radial-gradient(ellipse at 78% 55%, color-mix(in srgb, var(--brand-primary) 75%, transparent), transparent 62%), var(--dark);
+}
+
+@media (min-width: 1024px) {
+  .stage-plane {
+    left: 48%;
+  }
+
+  .stage-plane::before,
+  .stage-plane::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+
+  .stage-plane::before {
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.02));
+    clip-path: polygon(34% 0, 100% 0, 100% 100%, 4% 100%);
+  }
+
+  .stage-plane::after {
+    background: var(--brand-accent);
+    opacity: 0.85;
+    clip-path: polygon(34% 0, calc(34% + 3px) 0, calc(4% + 3px) 100%, 4% 100%);
+  }
+}
+
+.stage-floor {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0.02));
+  clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+}
+
+.stage-floor::after {
+  content: "";
+  position: absolute;
+  inset: auto 10% 0 0;
+  height: 3px;
+  background: var(--brand-accent);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+}
+
+.stage-machine img {
+  filter: drop-shadow(0 24px 22px rgb(0 0 0 / 0.45));
+}
+
+.stage .hero-slide .stage-machine {
+  animation: es-stage-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes es-stage-rise {
+  from {
+    transform: translateY(14px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage .stage-machine {
+    animation: none;
+  }
+}
+
+/* ---- Style: moldura ---------------------------------------------------------
+ * Machinery catalog (reference: gmfinishing.com). A light grey page with a
+ * faint "+" grid and white panels; a thick corner bracket leads every section
+ * title and frames every button (accent corners); photos and deep panels end
+ * in a soft convex curve; product cards carry a deep header that curves into
+ * the machine; quotes in large italics. Accent: --brand-accent. Deep: theme.dark.
+ */
+[data-style="moldura"] body {
+  --canvas: #e9eaee;
+  --plus: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cpath d='M32 28v8M28 32h8' stroke='%23c3c7d0' stroke-width='1.2'/%3E%3C/svg%3E");
+  --curve: 0 0 50% 50% / 0 0 11% 11%;
+  background: var(--canvas) var(--pattern-image, var(--plus)) 0 0 / var(--pattern-size, 64px);
+}
+
+[data-style="moldura"] .tone-light {
+  background: var(--canvas) var(--pattern-image, var(--plus)) 0 0 / var(--pattern-size, 64px);
+}
+
+[data-style="moldura"] .tone-muted {
+  background: var(--surface);
+}
+
+[data-style="moldura"] main h1,
+[data-style="moldura"] main h2 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+}
+
+[data-style="moldura"] main :is(h1, h2) .text-brand-text {
+  font-weight: 600;
+}
+
+[data-style="moldura"] :is(.tone-dark, .tone-brand) {
+  --brand-text: var(--brand-accent);
+}
+
+/* The bracket: a thick corner (like "⌟") leads the section title. */
+[data-style="moldura"] :is(.eyebrow, .skew-tag) {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.9rem;
+  padding: 0;
+  font-family: inherit;
+  font-stretch: normal;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--brand-text);
+}
+
+[data-style="moldura"] .eyebrow.text-center {
+  justify-content: center;
+}
+
+[data-style="moldura"] :is(.eyebrow, .skew-tag)::before {
+  content: "";
+  position: static;
+  flex: none;
+  width: 2.4rem;
+  height: 2.4rem;
+  margin-bottom: 0.1rem;
+  border: 0;
+  border-right: 0.6rem solid currentColor;
+  border-bottom: 0.6rem solid currentColor;
+  transform: none;
+  background: none;
+  color: var(--brand-primary);
+}
+
+[data-style="moldura"] :is(.tone-dark, .tone-brand) :is(.eyebrow, .skew-tag)::before {
+  color: #fff;
+}
+
+[data-style="moldura"] .cmyk-rule {
+  display: none;
+}
+
+/* Buttons: a filled or outlined block framed by two accent corners. */
+[data-style="moldura"] main a.min-h-13,
+[data-style="moldura"] main button.min-h-13,
+[data-style="moldura"] .model-card a.mono-label {
+  position: relative;
+  border-radius: 0;
+  box-shadow: none;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-size: 0.95rem;
+}
+
+[data-style="moldura"] main a.min-h-13.glass {
+  background: transparent;
+  backdrop-filter: none;
+  border: 1.5px solid currentColor;
+}
+
+[data-style="moldura"] main a.min-h-13::before,
+[data-style="moldura"] main a.min-h-13::after,
+[data-style="moldura"] main button.min-h-13::before,
+[data-style="moldura"] main button.min-h-13::after,
+[data-style="moldura"] .model-card a.mono-label::before,
+[data-style="moldura"] .model-card a.mono-label::after {
+  content: "";
+  position: absolute;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 0 solid var(--brand-accent);
+  pointer-events: none;
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+[data-style="moldura"] main a.min-h-13::before,
+[data-style="moldura"] main button.min-h-13::before,
+[data-style="moldura"] .model-card a.mono-label::before {
+  top: -6px;
+  left: -6px;
+  border-top-width: 4px;
+  border-left-width: 4px;
+}
+
+[data-style="moldura"] main a.min-h-13::after,
+[data-style="moldura"] main button.min-h-13::after,
+[data-style="moldura"] .model-card a.mono-label::after {
+  right: -6px;
+  bottom: -6px;
+  border-right-width: 4px;
+  border-bottom-width: 4px;
+}
+
+@media (hover: hover) {
+  [data-style="moldura"] main a.min-h-13:hover::before,
+  [data-style="moldura"] main button.min-h-13:hover::before,
+  [data-style="moldura"] .model-card a.mono-label:hover::before {
+    transform: translate(-3px, -3px);
+  }
+
+  [data-style="moldura"] main a.min-h-13:hover::after,
+  [data-style="moldura"] main button.min-h-13:hover::after,
+  [data-style="moldura"] .model-card a.mono-label:hover::after {
+    transform: translate(3px, 3px);
+  }
+}
+
+/* Curves: photos and media end in a soft convex base. */
+[data-style="moldura"] :is(.about-photo, .split-photo, .product-panel, .video-frame) {
+  border-radius: var(--curve) !important;
+  box-shadow: none;
+}
+
+[data-style="moldura"] .about-deco,
+[data-style="moldura"] .split-deco {
+  display: none;
+}
+
+[data-style="moldura"] .product-panel {
+  background: var(--surface);
+}
+
+/* Cards: white, square, no shadow. */
+[data-style="moldura"] :is(.card-surface, .numbered-card, .stat-card, .path-card, .offer-card, .quote-card) {
+  border-radius: 0;
+  border-color: transparent;
+  box-shadow: none;
+  background: var(--surface);
+}
+
+[data-style="moldura"] :is(.tone-dark, .tone-brand) :is(.card-surface, .numbered-card, .stat-card, .path-card, .offer-card) {
+  background: rgb(255 255 255 / 0.06);
+}
+
+[data-style="moldura"] .icon-tile {
+  border-radius: 999px;
+  color: #fff;
+  background: var(--brand-primary);
+  box-shadow: none;
+}
+
+[data-style="moldura"] .icon-tile::before {
+  display: none;
+}
+
+/* Quotes: large italics opened by accent marks. */
+[data-style="moldura"] .quote-card blockquote {
+  position: relative;
+  padding-top: 2.2rem;
+  font-size: 1.2rem;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--brand-primary);
+}
+
+[data-style="moldura"] .quote-card blockquote::before {
+  content: "\201C";
+  position: absolute;
+  top: -0.6rem;
+  left: -0.1rem;
+  font-size: 4rem;
+  font-style: normal;
+  line-height: 1;
+  color: var(--brand-accent);
+}
+
+[data-style="moldura"] .quote-card {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 1.5rem;
+}
+
+/* Product cards: a deep header (name) curving into the machine, then the copy. */
+[data-style="moldura"] ul:has(> .model-card) {
+  gap: 1.5rem;
+  border: 0;
+}
+
+[data-style="moldura"] .model-card {
+  padding: 0 0 2rem !important;
+  border: 0 !important;
+  background: var(--surface);
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.35s ease;
+}
+
+@media (hover: hover) {
+  [data-style="moldura"] .model-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 40px -24px rgb(10 20 60 / 0.45);
+  }
+}
+
+[data-style="moldura"] .model-card h3 {
+  order: -1;
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 1.4rem 1.75rem 0.4rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #fff;
+  background: var(--dark);
+}
+
+[data-style="moldura"] .model-card h3::after {
+  content: "";
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+  right: 0;
+  height: 2.6rem;
+  background: var(--dark);
+  clip-path: ellipse(62% 100% at 50% 0);
+}
+
+[data-style="moldura"] .model-card .machine-stage {
+  margin: 0;
+  padding: 2.6rem 1.75rem 0.5rem;
+  background: none;
+}
+
+[data-style="moldura"] .model-card .machine-stage img {
+  mix-blend-mode: multiply;
+  filter: none;
+}
+
+[data-style="moldura"] .model-card > :not(h3):not(.machine-stage) {
+  margin-left: 1.75rem;
+  margin-right: 1.75rem;
+}
+
+[data-style="moldura"] .model-card > p {
+  position: relative;
+  padding-left: 2.6rem;
+  font-size: 0.95rem;
+}
+
+[data-style="moldura"] .model-card > p::before {
+  content: "";
+  position: absolute;
+  top: 0.7em;
+  left: 0;
+  width: 1.9rem;
+  height: 2px;
+  background: var(--brand-accent);
+}
+
+[data-style="moldura"] .model-card a.mono-label {
+  display: inline-flex;
+  margin-top: 1.5rem;
+  padding: 0.7rem 1.2rem;
+  border: 1.5px solid var(--brand-primary);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--brand-primary);
+}
+
+[data-style="moldura"] .model-card:target {
+  outline: 3px solid var(--brand-accent);
+  outline-offset: 4px;
+}
+
+/* Hero "flag": the accent panel with a curved base and white corner brackets. */
+.flag-panel {
+  color: #fff;
+  background: color-mix(in srgb, var(--brand-accent) 92%, transparent);
+  border-radius: 0 0 50% 50% / 0 0 14% 14%;
+}
+
+.flag-panel .text-brand-text,
+.flag-panel h1 .text-brand-text {
+  color: var(--dark) !important;
+  background: none !important;
+}
+
+.flag-corner {
+  position: absolute;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 0 solid #fff;
+}
+
+.flag-corner-start {
+  top: 2.2rem;
+  left: 2.2rem;
+  border-right-width: 0.6rem;
+  border-bottom-width: 0.6rem;
+}
+
+.flag-corner-end {
+  right: 2.2rem;
+  bottom: 3.4rem;
+  border-top-width: 0.6rem;
+  border-left-width: 0.6rem;
+  border-color: var(--dark);
+}
+
+.flag-panel a.bg-brand {
+  background: var(--dark) !important;
+  color: #fff !important;
+}
+
+.flag-panel a.glass {
+  color: var(--dark);
+  border-color: var(--dark);
+}
+
+.flag-badge {
+  border-color: var(--brand-accent);
+}
+
+/* The first band after the flag rises over the photo as a white panel, set in from the left (as on gmfinishing.com). */
+[data-style="moldura"] .flag-hero + section {
+  position: relative;
+  z-index: 1;
+  margin-top: -6rem;
+  margin-left: max(0px, calc((100vw - 80rem) / 2));
+  background: var(--surface);
+}
+
+.flag-panel a.min-h-13::before,
+.flag-panel a.min-h-13::after {
+  border-color: #fff !important;
+}
+
+/* Header: solid white over the grid. */
+[data-style="moldura"] .site-header {
+  background: #fff;
+}
+
+/* Product cards: a wider stage, so the copy starts sooner. */
+[data-style="moldura"] .model-card .machine-stage {
+  aspect-ratio: 16 / 10;
+}
+
+/* Testimonial cards: the accent mark, then the quote in large italics. */
+[data-style="moldura"] figure .quote-mark {
+  color: var(--brand-accent);
+  font-size: 4.5rem;
+  margin-bottom: -1.2rem;
+}
+
+[data-style="moldura"] figure:has(.quote-mark) blockquote {
+  font-size: 1.2rem;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--brand-primary);
+}
+
+[data-style="moldura"] figure:has(.quote-mark) {
+  border-radius: 0;
+  border-color: transparent;
+}
+
+@media (max-width: 640px) {
+  .flag-corner {
+    width: 1.6rem;
+    height: 1.6rem;
+  }
+
+  .flag-corner-start {
+    top: 1.2rem;
+    left: 1.2rem;
+    border-right-width: 0.4rem;
+    border-bottom-width: 0.4rem;
+  }
+
+  .flag-corner-end {
+    right: 1.2rem;
+    bottom: 1.4rem;
+    border-top-width: 0.4rem;
+    border-left-width: 0.4rem;
+  }
+}
+
+/* Background video (hero "flag"): a 16:9 frame scaled to cover the band, with YouTube's chrome pushed out of view. */
+.bg-video-frame {
+  top: 50%;
+  left: 50%;
+  width: max(100%, 177.78vh);
+  height: max(100%, 56.25vw);
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-video {
+    display: none;
+  }
+}
+
+/* ---- Style: faceta ----------------------------------------------------------
+ * A brand-led machinery catalog built on the cut of a logo letter (Furnax: the
+ * facet of the "x", gold in the "fx" icon). Light page with the brand
+ * monogram as texture (theme.pattern) and white panels; the facet leads every
+ * title and rides the edge of every button; panels and photos lose one corner
+ * to a diagonal cut; product cards wear a deep header whose base runs
+ * diagonally, edged in the accent. Accent: --brand-accent. Deep: theme.dark.
+ */
+[data-style="faceta"] body {
+  --canvas: #eceef2;
+  --facet: var(--brand-accent);
+  --cut: 2.75rem;
+  background: var(--canvas) var(--pattern-image, none) 0 0 / var(--pattern-size, 96px);
+}
+
+[data-style="faceta"] .tone-light {
+  background: var(--canvas) var(--pattern-image, none) 0 0 / var(--pattern-size, 96px);
+}
+
+[data-style="faceta"] .tone-muted {
+  background: var(--surface);
+}
+
+[data-style="faceta"] .site-header {
+  background: #fff;
+}
+
+[data-style="faceta"] main h1,
+[data-style="faceta"] main h2 {
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.06;
+}
+
+/* Highlights: on light bands a facet bar under the words; on deep bands the accent itself. */
+[data-style="faceta"] main :is(h1, h2) .text-brand-text {
+  font-weight: 600;
+  background: linear-gradient(100deg, transparent 0.15em, color-mix(in srgb, var(--facet) 85%, transparent) 0.15em calc(100% - 0.1em), transparent calc(100% - 0.1em)) left 0.92em / 100% 0.2em no-repeat;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+[data-style="faceta"] :is(.tone-dark, .tone-brand) {
+  --brand-text: var(--facet);
+}
+
+[data-style="faceta"] :is(.tone-dark, .tone-brand) :is(h1, h2) .text-brand-text {
+  background: none;
+}
+
+/* The facet leads every title: a slanted accent parallelogram, as in the "x". */
+[data-style="faceta"] :is(.eyebrow, .skew-tag) {
+  display: flex;
+  align-items: center;
+  gap: 0.85em;
+  padding: 0;
+  font-family: inherit;
+  font-stretch: normal;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--brand-text);
+}
+
+[data-style="faceta"] .eyebrow.text-center {
+  justify-content: center;
+}
+
+[data-style="faceta"] :is(.eyebrow, .skew-tag)::before {
+  content: "";
+  position: static;
+  flex: none;
+  width: 1.7em;
+  height: 1.35em;
+  border: 0;
+  transform: none;
+  background: var(--facet);
+  clip-path: polygon(42% 0, 100% 0, 58% 100%, 0 100%);
+}
+
+[data-style="faceta"] .cmyk-rule {
+  display: none;
+}
+
+/* Buttons: square, with the facet riding the right edge. */
+[data-style="faceta"] main a.min-h-13,
+[data-style="faceta"] main button.min-h-13,
+[data-style="faceta"] .model-card a.mono-label {
+  position: relative;
+  border-radius: 0;
+  box-shadow: none;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 0.95rem;
+}
+
+[data-style="faceta"] main a.min-h-13::after,
+[data-style="faceta"] main button.min-h-13::after,
+[data-style="faceta"] .model-card a.mono-label::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -0.55rem;
+  bottom: 0;
+  width: 0.95rem;
+  background: var(--facet);
+  clip-path: polygon(55% 0, 100% 0, 45% 100%, 0 100%);
+  pointer-events: none;
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (hover: hover) {
+  [data-style="faceta"] main a.min-h-13:hover::after,
+  [data-style="faceta"] main button.min-h-13:hover::after,
+  [data-style="faceta"] .model-card a.mono-label:hover::after {
+    transform: translateX(0.3rem);
+  }
+}
+
+[data-style="faceta"] main a.min-h-13.glass {
+  background: transparent;
+  backdrop-filter: none;
+  border: 1.5px solid currentColor;
+}
+
+[data-style="faceta"] :is(.tone-dark, .tone-brand) a.min-h-13.bg-brand,
+[data-style="faceta"] :is(.tone-dark, .tone-brand) button.min-h-13.bg-brand {
+  background: var(--facet);
+  color: var(--brand-on-accent);
+}
+
+[data-style="faceta"] :is(.tone-dark, .tone-brand) a.min-h-13.bg-brand::after,
+[data-style="faceta"] :is(.tone-dark, .tone-brand) button.min-h-13.bg-brand::after {
+  background: #fff;
+}
+
+/* Photos and media lose their top-right corner to the cut. */
+[data-style="faceta"] :is(.about-photo, .split-photo, .video-frame, .product-panel) {
+  border-radius: 0 !important;
+  box-shadow: none;
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%);
+}
+
+[data-style="faceta"] .about-deco,
+[data-style="faceta"] .split-deco {
+  display: none;
+}
+
+[data-style="faceta"] .product-panel {
+  background: var(--surface);
+}
+
+[data-style="faceta"] .product-panel img {
+  filter: none;
+}
+
+/* Cards: white and square, a facet tab on the top edge that runs the full width on hover. */
+[data-style="faceta"] :is(.card-surface, .numbered-card, .stat-card, .path-card, .offer-card, .quote-card, .calendar-list li > *) {
+  position: relative;
+  border-radius: 0;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+[data-style="faceta"] :is(.card-surface, .numbered-card, .stat-card, .path-card, .offer-card, .calendar-list li > *)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 3.25rem;
+  height: 4px;
+  background: var(--facet);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+  transition: width 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (hover: hover) {
+  [data-style="faceta"] :is(.card-surface, .numbered-card, .stat-card, .path-card, .offer-card, .calendar-list li > *):hover::before {
+    width: 100%;
+  }
+}
+
+[data-style="faceta"] :is(.tone-dark, .tone-brand) :is(.card-surface, .numbered-card, .stat-card, .path-card, .offer-card) {
+  background: rgb(255 255 255 / 0.06);
+}
+
+[data-style="faceta"] .stat-card .stat-chip,
+[data-style="faceta"] .icon-tile {
+  border-radius: 0;
+  color: var(--facet);
+  background: var(--dark);
+  box-shadow: none;
+}
+
+[data-style="faceta"] .icon-tile::before {
+  display: none;
+}
+
+[data-style="faceta"] :is(.tone-dark, .tone-brand) .icon-tile {
+  background: rgb(255 255 255 / 0.08);
+}
+
+/* Quotes: accent mark, deep italics. */
+[data-style="faceta"] figure .quote-mark {
+  color: var(--facet);
+  font-size: 4.5rem;
+  margin-bottom: -1.2rem;
+}
+
+[data-style="faceta"] figure:has(.quote-mark) blockquote {
+  font-size: 1.15rem;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--brand-primary);
+}
+
+/* Product cards: a deep header whose base runs diagonally, edged in the accent; the machine on white. */
+[data-style="faceta"] ul:has(> .model-card) {
+  gap: 1.5rem;
+  border: 0;
+}
+
+[data-style="faceta"] .model-card {
+  padding: 0 0 2rem !important;
+  border: 0 !important;
+  background: var(--surface);
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.35s ease;
+}
+
+@media (hover: hover) {
+  [data-style="faceta"] .model-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 40px -24px rgb(10 20 60 / 0.45);
+  }
+}
+
+[data-style="faceta"] .model-card h3 {
+  order: -1;
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 1.35rem 1.75rem 0.3rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #fff;
+  background: var(--dark);
+}
+
+[data-style="faceta"] .model-card h3::after {
+  content: "";
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+  right: 0;
+  height: 2.4rem;
+  background: linear-gradient(to bottom right, var(--dark) 48.5%, var(--facet) 48.5% 53%, transparent 53%);
+}
+
+[data-style="faceta"] .model-card .machine-stage {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  min-height: 0;
+  margin: 0;
+  padding: 2.4rem 1.75rem 0.5rem;
+  overflow: hidden;
+  background: none;
+}
+
+[data-style="faceta"] .model-card .machine-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-style="faceta"] .model-card .machine-stage img {
+  width: auto;
+  height: auto;
+  max-height: 86%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+  filter: none;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (hover: hover) {
+  [data-style="faceta"] .model-card:hover .machine-stage img {
+    transform: scale(1.04);
+  }
+}
+
+[data-style="faceta"] .model-card > :not(h3):not(.machine-stage) {
+  margin-left: 1.75rem;
+  margin-right: 1.75rem;
+}
+
+[data-style="faceta"] .model-card > p {
+  font-size: 0.95rem;
+}
+
+[data-style="faceta"] .model-card a.mono-label {
+  display: inline-flex;
+  margin-top: 1.5rem;
+  padding: 0.7rem 1.4rem 0.7rem 1.2rem;
+  border: 1.5px solid var(--brand-primary);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--brand-primary);
+}
+
+[data-style="faceta"] .model-card:target {
+  outline: 3px solid var(--facet);
+  outline-offset: 4px;
+}
+
+/* Deep bands: one large diagonal plane, like the facet seen up close. */
+[data-style="faceta"] .tone-dark:not(:has(> .absolute img, > img)):not(.flag-hero) {
+  background-image: linear-gradient(112deg, transparent 0 60%, rgb(255 255 255 / 0.035) 60% 78%, transparent 78%);
+}
+
+/* Hero "flag" in faceta: a deep panel that loses its lower-right corner to the cut, the facet riding beside it. */
+[data-style="faceta"] .flag-panel {
+  isolation: isolate;
+  background: none;
+  border-radius: 0;
+  text-align: left;
+}
+
+[data-style="faceta"] .flag-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--dark) 90%, transparent);
+  backdrop-filter: blur(6px);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4.5rem), calc(100% - 4.5rem) 100%, 0 100%);
+}
+
+[data-style="faceta"] .flag-panel::after {
+  content: "";
+  position: absolute;
+  right: -0.9rem;
+  bottom: -0.9rem;
+  width: 4.5rem;
+  height: 4.5rem;
+  background: var(--facet);
+  clip-path: polygon(100% 0, 100% 1.4rem, 1.4rem 100%, 0 100%);
+}
+
+[data-style="faceta"] .flag-panel .flag-corner {
+  display: none;
+}
+
+[data-style="faceta"] .flag-panel .text-brand-text,
+[data-style="faceta"] .flag-panel h1 .text-brand-text {
+  color: var(--facet) !important;
+}
+
+[data-style="faceta"] .flag-panel > p:not(.mb-5) {
+  margin-left: 0;
+}
+
+[data-style="faceta"] .flag-panel .justify-center {
+  justify-content: flex-start;
+}
+
+[data-style="faceta"] .flag-panel a.bg-brand {
+  background: var(--facet) !important;
+  color: var(--brand-on-accent) !important;
+}
+
+[data-style="faceta"] .flag-panel a.bg-brand::after {
+  background: #fff;
+}
+
+[data-style="faceta"] .flag-panel > p.mb-5 {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  color: var(--facet);
+}
+
+[data-style="faceta"] .flag-panel > p.mb-5::before {
+  content: "";
+  width: 1.7em;
+  height: 1.35em;
+  background: var(--facet);
+  clip-path: polygon(42% 0, 100% 0, 58% 100%, 0 100%);
+}
+
+/* The first band after the flag rises over the video as a white panel, set in from the left. */
+[data-style="faceta"] .flag-hero + section {
+  position: relative;
+  z-index: 1;
+  margin-top: -6rem;
+  margin-left: max(0px, calc((100vw - 80rem) / 2));
+  background: var(--surface);
+}
+
+/* Industrial: machines stand clean on the page, no disc and no cast shadow (catalog cut-outs). */
+[data-style="industrial"] .machine-stage,
+[data-style="industrial"] .hero-immersive .machine-stage {
+  background: none;
+}
+
+[data-style="industrial"] .machine-stage img,
+[data-style="industrial"] .panel img {
+  filter: none;
+}
+
+/* ---- Header: overlay ----------------------------------------------------------
+ * theme.header "overlay": the top bar and the header lie over the opening photo
+ * hero (light logo and links) and scroll away with it. A page that does not open
+ * with a photo hero gets them on a solid dark band instead.
+ */
+.site-chrome-overlay {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 40;
+  background: transparent;
+}
+
+.site-chrome-overlay .site-topbar {
+  background: transparent;
+  color: var(--on-dark);
+  font-weight: 400;
+}
+
+.site-chrome-overlay .site-header nav a:not(.bg-brand) {
+  color: color-mix(in srgb, var(--on-dark) 88%, transparent);
+}
+
+.site-chrome-overlay .site-header nav a:not(.bg-brand):hover,
+.site-chrome-overlay .site-header nav a[aria-current="page"] {
+  color: var(--on-dark);
+}
+
+/* The dropdowns and the phone menu stay light panels. */
+.site-chrome-overlay .site-header nav :is(ul, nav) a,
+.site-chrome-overlay details nav a {
+  color: var(--ink);
+}
+
+/* The hero no longer needs to slide under a sticky header: the chrome lies on it. */
+body:has(.site-chrome-overlay) main > .hero-immersive:first-child {
+  margin-top: 0;
+}
+
+body:not(:has(#conteudo > section.hero-immersive:first-of-type)) .site-chrome-overlay {
+  position: relative;
+  background: var(--dark);
+}
+
+/* ---- Style: classico ----------------------------------------------------------
+ * A plain corporate site in the manner of a classic WordPress build (Furnax's
+ * former site): the brand colour only, small rectangular buttons in sentence
+ * case, simple headings with a plain eyebrow, rounded photos, a home hero with
+ * rounded bottom corners and pale tinted bands between white ones.
+ */
+/* On body, so it wins over the theme variables set on <html>. */
+[data-style="classico"] body {
+  --button-radius: 4px;
+}
+
+[data-style="classico"] main :is(input, textarea, select) {
+  border-radius: 4px;
+}
+
+/* The form alone: centred and narrow, straight on the band, as on a classic contact block. */
+[data-style="classico"] .contact-form-only {
+  max-width: 40rem;
+  gap: 2rem;
+  text-align: center;
+}
+
+[data-style="classico"] .contact-form-only h2 {
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  line-height: 1.2;
+}
+
+[data-style="classico"] .contact-form-only .mb-10 {
+  margin-bottom: 0;
+}
+
+[data-style="classico"] .contact-form-only form,
+[data-style="classico"] .contact-form-only [data-lead-sent] {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+}
+
+[data-style="classico"] .tone-muted {
+  background: color-mix(in srgb, var(--brand-primary) 2.5%, white);
+}
+
+[data-style="classico"] main :is(h1, h2) {
+  font-weight: var(--font-heading-weight, 600);
+  letter-spacing: 0;
+  color: var(--brand-text);
+}
+
+[data-style="classico"] :is(.tone-dark, .tone-brand, .hero-immersive) :is(h1, h2) {
+  color: var(--ink);
+}
+
+[data-style="classico"] .eyebrow {
+  margin-bottom: 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--brand-text);
+}
+
+[data-style="classico"] :is(.tone-dark, .tone-brand, .hero-immersive) .eyebrow {
+  color: var(--ink);
+}
+
+[data-style="classico"] .hero-lead .eyebrow {
+  font-size: 1rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* Buttons: small, rectangular, sentence case. */
+[data-style="classico"] main a.min-h-13,
+[data-style="classico"] main button.min-h-13 {
+  min-height: 2.75rem;
+  padding-inline: 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+/* The light-band secondary button reads as an outline, like the primary's twin. */
+[data-style="classico"] :is(.tone-light, .tone-muted) a.min-h-13.glass {
+  border: 1px solid var(--brand-primary);
+  background: transparent;
+  color: var(--brand-primary);
+}
+
+[data-style="classico"] .site-header nav a:not(.bg-brand),
+[data-style="classico"] .site-header details nav > div > a {
+  font-size: 0.875rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+[data-style="classico"] .site-header a.bg-brand {
+  min-height: 2.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+[data-style="classico"] .site-chrome-overlay .site-header a.bg-brand {
+  border: 1px solid rgb(255 255 255 / 0.5);
+}
+
+/* The home hero rounds off at the bottom; inner page headers stay square. */
+[data-style="classico"] #conteudo > section.hero-lead:first-of-type {
+  border-radius: 0 0 40px 40px;
+}
+
+/* No decorative layers behind photos, no CMYK rules, tags read as plain eyebrows. */
+[data-style="classico"] :is(.about-deco, .split-deco, .cmyk-rule) {
+  display: none;
+}
+
+[data-style="classico"] .skew-tag {
+  padding: 0;
+  font-family: inherit;
+  font-stretch: normal;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--brand-text);
+}
+
+[data-style="classico"] .skew-tag::before {
+  content: none;
+}
+
+[data-style="classico"] :is(.about-photo, .split-photo, .video-frame),
+[data-style="classico"] .agenda-section-photo {
+  border-radius: 30px;
+  box-shadow: none;
+}
+
+[data-style="classico"] .ken-burns,
+[data-style="classico"] .parallax {
+  animation: none;
+  scale: none;
+  transform: none;
+  --parallax-scale: 1;
+}
+
+/* Photo columns meet edge to edge, without rounding. */
+[data-style="classico"] .service-column {
+  border-radius: 0;
+}
+
+[data-style="classico"] footer.tone-dark:not([data-footer="dark"]) {
+  background: var(--brand-primary);
+}
+
+/* Machines are named as on a classic catalog page: navy, semibold, capitals. */
+[data-style="classico"] .model-card h3 {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  color: var(--brand-text);
+}
+
+/* ---- Parts of a classic Elementor-style corporate site ---- */
+.hero-band-inner {
+  min-height: 20rem;
+  padding-top: 8rem;
+}
+
+.hero-band-inner:has(> .sr-only) {
+  min-height: 9.5rem;
+  padding-top: 0;
+}
+
+.site-chrome-overlay .site-header {
+  position: relative;
+}
+
+.header-utility-link:hover,
+.header-utility-link[aria-current="page"],
+[data-style="classico"] .site-header nav > div > a[aria-current="page"],
+[data-style="classico"] .site-header nav > div > a:hover {
+  color: var(--brand-accent);
+}
+
+[data-style="classico"] .site-header nav > div > a[aria-current="page"] {
+  box-shadow: inset 0 -1px 0 var(--brand-accent);
+}
+
+[data-style="classico"] .site-chrome-overlay .site-header {
+  border-bottom-color: transparent;
+}
+
+.duotone {
+  background: linear-gradient(144deg, var(--brand-primary) 15%, var(--brand-accent) 100%);
+  mix-blend-mode: multiply;
+}
+
+.site-header .mega-menu {
+  background: transparent !important;
+  /* A moment's grace before closing, so a slightly crooked path of the mouse doesn't lose the panel. */
+  transition: opacity 0.15s, visibility 0s linear 0.25s;
+}
+
+.site-header .group:hover > .mega-menu,
+.site-header .group:focus-within > .mega-menu {
+  transition: opacity 0.15s, visibility 0s;
+}
+
+/* Invisible bridge over the gap between the menu item and the panel, which belongs to the item's hover area. */
+.site-header .mega-menu::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 100%;
+  height: 3rem;
+}
+
+.site-header .mega-menu .mega-menu-title {
+  color: var(--brand-primary) !important;
+}
+
+.site-header .mega-menu .mega-menu-link {
+  color: #4a4f5c !important;
+}
+
+.site-header .mega-menu .mega-menu-link:hover {
+  color: var(--brand-primary) !important;
+}
+
+.mega-menu-title {
+  padding-bottom: 0.6rem;
+  font-family: var(--font-heading-family);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--brand-primary);
+  background: linear-gradient(var(--brand-primary), var(--brand-primary)) left bottom / 2.75rem 2px no-repeat;
+}
+
+.mega-menu-link {
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: #4a4f5c;
+  transition: color 0.2s;
+}
+
+.mega-menu-link:hover {
+  color: var(--brand-accent);
+}
+
+.service-links-section {
+  padding-block: 1.25rem;
+}
+
+.service-links-section h2 {
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+
+[data-style="classico"] .hero-lead h1 {
+  font-size: clamp(2.2rem, 3.4vw, 3.1rem);
+  line-height: 1.05;
+}
+
+[data-style="classico"] .hero-lead h1 + p {
+  font-size: 1rem;
+}
+
+[data-style="classico"] .whatsapp-float span {
+  display: none;
+}
+
+[data-style="classico"] .header-utility {
+  padding-bottom: 0.25rem;
+}
+
+.agenda-item-featured span {
+  color: #1b1d26;
+}
+
+.about-rich {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.about-quote {
+  border-left: 0;
+}
+
+[data-style="classico"] .document-body p,
+[data-style="classico"] .document-body li {
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+[data-style="classico"] .document-body .article-h2 {
+  font-size: 1.6rem;
+}
+
+[data-style="classico"] .document-body .article-h3 {
+  font-size: 1.2rem;
+}
+
+.flip-card {
+  min-height: 15rem;
+  perspective: 1000px;
+  outline-offset: 2px;
+}
+
+.flip-card-inner {
+  position: relative;
+  height: 100%;
+  min-height: 15rem;
+  transform-style: preserve-3d;
+  transition: transform 0.6s;
+}
+
+.flip-card:hover .flip-card-inner,
+.flip-card:focus .flip-card-inner,
+.flip-card:focus-within .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  text-align: center;
+  backface-visibility: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: #1b1d26;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+  border-color: var(--brand-primary);
+  background: var(--brand-primary);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flip-card-inner {
+    transition: none;
+  }
+}
+
+/* A long e-mail stays inside its card. */
+.credentials-grid > li > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.document-body .spec-table th,
+.document-body .spec-table td {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.document-body .spec-table th {
+  background: var(--brand-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* The numbers row is a tighter band. Plain CSS, not an !important utility, so a style's own band rules (such as the
+   ambiental swoosh's extra bottom room) still apply on top of it. */
+.numbers-band {
+  padding-block: 5rem;
+}
+
+/* ---- Style: banca --------------------------------------------------------------
+ * A leading law firm, in the manner of the country's largest practices: ivory and
+ * white bands with deep ink ones, hairline rules in place of cards and shadows,
+ * square corners, small letterspaced eyebrows after a short accent rule, light
+ * serif headings, portraits in black and white that take colour on hover, and
+ * practice areas and publications as ruled indexes. Restraint is the point: the
+ * accent colour appears only in rules, numbers and hover states.
+ */
+[data-style="banca"] body {
+  --button-radius: 0px;
+  --line: color-mix(in srgb, var(--brand-primary) 14%, white);
+}
+
+[data-style="banca"] ::selection {
+  background: color-mix(in srgb, var(--brand-accent) 30%, white);
+}
+
+[data-style="banca"] .tone-muted {
+  background: #f6f4ef;
+}
+
+[data-style="banca"] main :is(input, textarea, select) {
+  border-radius: 0;
+}
+
+[data-style="banca"] main :is(h1, h2) {
+  font-weight: 400;
+  letter-spacing: -0.012em;
+}
+
+/* Eyebrow: a short accent rule, then small spaced capitals in a quiet tone. */
+[data-style="banca"] .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  color: var(--muted);
+}
+
+[data-style="banca"] .eyebrow::before {
+  content: "";
+  width: 2.25rem;
+  height: 1px;
+  flex: none;
+  background: var(--brand-accent);
+}
+
+[data-style="banca"] .eyebrow.text-center {
+  justify-content: center;
+}
+
+[data-style="banca"] :is(.tone-dark, .tone-brand, .hero-immersive) .eyebrow {
+  color: rgb(255 255 255 / 0.72);
+}
+
+/* Buttons: square, quiet, spaced capitals; no lift or glow. */
+[data-style="banca"] main :is(a, button).min-h-13 {
+  min-height: 3.25rem;
+  padding-inline: 1.9rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.2em;
+  box-shadow: none;
+}
+
+[data-style="banca"] :is(.tone-light, .tone-muted) a.min-h-13.glass {
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 35%, transparent);
+  background: transparent;
+  color: var(--brand-primary);
+}
+
+[data-style="banca"] .site-header nav a:not(.bg-brand),
+[data-style="banca"] .site-header details nav > div > a {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+[data-style="banca"] .site-header a.bg-brand {
+  min-height: 2.5rem;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font-size: 0.6875rem;
+  letter-spacing: 0.2em;
+}
+
+[data-style="banca"] :is(.about-deco, .split-deco) {
+  display: none;
+}
+
+[data-style="banca"] :is(.about-photo, .split-photo) {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+[data-style="banca"] .ken-burns,
+[data-style="banca"] .parallax {
+  animation: none;
+  scale: none;
+  transform: none;
+  --parallax-scale: 1;
+}
+
+/* Practice areas as a ruled index: small accent numbers, light serif names. */
+[data-style="banca"] .service-index > li {
+  grid-template-columns: 5rem 1fr auto;
+  padding-block: 2.1rem;
+  transition: background-color 0.3s;
+}
+
+[data-style="banca"] .service-index > li > span:first-child {
+  font-family: var(--font-body-family);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--brand-accent);
+}
+
+[data-style="banca"] .service-index h3 {
+  font-size: clamp(1.4rem, 2.2vw, 1.75rem);
+  font-weight: 400;
+}
+
+[data-style="banca"] .service-index > li:has(a:hover) h3 {
+  font-style: italic;
+}
+
+@media (max-width: 639px) {
+  [data-style="banca"] .service-index > li {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Credentials: a hairline in the accent colour where the check would be; serif titles. */
+[data-style="banca"] .credential-mark {
+  width: 1.5rem;
+  height: 0;
+  margin-top: 0.95rem;
+  border-top: 1px solid var(--brand-accent);
+  color: transparent;
+}
+
+[data-style="banca"] .credential-title {
+  font-family: var(--font-heading-family);
+  font-size: 1.375rem;
+  font-weight: 400;
+}
+
+[data-style="banca"] .credentials-grid > li {
+  padding: 1.75rem 0 0;
+  border: 0;
+  border-top: 1px solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-style="banca"] .credentials-grid .credential-mark {
+  display: none;
+}
+
+[data-style="banca"] .credentials-grid .credential-title {
+  font-size: 1.75rem;
+}
+
+[data-style="banca"] :is(.tone-dark, .tone-brand) .credentials-grid > li {
+  border-top-color: rgb(255 255 255 / 0.5);
+}
+
+/* Portraits: black and white, colour on hover; names in the serif. */
+[data-style="banca"] .team-portrait {
+  --tw-grayscale: grayscale(100%);
+  border-radius: 0;
+}
+
+[data-style="banca"] .group:hover .team-portrait {
+  --tw-grayscale: grayscale(0%);
+}
+
+[data-style="banca"] .group h3.font-heading {
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* Alliances: logos straight on the band, no tiles. */
+[data-style="banca"] .logo-tile {
+  width: 11rem;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+[data-style="banca"] .logo-tile:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+/* Publications: hairline cards with no cover art, titles in the serif. */
+[data-style="banca"] .type-cover {
+  display: none;
+}
+
+[data-style="banca"] .post-card {
+  border-radius: 0;
+  border-top: 2px solid var(--brand-primary);
+}
+
+[data-style="banca"] .post-card:hover {
+  transform: none;
+  box-shadow: none;
+  border-top-color: var(--brand-accent);
+}
+
+[data-style="banca"] .post-card h3 {
+  font-family: var(--font-heading-family);
+  font-size: 1.5rem;
+  font-weight: 400;
+}
+
+[data-style="banca"] .post-index h3 {
+  font-weight: 400;
+}
+
+[data-style="banca"] main form {
+  border-radius: 0;
+}
+
+[data-style="banca"] .highlight-mark {
+  width: 1.5rem;
+  height: 0;
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--brand-accent);
+  border-radius: 0;
+  background: transparent;
+  color: transparent;
+}
+
+[data-style="banca"] nav[aria-label="Categorias"] a {
+  border-radius: 0;
+}
+
+/* Articles: subheads in the serif, like a journal. */
+[data-style="banca"] :is(.article-h2, .article-h3) {
+  font-family: var(--font-heading-family);
+  font-weight: 400;
+}
+
+/* ---- Style: corporativo ---------------------------------------------------------
+ * A modern full-service firm in the manner of bvalaw.com.br, kept deliberately plain so
+ * it reads as designed rather than generated: deep navy bands, bold italic headings,
+ * quiet small-caps eyebrows, hairline rules and flat cards (no glass, glow, gradient
+ * text or icon tiles), the accent colour kept for calls to action, numbers and a few
+ * rules. Practice areas and articles read as indexes; the team is a sideways carousel.
+ * Motion is in the photos and the entrances, not in ornaments.
+ */
+[data-style="corporativo"] body {
+  --corp-sky: #9fb6d9;
+  --line: color-mix(in srgb, var(--brand-primary) 13%, white);
+}
+
+[data-style="corporativo"] :is(section, footer).tone-dark {
+  background: linear-gradient(180deg, var(--dark), color-mix(in srgb, var(--dark) 86%, #1c3a66));
+}
+
+[data-style="corporativo"] .tone-muted {
+  background: #f2f4f7;
+}
+
+[data-style="corporativo"] main :is(h1, h2) {
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+[data-style="corporativo"] main :is(h1, h2) .text-brand-text {
+  color: color-mix(in srgb, var(--brand-accent) 82%, black);
+}
+
+[data-style="corporativo"] :is(.tone-dark, .tone-brand, .hero-immersive, .has-backdrop) :is(h1, h2) .text-brand-text {
+  color: var(--brand-accent);
+}
+
+/* Eyebrows: small spaced capitals in a quiet tone, nothing before them. */
+[data-style="corporativo"] .eyebrow {
+  margin-bottom: 1rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+}
+
+[data-style="corporativo"] :is(.tone-dark, .tone-brand, .hero-immersive, .has-backdrop) .eyebrow {
+  color: var(--corp-sky);
+}
+
+/* No icon tiles: titles and text carry the content. */
+[data-style="corporativo"] .icon-tile {
+  display: none;
+}
+
+/* Flat cards with a fine border; the border warms up on hover. */
+[data-style="corporativo"] .card-surface {
+  border-radius: 10px;
+  box-shadow: none;
+  transition: border-color 0.3s, background-color 0.3s;
+}
+
+[data-style="corporativo"] .card-surface:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: color-mix(in srgb, var(--brand-accent) 60%, transparent);
+}
+
+[data-style="corporativo"] .tone-dark .card-surface {
+  border-color: rgb(255 255 255 / 0.12);
+  background: rgb(255 255 255 / 0.03);
+}
+
+/* Benefit lists without icons: a short accent rule above each title, two by two. */
+[data-style="corporativo"] .benefits-grid > li {
+  padding-top: 1.5rem;
+  border-top: 2px solid var(--brand-accent);
+}
+
+@media (min-width: 1024px) {
+  [data-style="corporativo"] .benefits-grid:has(> li:nth-child(4):last-child) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 4rem;
+    row-gap: 3rem;
+  }
+}
+
+[data-style="corporativo"] .benefits-grid h3 {
+  font-size: 1.25rem;
+}
+
+/* Facts on a dark band: big numbers between hairlines, no boxes. */
+[data-style="corporativo"] .credentials-grid .credential-mark {
+  display: none;
+}
+
+[data-style="corporativo"] .credentials-grid > li {
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  padding: 0.25rem 0 0.25rem 1.5rem;
+}
+
+[data-style="corporativo"] .tone-dark .credentials-grid > li {
+  border-left-color: rgb(255 255 255 / 0.18);
+}
+
+[data-style="corporativo"] .credentials-grid .credential-title {
+  font-style: italic;
+  font-weight: 700;
+}
+
+[data-style="corporativo"] .tone-dark .credentials-grid .credential-title {
+  font-size: clamp(2.6rem, 5vw, 3.75rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+[data-style="corporativo"] .tone-dark .credentials-grid .credential-title + p {
+  margin-top: 0.75rem;
+}
+
+@media (min-width: 1024px) {
+  [data-style="corporativo"] .credentials-grid:has(> li:nth-child(4):last-child) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+[data-style="corporativo"] .credentials-list .credential-mark {
+  width: 1.25rem;
+  height: 0;
+  margin-top: 0.85rem;
+  border-top: 2px solid var(--brand-accent);
+  color: transparent;
+}
+
+/* Practice areas and other indexes: accent numbers, bold italic names, a nudge on hover. */
+[data-style="corporativo"] .service-index > li {
+  transition: padding-left 0.35s;
+}
+
+[data-style="corporativo"] .service-index > li:has(a:hover) {
+  padding-left: 0.75rem;
+}
+
+[data-style="corporativo"] .service-index > li > span:first-child {
+  font-family: var(--font-body-family);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--brand-accent);
+}
+
+[data-style="corporativo"] .service-index h3 {
+  font-size: clamp(1.35rem, 2.2vw, 1.75rem);
+  font-style: italic;
+  font-weight: 700;
+}
+
+[data-style="corporativo"] .tone-dark .service-index {
+  border-color: rgb(255 255 255 / 0.14);
+}
+
+[data-style="corporativo"] .tone-dark .service-index > li {
+  border-color: rgb(255 255 255 / 0.14);
+}
+
+/* Portraits: colour, softly rounded, a slow zoom on hover; five or more scroll sideways. */
+[data-style="corporativo"] .team-portrait {
+  --tw-grayscale: grayscale(0%);
+  border-radius: 8px;
+  transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+[data-style="corporativo"] .group:hover .team-portrait {
+  transform: scale(1.02);
+}
+
+[data-style="corporativo"] .group h3.font-heading {
+  font-style: italic;
+  font-weight: 700;
+}
+
+[data-style="corporativo"] .team-grid:has(> li:nth-child(5)) {
+  display: flex;
+  gap: 1.5rem;
+  margin-inline: calc(50% - 50vw);
+  padding-inline: max(1.25rem, calc(50vw - 40rem));
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: max(1.25rem, calc(50vw - 40rem));
+  scrollbar-width: thin;
+  padding-bottom: 1.5rem;
+}
+
+[data-style="corporativo"] .team-grid:has(> li:nth-child(5)) > li {
+  flex: 0 0 clamp(15rem, 22vw, 18rem);
+  scroll-snap-align: start;
+}
+
+/* Logos straight on the band, in their own colours. */
+[data-style="corporativo"] .logo-tile {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-style="corporativo"] .logo-tile:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+
+/* Articles without photos read as text, not as invented cover art. */
+[data-style="corporativo"] .type-cover {
+  display: none;
+}
+
+[data-style="corporativo"] :is(.post-card, .post-index) h3 {
+  font-style: italic;
+  font-weight: 700;
+}
+
+[data-style="corporativo"] :is(.about-photo, .split-photo) {
+  border-radius: 10px;
+}
+
+[data-style="corporativo"] :is(.about-deco, .split-deco) {
+  display: none;
+}
+
+[data-style="corporativo"] :is(.article-h2, .article-h3) {
+  font-style: italic;
+  font-weight: 700;
+}
+
+/* On dark bands the call to action is the accent colour, with navy text. */
+[data-style="corporativo"] :is(.tone-dark, .tone-brand, .hero-immersive, .has-backdrop) :is(a, button).min-h-13.bg-brand,
+[data-style="corporativo"] .site-header a.bg-brand {
+  background: var(--brand-accent);
+  color: var(--dark);
+}
+
+@media (max-width: 639px) {
+  [data-style="corporativo"] .team-grid:has(> li:nth-child(5)) > li {
+    flex-basis: 72vw;
+  }
+
+  [data-style="corporativo"] .credentials-grid:has(> li:nth-child(4):last-child) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-style="corporativo"] :is(.team-portrait, .service-index > li) {
+    transition: none;
+  }
+}
+
+[data-style="corporativo"] .tone-dark .credentials-grid > li,
+[data-style="corporativo"] .credentials-grid > li.card-surface {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+/* Light and depth, as on bvalaw.com.br: a bluer navy lit by soft glows that drift
+   slowly, light bands washed with a pale blue gradient. */
+[data-style="corporativo"] :is(section, footer).tone-dark {
+  background:
+    radial-gradient(55% 55% at 85% 8%, rgb(110 168 240 / 0.34), transparent 70%),
+    radial-gradient(50% 60% at 35% 115%, rgb(70 135 215 / 0.26), transparent 70%),
+    radial-gradient(40% 45% at 4% 92%, color-mix(in srgb, var(--brand-accent) 14%, transparent), transparent 70%),
+    linear-gradient(160deg, var(--dark) 0%, color-mix(in srgb, var(--dark) 70%, #2a5c9a) 100%);
+  background-size: 150% 150%;
+  animation: corp-lights 24s ease-in-out infinite alternate;
+}
+
+/* The opening photos get the same lights over their tint. */
+[data-style="corporativo"] .hero-immersive::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -5;
+  pointer-events: none;
+  background:
+    radial-gradient(45% 60% at 82% 28%, rgb(120 178 245 / 0.3), transparent 70%),
+    radial-gradient(35% 45% at 8% 92%, color-mix(in srgb, var(--brand-accent) 16%, transparent), transparent 70%);
+  background-size: 150% 150%;
+  animation: corp-lights 20s ease-in-out infinite alternate;
+}
+
+[data-style="corporativo"] .tone-muted {
+  background:
+    radial-gradient(50% 70% at 92% 0%, rgb(120 170 232 / 0.2), transparent 70%),
+    radial-gradient(40% 60% at 0% 100%, rgb(150 190 240 / 0.14), transparent 70%),
+    linear-gradient(180deg, #f6f9fd, #e8f0fa);
+}
+
+[data-style="corporativo"] section.tone-light {
+  background:
+    radial-gradient(45% 55% at 100% 0%, rgb(130 180 240 / 0.12), transparent 70%),
+    #fff;
+}
+
+@keyframes corp-lights {
+  from {
+    background-position: 0% 0%;
+  }
+  to {
+    background-position: 100% 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-style="corporativo"] :is(section, footer).tone-dark,
+  [data-style="corporativo"] .hero-immersive::before {
+    animation: none;
+  }
+}
+
+/* A white header stays white over the opening photo. */
+[data-style="corporativo"] .site-header.tone-light {
+  background: #fff;
+  box-shadow: 0 1px 0 var(--line), 0 10px 30px -20px rgb(18 48 90 / 0.35);
+}
+
+/* Stronger gradients on the blue bands: a deep-to-royal sweep, two blue glows,
+   a warm one and a slow diagonal sheen of light. */
+[data-style="corporativo"] :is(section, footer).tone-dark:not(.hero-immersive):not(.has-backdrop) {
+  background:
+    linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.07) 45%, transparent 60%),
+    radial-gradient(60% 70% at 88% 0%, rgb(105 165 245 / 0.45), transparent 70%),
+    radial-gradient(55% 65% at 25% 110%, rgb(55 120 215 / 0.4), transparent 70%),
+    radial-gradient(35% 45% at 0% 35%, color-mix(in srgb, var(--brand-accent) 18%, transparent), transparent 70%),
+    linear-gradient(140deg, color-mix(in srgb, var(--dark) 92%, black) 0%, var(--dark) 40%, color-mix(in srgb, var(--dark) 55%, #3a74c4) 100%);
+  background-size: 220% 220%, 150% 150%, 150% 150%, 150% 150%, 100% 100%;
+  animation: corp-sheen 26s ease-in-out infinite alternate;
+}
+
+@keyframes corp-sheen {
+  from {
+    background-position: 100% 0%, 0% 0%, 0% 100%, 0% 0%, 0 0;
+  }
+  to {
+    background-position: 0% 100%, 100% 100%, 100% 0%, 100% 100%, 0 0;
+  }
+}
+
+/* Card titles in the brand colour turn white on the blue bands and over photos (the navy brand would vanish). */
+[data-style="corporativo"] :is(.tone-dark, .tone-brand, .has-backdrop) h3.text-brand-text {
+  color: #fff;
+}
+
+/* Photo bands: the photo has to read (it is the point of the band), so the shade is lighter than the
+   default 80 % and deepens only where the text sits (the left) and at the foot. */
+[data-style="corporativo"] .backdrop-shade {
+  background:
+    linear-gradient(100deg, color-mix(in srgb, var(--dark) 90%, transparent) 0%, color-mix(in srgb, var(--dark) 68%, transparent) 50%, color-mix(in srgb, var(--dark) 42%, transparent) 100%),
+    linear-gradient(0deg, color-mix(in srgb, var(--dark) 45%, transparent), transparent 45%);
+}
+
+/* A centred statement over a photo: an even shade, a little deeper in the middle where the sentence is. */
+[data-style="corporativo"] .statement-band.has-backdrop .backdrop-shade {
+  background: radial-gradient(70% 90% at 50% 50%, color-mix(in srgb, var(--dark) 82%, transparent), color-mix(in srgb, var(--dark) 55%, transparent));
+}
+
+/* The video gets the brand tint and lights on top, like the photo did. */
+[data-style="corporativo"] .hero-immersive .bg-video video {
+  filter: saturate(0.85);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-style="corporativo"] :is(section, footer).tone-dark:not(.hero-immersive):not(.has-backdrop) {
+    animation: none;
+  }
+
+  [data-style="corporativo"] .hero-immersive .bg-video {
+    display: none;
+  }
+}
+
+/* Icons come back as fine line drawings in the accent colour, never inside a tile. */
+[data-style="corporativo"] .icon-tile {
+  display: flex;
+  width: auto;
+  height: auto;
+  justify-content: flex-start;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--brand-accent);
+}
+
+[data-style="corporativo"] .icon-tile::before {
+  content: none;
+}
+
+[data-style="corporativo"] .icon-tile svg {
+  width: 2.25rem;
+  height: 2.25rem;
+  stroke-width: 1.4;
+  filter: none;
+}
+
+[data-style="corporativo"] .group:hover .icon-tile {
+  transform: translateY(-3px);
+}
+
+[data-style="corporativo"] .benefits-grid .icon-tile {
+  margin-bottom: 1.25rem;
+}
+
+[data-style="corporativo"] .service-index-icon {
+  color: var(--brand-accent);
+  transition: transform 0.4s;
+}
+
+[data-style="corporativo"] .service-index > li:has(a:hover) .service-index-icon {
+  transform: translateX(4px) rotate(-4deg);
+}
+
+/* Services "slides": one slide at a time, switched by the radio right before it (sections/content.tsx). */
+.slides-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+/* The slide enters from the side: clipped, so that movement never widens the page on phones. */
+.slides {
+  overflow-x: clip;
+}
+.slides .slide {
+  display: none;
+}
+.slides .slides-input:checked + .slide {
+  display: grid;
+  animation: slide-in 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.slides .slides-input:focus-visible + .slide h3 {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 4px;
+}
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(1.5rem);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slides .slides-input:checked + .slide {
+    animation: none;
+  }
+}
+
+/* ---- Style: executivo -----------------------------------------------------------
+ * A personal-brand consultant or speaker, in the manner of ricamconsultoria.com.br
+ * (and gustavocerbasi.com.br): the opening photo in a brand duotone deepening into
+ * the dark tone behind the text, pillars along its foot, light headings with bold
+ * key words and a short brand rule under section titles, a black-and-white cut-out
+ * beside the big quote, dark bands over soft blurred photos and brand gradients.
+ * Photos stay still.
+ */
+[data-style="executivo"] .statement-word {
+  animation: none !important;
+  opacity: 1 !important;
+}
+
+[data-style="executivo"] :is(section, footer).tone-dark {
+  background:
+    radial-gradient(60% 90% at 88% 0%, color-mix(in srgb, var(--brand-primary) 32%, transparent), transparent 70%),
+    linear-gradient(160deg, var(--dark) 0%, color-mix(in srgb, var(--dark) 78%, black) 100%);
+}
+
+[data-style="executivo"] section.tone-brand {
+  background: linear-gradient(115deg, color-mix(in srgb, var(--brand-primary) 78%, var(--brand-accent)) 0%, var(--brand-primary) 45%, var(--dark) 100%);
+}
+
+[data-style="executivo"] .tone-muted {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--brand-primary) 7%, white) 0%, #fff 100%);
+}
+
+/* Backdrop photos: still, softened, slightly enlarged so the blur has no edges. */
+[data-style="executivo"] .has-backdrop .parallax,
+[data-style="executivo"] .hero-immersive:not(.hero-lead) .ken-burns {
+  animation: none !important;
+  translate: none !important;
+  transform: scale(1.08) !important;
+  filter: blur(5px) saturate(0.85);
+}
+
+/* The shade deepens on the left, where the text sits, and at the foot of the band. */
+[data-style="executivo"] .backdrop-shade {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--dark) 95%, transparent) 0%, color-mix(in srgb, var(--dark) 80%, transparent) 48%, color-mix(in srgb, var(--dark) 52%, transparent) 100%),
+    linear-gradient(0deg, color-mix(in srgb, var(--dark) 55%, transparent), transparent 45%);
+}
+
+/* Highlighted words on dark: a light tint of the brand, legible over photos. */
+/* Headings in the brand colour; the highlight in its lighter companion (the accent). */
+[data-style="executivo"] main :is(h1, h2, h3) {
+  color: var(--brand-primary);
+}
+
+[data-style="executivo"] main :is(h1, h2) .text-brand-text {
+  color: var(--brand-accent);
+}
+
+[data-style="executivo"] :is(.tone-dark, .tone-brand, .hero-immersive, .has-backdrop) :is(h1, h2, h3) {
+  color: #fff;
+}
+
+[data-style="executivo"] :is(.tone-dark, .tone-brand, .hero-immersive, .has-backdrop) :is(h1, h2) .text-brand-text {
+  color: color-mix(in srgb, var(--brand-accent) 55%, white);
+}
+
+/* A deep brand colour cannot fill buttons on its own dark bands: there they turn white with brand text. */
+[data-style="executivo"] :is(header, .tone-dark, .tone-brand, .hero-immersive, .has-backdrop) a.bg-brand {
+  background: #fff;
+  color: var(--brand-primary);
+}
+
+[data-style="executivo"] :is(header, .tone-dark, .tone-brand, .hero-immersive, .has-backdrop) a.bg-brand:hover {
+  filter: none;
+  background: color-mix(in srgb, var(--brand-accent) 18%, white);
+}
+
+/* The opening photo in a duotone: grey tones multiplied by a light brand blue, sharp and still. */
+[data-style="executivo"] .hero-lead .hero-backdrop img {
+  animation: none !important;
+  transform: none !important;
+  filter: grayscale(1) contrast(1.08);
+  object-position: 72% 30%;
+}
+
+[data-style="executivo"] .hero-lead .hero-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--brand-accent) 80%, white);
+  mix-blend-mode: multiply;
+}
+
+/* Light headings carry their key words in bold. */
+[data-style="executivo"] :is(.tone-dark, .tone-brand, .hero-immersive, .has-backdrop) :is(h1, h2) .font-bold {
+  color: color-mix(in srgb, var(--brand-accent) 55%, white);
+}
+
+/* A short brand rule under each section title. */
+[data-style="executivo"] main section:not(.hero-immersive) h2:not(.sr-only)::after {
+  content: "";
+  display: block;
+  width: 4.5rem;
+  height: 3px;
+  margin-top: 1.25rem;
+  background: var(--brand-primary);
+}
+
+[data-style="executivo"] main .text-center h2::after {
+  margin-inline: auto;
+}
+
+[data-style="executivo"] main :is(.tone-dark, .tone-brand, .has-backdrop) h2::after {
+  background: var(--brand-accent);
+}
+
+/* Downloads (media kits): an opening with the pieces fanned out, cards that save on a click, texts to copy. */
+.kit-bundle {
+  background:
+    radial-gradient(60% 80% at 88% 18%, color-mix(in srgb, var(--brand-primary) 34%, transparent), transparent 70%),
+    radial-gradient(50% 70% at 8% 100%, color-mix(in srgb, var(--brand-primary) 16%, transparent), transparent 70%),
+    var(--dark);
+}
+
+.kit-bundle::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, var(--brand-primary), transparent);
+}
+
+.kit-file {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: var(--button-radius);
+  padding: 0.5rem 0.95rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform 0.2s, filter 0.2s, background-color 0.2s, border-color 0.2s;
+}
+
+.kit-file:hover {
+  transform: translateY(-1px);
+}
+
+.kit-file-solid {
+  background: var(--brand-primary);
+  color: var(--brand-on-primary);
+}
+
+.kit-file-solid:hover {
+  filter: brightness(1.1);
+}
+
+.kit-file-soft {
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.kit-file-soft:hover {
+  border-color: var(--brand-text);
+  color: var(--brand-text);
+}
+
+.kit-file-big {
+  min-height: 3.75rem;
+  gap: 0.75rem;
+  padding: 0.75rem 1.75rem;
+  font-size: 1rem;
+  box-shadow: 0 18px 40px -14px color-mix(in srgb, var(--brand-primary) 75%, transparent);
+}
+
+.kit-file-size {
+  font-weight: 400;
+  opacity: 0.72;
+}
+
+.kit-fan {
+  position: relative;
+  margin-inline: auto;
+  aspect-ratio: 1 / 1;
+  width: min(100%, 34rem);
+}
+
+.kit-fan-piece {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 46%;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 34px 70px -22px rgb(0 0 0 / 0.75);
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform: translate(-50%, -50%) var(--fan);
+}
+
+.kit-fan-piece:nth-child(1) {
+  --fan: translate(-58%, 3%) rotate(-8deg);
+  z-index: 1;
+}
+
+.kit-fan-piece:nth-child(2) {
+  --fan: translate(58%, 3%) rotate(8deg);
+  z-index: 2;
+}
+
+.kit-fan-piece:nth-child(3) {
+  --fan: translate(0, -3%);
+  z-index: 3;
+}
+
+.kit-fan:hover .kit-fan-piece:nth-child(1) {
+  --fan: translate(-66%, 3%) rotate(-11deg);
+}
+
+.kit-fan:hover .kit-fan-piece:nth-child(2) {
+  --fan: translate(66%, 3%) rotate(11deg);
+}
+
+.kit-frame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 1.25rem;
+  background: var(--surface-alt);
+}
+
+.kit-frame-piece {
+  max-height: 100%;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 14px 22px rgb(0 0 0 / 0.26));
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.kit-frame:hover .kit-frame-piece {
+  transform: scale(1.04);
+}
+
+.kit-frame-hint {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--brand-primary);
+  color: var(--brand-on-primary);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.kit-frame:hover .kit-frame-hint,
+.kit-frame:focus-visible .kit-frame-hint {
+  opacity: 1;
+  transform: none;
+}
+
+.kit-snippets {
+  columns: 1;
+  column-gap: 1.25rem;
+}
+
+@media (min-width: 1024px) {
+  .kit-snippets {
+    columns: 2;
+  }
+}
+
+.kit-snippet {
+  margin-bottom: 1.25rem;
+  break-inside: avoid;
+}
+
+.kit-mark {
+  border-radius: 4px;
+  padding: 0 0.25em;
+  background: color-mix(in srgb, var(--brand-primary) 18%, transparent);
+  color: inherit;
+  font-weight: 600;
+}
+
+.kit-copy {
+  display: inline-flex;
+  flex-shrink: 0;
+  min-height: 2.25rem;
+  cursor: pointer;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: var(--button-radius);
+  padding: 0.25rem 0.8rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.kit-copy:hover {
+  border-color: var(--brand-text);
+  color: var(--brand-text);
+}
+
+.kit-copy.is-done {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary);
+  color: var(--brand-on-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-fan-piece,
+  .kit-frame-piece {
+    transition: none;
+  }
+}
+
+/* Campaign opening (promo): a poster in the brand color. Sizes follow the screen so the name always fills the width. */
+.promo {
+  --promo-ink: var(--dark, #081923);
+  --promo-block: var(--dark, #081923);
+  padding-block: clamp(2.5rem, 6vw, 5rem) clamp(3rem, 6vw, 5.5rem);
+}
+
+.promo-eyebrow {
+  color: var(--promo-ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+main h1.promo-title,
+main h2.promo-title {
+  margin-top: 1rem;
+  color: #fff;
+  font-size: clamp(3.4rem, 11.6vw, 10.75rem);
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  line-height: 0.84;
+  text-transform: uppercase;
+}
+
+main .promo-title :is(em, span, strong, mark) {
+  display: block;
+  color: var(--promo-ink);
+  font-style: normal;
+  font-weight: inherit;
+}
+
+.promo-grid {
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+  margin-top: clamp(2rem, 4vw, 3.5rem);
+}
+
+@media (min-width: 1024px) {
+  .promo-grid {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 4.5rem;
+  }
+}
+
+.promo-discount {
+  display: flex;
+  align-items: flex-start;
+  color: #fff;
+  font-size: clamp(6.5rem, 16vw, 15rem);
+  font-weight: 900;
+  letter-spacing: -0.06em;
+  line-height: 0.8;
+}
+
+.promo-discount-label {
+  margin: 0.08em 0 0 0.1em;
+  padding: 0.14em 0.2em;
+  background: var(--promo-block);
+  color: #fff;
+  font-size: 0.2em;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  transform: rotate(-4deg);
+}
+
+.promo-sub {
+  color: var(--promo-ink);
+  font-size: clamp(1.15rem, 1.8vw, 1.4rem);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.promo-clock {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  max-width: 28rem;
+}
+
+.promo-clock-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.7rem 0.25rem 0.6rem;
+  background: var(--promo-block);
+  color: #fff;
+}
+
+.promo-clock-value {
+  font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.promo-clock-label {
+  margin-top: 0.35rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.promo-ended {
+  display: inline-block;
+  padding: 0.7rem 1rem;
+  background: var(--promo-block);
+  color: #fff;
+  font-weight: 700;
+}
+
+.promo .glass {
+  border-color: var(--promo-ink);
+  background: transparent;
+  color: var(--promo-ink);
+}
+
+.promo-terms {
+  margin-top: 1.25rem;
+  color: var(--promo-ink);
+  font-size: 0.85rem;
+}
+
+/* With a photo behind: tinted with the brand color, darker at the foot so the small text stays readable. */
+.promo-photo {
+  --promo-ink: #fff;
+  position: relative;
+  isolation: isolate;
+}
+
+.promo-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: var(--brand-primary);
+}
+
+.promo-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, color-mix(in srgb, var(--dark, #081923) 82%, transparent), transparent 62%);
+}
+
+.promo-backdrop-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 72% 30%;
+  filter: grayscale(1) contrast(1.15) brightness(1.1);
+  mix-blend-mode: multiply;
+  animation: promo-drift 26s ease-in-out infinite alternate;
+}
+
+@keyframes promo-drift {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .promo-backdrop-media {
+    animation: none;
+  }
+}
+
+/* ---- Hero "scene": a drawn village ------------------------------------------------
+ * Sky gradient, two drifting clouds, houses and hills in SVG, cut-out characters
+ * standing on the hills and the brand's mascot floating where the sun would be.
+ * Works with any style; "vila" adds the ink outlines and caption headings.
+ */
+.hero-scene {
+  --scene-ink: var(--ink);
+  background: linear-gradient(#8fd6ff 0%, #c9ecff 78%);
+  color: #14161a;
+}
+.hero-scene .scene-ink { stroke: var(--scene-ink); }
+.scene-village { position: absolute; left: 0; right: 0; bottom: -2px; z-index: 1; width: 100%; height: 200px; }
+.scene-characters {
+  position: absolute; z-index: 2; left: 0; right: 0; bottom: 34px;
+  display: flex; justify-content: center; align-items: flex-end; gap: clamp(8px, 4vw, 70px);
+  pointer-events: none;
+}
+.scene-character {
+  height: clamp(118px, 16vw, 210px); width: auto;
+  filter: drop-shadow(4px 6px 0 rgb(0 0 0 / 0.22));
+  transform-origin: bottom center;
+}
+.scene-cloud {
+  position: absolute; z-index: 1; height: 46px; border-radius: 999px; background: #fff;
+  border: 3px solid var(--scene-ink);
+}
+.scene-cloud::before, .scene-cloud::after {
+  content: ""; position: absolute; background: #fff; border: 3px solid var(--scene-ink); border-bottom: 0;
+  border-radius: 999px 999px 0 0;
+}
+.scene-cloud::before { width: 54%; height: 60px; left: 14%; bottom: 20px; }
+.scene-cloud::after { width: 38%; height: 44px; right: 12%; bottom: 20px; }
+.scene-cloud-1 { width: 170px; top: 36px; left: 3%; }
+.scene-cloud-2 { width: 120px; top: 150px; left: 46%; }
+.scene-mascot { position: absolute; z-index: 2; right: 6%; top: 34px; width: 128px; }
+.scene-mascot img { filter: drop-shadow(5px 5px 0 var(--scene-ink)); }
+.scene-bubble {
+  position: absolute; right: 100%; top: 6px; margin-right: -14px; white-space: nowrap;
+  background: #fff; border: 3px solid var(--scene-ink); border-radius: 14px; padding: 6px 10px;
+  font-weight: 700; font-size: 14px; transform: rotate(-4deg); color: #14161a;
+}
+.scene-proof {
+  display: inline-flex; align-items: center; background: #fff; border: 3px solid var(--scene-ink);
+  border-radius: 14px; padding: 8px 14px; box-shadow: 4px 4px 0 var(--scene-ink); font-weight: 600; font-size: 15px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .scene-cloud-1 { animation: scene-drift 38s ease-in-out infinite alternate; }
+  .scene-cloud-2 { animation: scene-drift 52s ease-in-out infinite alternate-reverse; }
+  .scene-mascot { animation: scene-bob 3.2s ease-in-out infinite; }
+  .scene-character { animation: scene-hop 2.8s ease-in-out infinite; }
+  .scene-character:nth-child(2) { animation-delay: 0.4s; }
+  .scene-character:nth-child(3) { animation-delay: 0.8s; }
+  .scene-character:nth-child(4) { animation-delay: 1.2s; }
+}
+@keyframes scene-drift { from { transform: translateX(-40px); } to { transform: translateX(40px); } }
+@keyframes scene-bob { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-10px) rotate(3deg); } }
+@keyframes scene-hop { 0%, 100% { transform: translateY(0) scaleY(1); } 45% { transform: translateY(-6px) scaleY(1.02); } 55% { transform: translateY(0) scaleY(0.98); } }
+@media (max-width: 767px) {
+  .scene-mascot { width: 76px; top: 12px; right: 4%; }
+  .scene-bubble { display: none; }
+  .scene-cloud-2 { display: none; }
+  .hero-scene .scene-body { padding-bottom: 10.5rem; }
+  .scene-characters { gap: 4px; bottom: 30px; }
+  .scene-character { height: 96px; }
+  .scene-village { height: 150px; }
+}
+
+/* ---- Newsletter "product" -------------------------------------------------------- */
+.newsletter-product .product-visual { width: fit-content; max-width: min(520px, 100%); overflow: hidden; border-radius: var(--brand-radius); background: #fff; box-shadow: 0 24px 50px -28px rgb(0 0 0 / 0.45); transform: rotate(-1.5deg); }
+.newsletter-product .product-visual img { width: auto; max-width: 100%; max-height: 620px; margin: 0 auto; }
+.newsletter-product .product-visual-free { background: none; box-shadow: none; transform: none; overflow: visible; border-radius: 0; }
+.newsletter-product .product-visual-free img { filter: drop-shadow(0 24px 28px rgb(0 0 0 / 0.28)); }
+.newsletter-product .product-badge {
+  display: inline-block; background: var(--brand-accent); color: var(--brand-on-accent);
+  font: 400 1.6rem/1 var(--font-heading, inherit); text-transform: uppercase; letter-spacing: 0.02em;
+  padding: 0.45rem 0.85rem; border-radius: 0.75rem; transform: rotate(-3deg);
+}
+.newsletter-product .newsletter-form :is(input[type="text"], input[type="email"], input:not([type])) { width: 100%; }
+.newsletter-product .newsletter-form button { width: 100%; }
+
+/* ---- Style: vila -----------------------------------------------------------------
+ * A cartoon world: paper background, thick ink outlines, stickers with a hard offset
+ * shadow, buttons that press down and white headings outlined in ink like captions.
+ */
+[data-style="vila"] {
+  --vila-ink: #2b2118;
+  --vila-paper: #fff8e7;
+  --vila-sky: #c9ecff;
+  --vila-line: 3px solid var(--vila-ink);
+  --vila-pop: 6px 6px 0 var(--vila-ink);
+  --ink: var(--vila-ink);
+  --line: var(--vila-ink);
+}
+[data-style="vila"] body { background: var(--vila-paper); color: var(--vila-ink); }
+[data-style="vila"] .hero-scene { --scene-ink: var(--vila-ink); border-bottom: var(--vila-line); }
+[data-style="vila"] main > section, [data-style="vila"] main section.tone-light, [data-style="vila"] main section.tone-muted { border-bottom: var(--vila-line); }
+[data-style="vila"] .tone-light { background: var(--vila-paper); }
+[data-style="vila"] .tone-muted { background: var(--vila-sky); }
+[data-style="vila"] main :is(h1, h2, h3) { text-transform: uppercase; letter-spacing: 0.01em; line-height: 1; }
+[data-style="vila"] main h2 { font-size: clamp(2.3rem, 4.6vw, 3.75rem); }
+/* Captions: white letters outlined in ink, the look of the videos' subtitles. */
+[data-style="vila"] :is(.hero-scene h1, .tone-brand h2, .tone-dark h2) {
+  color: #fff; -webkit-text-stroke: 2px var(--vila-ink); paint-order: stroke fill; text-shadow: 0 4px 0 var(--vila-ink);
+}
+[data-style="vila"] .hero-scene h1 .text-brand-text, [data-style="vila"] .hero-scene h1 :is(em, strong, span) { color: var(--brand-accent); }
+[data-style="vila"] .eyebrow {
+  display: inline-block; letter-spacing: 0.12em; font-family: var(--font-heading, inherit); font-weight: 400; font-size: 0.95rem;
+  background: color-mix(in srgb, var(--brand-primary) 78%, black); color: var(--brand-accent);
+  padding: 0.5rem 0.85rem; border-radius: 0.6rem; border: 2px solid var(--vila-ink);
+}
+[data-style="vila"] .eyebrow.text-center { display: table; margin-left: auto; margin-right: auto; }
+/* Buttons that press down. */
+[data-style="vila"] :is(main a[data-cta], .site-header a.bg-brand, .newsletter-form button, .mobile-bar-btn) {
+  border: var(--vila-line); box-shadow: 0 6px 0 var(--vila-ink); border-radius: 999px;
+  text-transform: none; letter-spacing: 0; font-size: 1.05rem; font-weight: 700;
+  transition: transform 0.12s, box-shadow 0.12s, filter 0.12s;
+}
+[data-style="vila"] :is(main a[data-cta], .site-header a.bg-brand, .newsletter-form button, .mobile-bar-btn):hover { transform: translateY(2px); box-shadow: 0 4px 0 var(--vila-ink); filter: none; }
+[data-style="vila"] :is(main a[data-cta], .site-header a.bg-brand, .newsletter-form button, .mobile-bar-btn):active { transform: translateY(6px); box-shadow: 0 0 0 var(--vila-ink); }
+[data-style="vila"] main a[data-cta].bg-brand { background: var(--brand-accent); color: var(--vila-ink); }
+[data-style="vila"] main a[data-cta].glass { background: #fff; color: var(--vila-ink); backdrop-filter: none; }
+[data-style="vila"] main a[data-cta] svg { display: none; }
+[data-style="vila"] .site-header { background: #fff; border-bottom: var(--vila-line); }
+[data-style="vila"] .site-header a.bg-brand { box-shadow: 0 4px 0 var(--vila-ink); font-size: 0.95rem; }
+/* Stickers. */
+[data-style="vila"] :is(.product-panel, .team-grid > li, main details, main dl > div, .episode-cover) {
+  border: var(--vila-line); box-shadow: var(--vila-pop); border-radius: 22px; background-color: #fff;
+}
+[data-style="vila"] main details { padding: 1.1rem 1.4rem; margin-bottom: 0.9rem; border-top: var(--vila-line); }
+[data-style="vila"] main details summary { font-family: inherit; font-weight: 700; text-transform: none; font-size: 1.15rem; }
+[data-style="vila"] main dl > div { align-items: flex-start; text-align: left; padding: 1.6rem; }
+[data-style="vila"] main dl > div dd span { display: inline-block; background: #ff5a5f; color: #fff; padding: 0.6rem 0.9rem; border: var(--vila-line); border-radius: 0.75rem; transform: rotate(-3deg); box-shadow: 4px 4px 0 var(--vila-ink); font-weight: 400; }
+[data-style="vila"] main dl > div dt { color: var(--vila-ink); font-weight: 600; margin-top: 1rem; font-size: 1.08rem; line-height: 1.45; }
+[data-style="vila"] .team-grid > li { overflow: hidden; padding-bottom: 1.1rem; }
+[data-style="vila"] .team-grid > li > div:first-child { background: var(--vila-sky); border-bottom: var(--vila-line); }
+[data-style="vila"] .team-grid .team-portrait { object-fit: contain; object-position: bottom; filter: none; padding-top: 0.75rem; }
+[data-style="vila"] .team-grid > li > div.mt-5 { padding: 0 1.1rem; }
+[data-style="vila"] .episode-cover { border-radius: 18px; }
+[data-style="vila"] .episode-badge { border: 2px solid var(--vila-ink); box-shadow: none; }
+[data-style="vila"] main :is(input[type="text"], input[type="email"], input:not([type]), textarea) { border: var(--vila-line); border-radius: 999px; background: #fff; color: var(--vila-ink); font-size: 1.05rem; }
+[data-style="vila"] .newsletter-consent { font-weight: 500; }
+[data-style="vila"] .newsletter-consent input { width: 1.25rem; height: 1.25rem; }
+[data-style="vila"] .newsletter-product .product-visual:not(.product-visual-free) { border: var(--vila-line); box-shadow: var(--vila-pop); border-radius: 22px; }
+[data-style="vila"] .newsletter-product .product-visual figcaption { border-top: var(--vila-line); }
+[data-style="vila"] .newsletter-product .product-badge { border: var(--vila-line); box-shadow: 4px 4px 0 var(--vila-ink); color: var(--vila-ink); }
+[data-style="vila"] .product-features svg { background: #6fcf5b; color: #fff; border: 2.5px solid var(--vila-ink); border-radius: 999px; padding: 2px; width: 1.6rem; height: 1.6rem; margin-top: 0; }
+[data-style="vila"] .product-price { border-top: 3px dashed color-mix(in srgb, var(--brand-primary) 30%, white); }
+[data-style="vila"] .mobile-bar { background: #fff; border-top: var(--vila-line); }
+[data-style="vila"] .mobile-bar-btn { box-shadow: 0 4px 0 var(--vila-ink); }
+[data-style="vila"] .mobile-bar-btn.bg-brand { background: var(--brand-accent); color: var(--vila-ink); }
+[data-style="vila"] .mobile-bar-alt { background: var(--brand-primary); color: #fff; }
+[data-style="vila"] footer.tone-dark { background: var(--vila-ink); }
+[data-style="vila"] .kit-bundle h1, [data-style="vila"] .kit-bundle h2 { color: #fff; -webkit-text-stroke: 2px var(--vila-ink); paint-order: stroke fill; text-shadow: 0 4px 0 var(--vila-ink); }
+[data-style="vila"] .kit-file { border: var(--vila-line); box-shadow: 0 6px 0 var(--vila-ink); border-radius: 999px; }
+
+/* ---- Style: nuvem -----------------------------------------------------------------
+ * A SaaS product page in the manner of salesforce.com/br/crm: white page, sky-blue
+ * gradient bands, deep navy headings in a bold sans, pill buttons, white cards with a
+ * soft shadow and a coloured strip on top (each item's own accent, e.g. one colour per
+ * product), and photos and screens with large rounded corners.
+ */
+[data-style="nuvem"] body {
+  --button-radius: 999px;
+  --nuvem-sky: color-mix(in srgb, var(--brand-accent) 10%, white);
+  background: #ffffff;
+}
+
+[data-style="nuvem"] main :is(h1, h2) {
+  font-weight: var(--font-heading-weight, 700);
+  letter-spacing: -0.02em;
+  color: var(--dark);
+}
+
+[data-style="nuvem"] :is(.tone-dark, .tone-brand, .hero-immersive) :is(h1, h2) {
+  color: var(--on-dark);
+}
+
+[data-style="nuvem"] main h3 {
+  color: var(--dark);
+  font-weight: 700;
+}
+
+[data-style="nuvem"] :is(.tone-dark, .tone-brand) h3 {
+  color: var(--on-dark);
+}
+
+[data-style="nuvem"] .eyebrow {
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--brand-text);
+}
+
+[data-style="nuvem"] :is(.tone-dark, .tone-brand, .hero-immersive) .eyebrow {
+  color: var(--brand-bright);
+}
+
+/* Bands: white, or a sky gradient that fades into the next white band. */
+[data-style="nuvem"] .tone-muted {
+  background: linear-gradient(180deg, var(--nuvem-sky) 0%, #ffffff 100%);
+}
+
+/* The home hero sits on the sky, with a rounded foot. */
+[data-style="nuvem"] #conteudo > section.hero-lead:first-of-type:not(.hero-immersive) {
+  background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--brand-accent) 22%, white) 0%, var(--nuvem-sky) 45%, #ffffff 100%);
+  border-radius: 0 0 48px 48px;
+}
+
+/* Buttons: pill, sentence case. */
+[data-style="nuvem"] main a.min-h-13,
+[data-style="nuvem"] main button.min-h-13 {
+  min-height: 3rem;
+  padding-inline: 1.6rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+[data-style="nuvem"] :is(.tone-light, .tone-muted) a.min-h-13.glass {
+  border: 1.5px solid var(--brand-primary);
+  background: #ffffff;
+  color: var(--brand-primary);
+}
+
+[data-style="nuvem"] .site-header nav a:not(.bg-brand),
+[data-style="nuvem"] .site-header details nav > div > a {
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+[data-style="nuvem"] .site-header a.bg-brand {
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Cards: white, soft shadow, no border; a coloured strip on top (the item's own accent). */
+[data-style="nuvem"] :is(.tone-light, .tone-muted) .card-surface,
+[data-style="nuvem"] :is(.tone-light, .tone-muted) .offer-card {
+  border: 0;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgb(3 45 96 / 0.06), 0 12px 32px rgb(3 45 96 / 0.08);
+}
+
+[data-style="nuvem"] .service-card,
+[data-style="nuvem"] .offer-card {
+  border-radius: 20px;
+  border-top: 6px solid var(--item-accent, var(--brand-primary)) !important;
+}
+
+[data-style="nuvem"] .service-card h3,
+[data-style="nuvem"] .offer-card h3 {
+  font-size: 1.35rem;
+}
+
+[data-style="nuvem"] .service-card .text-brand-text {
+  color: var(--item-accent, var(--brand-text));
+  text-transform: none;
+  letter-spacing: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* Photos and screens: large rounded corners, a soft shadow, no decorative plates behind. */
+[data-style="nuvem"] :is(.about-deco, .split-deco) {
+  display: none;
+}
+
+[data-style="nuvem"] :is(.about-photo, .split-photo, .video-frame) {
+  border-radius: 24px;
+  box-shadow: 0 18px 48px rgb(3 45 96 / 0.16);
+}
+
+/* Logo tiles: white cards with a shadow, as in a row of customer logos. */
+[data-style="nuvem"] .tone-light .logo-tile,
+[data-style="nuvem"] .tone-muted .logo-tile {
+  border: 0;
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgb(3 45 96 / 0.08);
+}
+
+/* Customer logos (prepared white, for dark strips) read as grey marks on a light band. */
+[data-style="nuvem"] :is(.tone-light, .tone-muted) .logo-strip img {
+  filter: brightness(0) saturate(0);
+  opacity: 0.55;
+}
+
+[data-style="nuvem"] :is(.tone-light, .tone-muted) .logo-strip img:hover {
+  opacity: 0.85;
+}
+
+/* The opening split hero: text on the sky, the product shown wide with rounded corners. */
+[data-style="nuvem"] #conteudo > section.tone-light:first-of-type:has(.split-media) {
+  background: radial-gradient(110% 90% at 90% 0%, color-mix(in srgb, var(--brand-accent) 20%, white) 0%, var(--nuvem-sky) 45%, #ffffff 100%);
+  border-radius: 0 0 48px 48px;
+}
+
+[data-style="nuvem"] .split-photo {
+  aspect-ratio: 16 / 11 !important;
+}
+
+/* Card art and screens are composed to the edge (badges, frames): shown whole, without the parallax zoom. */
+[data-style="nuvem"] .card-media .parallax,
+[data-style="nuvem"] .about-photo .parallax {
+  --parallax-scale: 1;
+  animation: none !important;
+  transform: none !important;
+}

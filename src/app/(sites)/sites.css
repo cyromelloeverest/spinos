@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+/* Section components live in a shared package; Tailwind must scan them too. */
+@source "../../components/sites";
+@import "../../components/sites/engine/styles.css";
+
+/* Theme values come from CSS variables set per site in the layout (see @everest/sections theme.ts). */
+@theme inline {
+  --color-brand: var(--brand-primary);
+  --color-brand-text: var(--brand-text);
+  --color-dark: var(--dark);
+  --color-brand-contrast: var(--brand-on-primary);
+  --color-accent: var(--brand-accent);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --font-heading: var(--font-heading-family);
+  --font-sans: var(--font-body-family);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.site-shell {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body-family);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

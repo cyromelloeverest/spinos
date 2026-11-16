@@ -31,5 +31,61 @@
   "automations": {},
   "messages": [],
   "contentRules": [],
-  "contentTopics": []
+  "contentTopics": [],
+  "site": {
+    "colors": {
+      "primary": "#2563eb"
+    },
+    "tagline": "{{negocio}} em {{cidade}}",
+    "requireRegistration": false,
+    "pages": [
+      {
+        "key": "inicio",
+        "slug": "",
+        "title": "Início",
+        "seoTitle": "{{negocio}} em {{cidade}}",
+        "seoDescription": "{{negocio}}, em {{cidade}}. Conheça nossos serviços e fale com a gente.",
+        "hero": {
+          "heading": "{{negocio}} em {{cidade}}",
+          "highlight": "{{negocio}}",
+          "subheading": "Conheça o que fazemos e fale com a nossa equipe.",
+          "badges": [
+            "Atendimento em {{cidade}} e região"
+          ],
+          "ctaLabel": "Falar com a equipe"
+        },
+        "about": {
+          "heading": "Sobre a empresa",
+          "body": "A {{negocio}} atende clientes de {{cidade}} e região. Conte o que você precisa e retornamos o contato.",
+          "highlights": []
+        },
+        "closing": {
+          "heading": "Vamos conversar?",
+          "body": "Fale com a nossa equipe.",
+          "ctaLabel": "Falar pelo WhatsApp"
+        }
+      },
+      {
+        "key": "contato",
+        "slug": "contato",
+        "title": "Contato",
+        "kind": "contact",
+        "seoTitle": "Contato | {{negocio}}",
+        "seoDescription": "Fale com a {{negocio}}, em {{cidade}}.",
+        "hero": {
+          "heading": "Fale com a gente",
+          "highlight": "Fale",
+          "subheading": "Deixe sua mensagem e retornamos o contato.",
+          "badges": [],
+          "ctaLabel": "Falar pelo WhatsApp"
+        },
+        "contact": {
+          "heading": "Fale conosco",
+          "intro": "Preencha o formulário ou chame pelo WhatsApp.",
+          "submitLabel": "Enviar mensagem",
+          "messageLabel": "Como podemos ajudar?"
+        }
+      }
+    ]
+  }
 }
