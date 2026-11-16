@@ -5,6 +5,7 @@ import type { PGlite } from "@electric-sql/pglite";
 // (Postgres em memória, RLS ligada, papel restrito), com dados nos vários estados.
 // Não renderiza HTML: chama a página e confere que ela monta sem lançar erro.
 const h = vi.hoisted(() => {
+  process.env.LIFECYCLE_EMAIL_SECRET ??= "segredo-de-teste-smoke";
   process.env.STRIPE_SECRET_KEY ??= "sk_test_smoke_dummy"; // só para o módulo importar; nada é cobrado
   return { prisma: null as unknown };
 });
@@ -189,6 +190,40 @@ describe("as telas montam com dados reais em todos os estados", () => {
     const gone = renderToStaticMarkup((await Page({ searchParams: Promise.resolve({}) })) as never);
     expect(gone).not.toContain("Título editado");
     expect(renderToStaticMarkup((await Page({ searchParams: Promise.resolve({ ver: "descartados" }) })) as never)).toContain("Título editado");
+  }, 30_000);
+  it("e-mails: cria campanha, mostra o público e os avisos; o descadastro público confirma antes de agir", async () => {
+    const Page = (await import("@/app/(platform)/(app)/emails/page")).default;
+    const empty = renderToStaticMarkup((await Page({ searchParams: Promise.resolve({}) })) as never);
+    expect(empty).toContain("Nova campanha");
+    const { saveCampaignAction } = await import("@/lib/actions/emails");
+    const form = new FormData();
+    for (const [k, v] of Object.entries({ name: "Campanha de fumaça", subject: "Assunto de fumaça", preheader: "", body: "Olá, {{nome}}!\n\nTexto longo o bastante para valer.", audience: "todos" })) form.set(k, v);
+    let id = "";
+    await saveCampaignAction(null, form).catch((e: Error) => { id = /id=([^&]+)/.exec(e.message)?.[1] ?? ""; });
+    expect(id).not.toBe("");
+    const html = renderToStaticMarkup((await Page({ searchParams: Promise.resolve({ id }) })) as never);
+    expect(html).toContain("vão receber");
+    expect(html).toContain("Enviar teste para mim");
+    expect(html).toContain("Campanha de fumaça");
+    // Descadastro público: link válido mostra o botão; adulterado, "Link inválido"; o botão suprime.
+    const { unsubscribeUrl } = await import("@/lib/email/tokens");
+    const url = new URL(unsubscribeUrl("org-A", "quem.sai@exemplo.com.br"));
+    const q = { o: url.searchParams.get("o")!, e: url.searchParams.get("e")!, t: url.searchParams.get("t")! };
+    const Unsub = (await import("@/app/(platform)/descadastrar/page")).default;
+    expect(renderToStaticMarkup((await Unsub({ searchParams: Promise.resolve(q) })) as never)).toContain("Confirmar descadastro");
+    expect(renderToStaticMarkup((await Unsub({ searchParams: Promise.resolve({ ...q, t: "x" + q.t }) })) as never)).toContain("Link inválido");
+    const { unsubscribeAction } = await import("@/app/(platform)/descadastrar/actions");
+    const f = new FormData();
+    for (const [k, v] of Object.entries(q)) f.set(k, v);
+    await expect(unsubscribeAction(f)).rejects.toThrow(/feito=1/);
+    const suppressed = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_org_id', ${"org-A"}, true)`;
+      return tx.emailSuppression.count({ where: { organizationId: "org-A", email: "quem.sai@exemplo.com.br" } });
+    });
+    expect(suppressed).toBe(1);
+    const { POST } = await import("@/app/api/email/unsubscribe/route");
+    expect((await POST(new Request(`http://x/api/email/unsubscribe?o=${q.o}&e=${q.e}&t=${q.t}`, { method: "POST" }))).status).toBe(200);
+    expect((await POST(new Request(`http://x/api/email/unsubscribe?o=${q.o}&e=${q.e}&t=zz`, { method: "POST" }))).status).toBe(400);
   }, 30_000);
   it("oportunidades", async () => {
     const Page = (await import("@/app/(platform)/(app)/oportunidades/page")).default;

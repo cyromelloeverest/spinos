@@ -115,6 +115,9 @@ model Organization {
   siteDomains       SiteDomain[]
   siteEvents        SiteEvent[]
   contentDrafts     ContentDraft[]
+  emailCampaigns    EmailCampaign[]
+  emailMessages     EmailMessage[]
+  emailSuppressions EmailSuppression[]
 
   @@map("organizations")
 }
@@ -1109,4 +1112,93 @@ model ContentDraft {
   @@index([organizationId, createdAt])
   @@index([organizationId, generationId])
   @@map("content_drafts")
+}
+
+// E-mail enxuto: campanhas para contatos com base legal registrada (consentimento ou contrato).
+// Sem e-mail frio em massa. Cada destinatário vira uma EmailMessage; descadastro, bounce e
+// reclamação entram em EmailSuppression e valem para todas as campanhas da organização.
+enum EmailCampaignStatus {
+  DRAFT
+  SENDING
+  SENT
+  CANCELED
+}
+
+enum EmailMessageStatus {
+  QUEUED
+  SENT
+  FAILED
+  BOUNCED
+  COMPLAINED
+}
+
+enum SuppressionReason {
+  UNSUBSCRIBE
+  BOUNCE
+  COMPLAINT
+  MANUAL
+}
+
+model EmailCampaign {
+  id              String              @id @default(cuid())
+  organizationId  String
+  name            String
+  subject         String
+  preheader       String?
+  // Texto simples (parágrafos separados por linha em branco); {{nome}} vira o primeiro nome.
+  body            String
+  audience        String
+  status          EmailCampaignStatus @default(DRAFT)
+  // Congelado no envio: o que foi mandado é o que fica registrado, mesmo que o modelo mude depois.
+  htmlSnapshot    String?
+  totalRecipients Int                 @default(0)
+  createdByUserId String?
+  startedByUserId String?
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  messages     EmailMessage[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId, status])
+  @@map("email_campaigns")
+}
+
+model EmailMessage {
+  id             String             @id @default(cuid())
+  organizationId String
+  campaignId     String
+  // Sem chave estrangeira de propósito: a LGPD anonimiza o contato sem apagar o histórico de envio.
+  contactId      String?
+  email          String
+  firstName      String?
+  status         EmailMessageStatus @default(QUEUED)
+  providerId     String?
+  error          String?
+  sentAt         DateTime?
+  createdAt      DateTime           @default(now())
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign     EmailCampaign @relation(fields: [campaignId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@unique([campaignId, email])
+  @@index([organizationId, status, sentAt])
+  @@index([providerId])
+  @@map("email_messages")
+}
+
+model EmailSuppression {
+  id             String            @id @default(cuid())
+  organizationId String
+  email          String
+  reason         SuppressionReason
+  createdAt      DateTime          @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, email])
+  @@map("email_suppressions")
 }
