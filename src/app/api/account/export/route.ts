@@ -13,7 +13,7 @@ export async function GET() {
     return new Response("Não autenticado.", { status: 401 });
   }
 
-  const [organization, icps, memberships, opportunityScores] = await withOrgContext(organizationId, (tx) =>
+  const [organization, icps, memberships, opportunityScores, extra] = await withOrgContext(organizationId, (tx) =>
     Promise.all([
       tx.organization.findUnique({ where: { id: organizationId } }),
       tx.iCP.findMany({ where: { organizationId } }),
@@ -28,8 +28,19 @@ export async function GET() {
           account: { include: { contacts: true, opportunities: { include: { stage: true }, orderBy: { createdAt: "desc" }, take: 1 } } },
         },
       }),
+      // Os demais módulos: tudo que a organização produziu ou guardou fora da busca por IA.
+      Promise.all([
+        tx.contact.findMany({ where: { organizationId }, include: { account: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
+        tx.opportunity.findMany({ where: { organizationId }, include: { stage: { select: { name: true } }, account: { select: { name: true } }, lossReason: { select: { label: true } } }, orderBy: { createdAt: "asc" } }),
+        tx.site.findMany({ where: { organizationId }, include: { domains: { select: { hostname: true, kind: true, status: true } } } }),
+        tx.contentDraft.findMany({ where: { organizationId }, orderBy: { createdAt: "asc" } }),
+        tx.emailCampaign.findMany({ where: { organizationId }, select: { name: true, subject: true, body: true, audience: true, status: true, totalRecipients: true, startedAt: true, finishedAt: true, createdAt: true }, orderBy: { createdAt: "asc" } }),
+        tx.emailSuppression.findMany({ where: { organizationId }, select: { email: true, reason: true, createdAt: true } }),
+        tx.campaign.findMany({ where: { organizationId, spendBRL: { not: null } }, select: { name: true, channel: true, spendBRL: true, startsAt: true }, orderBy: { startsAt: "asc" } }),
+      ]),
     ]),
   );
+  const [allContacts, deals, sites, drafts, emailCampaigns, suppressions, spend] = extra;
 
   if (!organization) {
     return new Response("Organização não encontrada.", { status: 404 });
@@ -55,6 +66,13 @@ export async function GET() {
       papelNaOrganizacao: m.role,
     })),
     perfisDeClienteIdeal: icps,
+    contatos: allContacts.map((c) => ({ nome: c.name, cargo: c.jobTitle, email: c.email, telefone: c.phone, empresa: c.account?.name ?? null, baseLegal: c.legalBasis, pediuParaSair: c.optedOutAt, anonimizadoEm: c.anonymizedAt, cadastradoEm: c.createdAt })),
+    negociacoes: deals.map((d) => ({ titulo: d.title, empresa: d.account.name, etapa: d.stage.name, situacao: d.status, valorEsperado: d.expectedValueBRL, valorGanho: d.wonValueBRL, motivoDaPerda: d.lossReason?.label ?? null, criadaEm: d.createdAt, fechadaEm: d.closedAt })),
+    sites: sites.map((st) => ({ nome: st.name, modelo: st.templateKey, noAr: Boolean(st.publishedVersionId), enderecos: st.domains, conteudoDoRascunho: st.draft })),
+    conteudoGeradoPorIA: drafts.map((d) => ({ tipo: d.kind, situacao: d.status, assunto: d.topic, titulo: d.title, texto: d.body, avisos: d.warnings, criadoEm: d.createdAt })),
+    campanhasDeEmail: emailCampaigns,
+    listaDeNaoReceber: suppressions,
+    investimentosEmMarketing: spend,
     oportunidades: opportunityScores.map((o) => ({
       empresa: o.company.name,
       cidade: o.company.city,

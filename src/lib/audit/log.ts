@@ -25,6 +25,8 @@ export type SecurityEventType =
   | "admin.agency_access_granted"
   | "admin.pack_installed"
   | "privacy.data_exported"
+  | "privacy.contact_exported"
+  | "privacy.contact_anonymized"
   | "privacy.deletion_requested"
   | "privacy.deletion_completed"
   | "privacy.third_party_data_redacted"

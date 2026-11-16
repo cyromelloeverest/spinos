@@ -84,6 +84,7 @@ export default async function ContatosPage({ searchParams }: { searchParams: Pro
                     <input name="legalBasisNote" defaultValue={c.legalBasisNote ?? ""} placeholder="De onde veio o contato (ex.: dado público da Receita)" className="rounded-[10px] border px-3 text-[13px]" style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)", height: "40px" }} />
                     <button type="submit" className="text-[12.5px] font-semibold px-3.5 rounded-[10px] border cursor-pointer" style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}>Salvar</button>
                   </form>
+                  <a href={`/contatos/${c.id}/dados`} className="mt-2 inline-block text-[12px]" style={{ color: "var(--primary)" }}>Baixar os dados desta pessoa (LGPD)</a>
                   <form action={anonymizeContact.bind(null, c.id)} className="mt-2">
                     <button type="submit" className="cursor-pointer border-0 bg-transparent p-0 text-[12px]" style={{ color: "var(--critical)" }}>Anonimizar esta pessoa (LGPD)</button>
                   </form>

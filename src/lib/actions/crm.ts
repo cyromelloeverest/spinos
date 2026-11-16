@@ -10,6 +10,8 @@ import { ORIGIN_OPTIONS, setFirstTouchOrigin } from "@/lib/crm/origin-options";
 import { scheduleActivity, completeActivity, rescheduleActivity, cancelActivity, NextStepRequiredError, type ActivityTypeKey } from "@/lib/crm/activities";
 import { moveToKind, moveToStage, startInPipeline } from "@/lib/crm/opportunities";
 import { getDefaultPipeline } from "@/lib/crm/pipeline-config";
+import { logSecurityEvent } from "@/lib/audit/log";
+import { anonymizeContactData } from "@/lib/crm/privacy";
 import { createLead, DuplicateLeadError, LeadValidationError } from "@/lib/crm/leads";
 import { syncFeedback, type LossReasonKey } from "@/lib/crm/feedback";
 import type { Prisma } from "@/generated/prisma/client";
@@ -221,12 +223,8 @@ export async function setContactLegalBasis(contactId: string, formData: FormData
 // negociação. Não apaga a linha porque ela pode estar ligada a uma negociação.
 export async function anonymizeContact(contactId: string) {
   const c = await requireManager();
-  await withOrgContext(c.organizationId, (tx) =>
-    tx.contact.updateMany({
-      where: { id: contactId, organizationId: c.organizationId },
-      data: { name: "Pessoa removida (LGPD)", jobTitle: null, email: null, phone: null, phoneE164: null, linkedinUrl: null, legalBasisNote: null, anonymizedAt: new Date(), isPrimary: false },
-    }),
-  );
+  await withOrgContext(c.organizationId, (tx) => anonymizeContactData(tx, c.organizationId, contactId));
+  await logSecurityEvent({ type: "privacy.contact_anonymized", actorUserId: c.userId, organizationId: c.organizationId, targetId: contactId });
   revalidatePath("/contatos");
   redirect("/contatos?salvo=1");
 }
