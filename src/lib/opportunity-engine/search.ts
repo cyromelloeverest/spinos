@@ -5,6 +5,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { prisma } from "@/lib/prisma";
 import type { Organization, ICP } from "@/generated/prisma/client";
 import { withOrgContext } from "@/lib/db/with-org-context";
+import { ensureAccountForCompany, ensureDecisionMakerContact, untouchedScoresWhere } from "@/lib/crm/accounts";
 import { OpportunitySearchResultSchema } from "./schema";
 import { findBestMatch } from "./company-matching";
 import { SEARCH_COOLDOWN_MS, EMPTY_RESULT_RETRY_MS, startOfCurrentMonth } from "./constants";
@@ -249,7 +250,7 @@ async function executeSearch(
     // existem — não tem mais branch de "plano sem limite".
     const { maxActiveOpportunities, maxSearches, isTrialing } = effectiveLimits(organization);
     const activeCount = await tx.opportunityScore.count({
-      where: { organizationId, stage: null, status: { not: "DISMISSED" } },
+      where: untouchedScoresWhere(organizationId),
     });
     if (activeCount >= maxActiveOpportunities) {
       return { outcome: { status: "plan_limit", limit: maxActiveOpportunities } };
@@ -504,6 +505,12 @@ async function executeSearch(
           missionId: mission.id,
         },
       });
+
+      // Toda oportunidade encontrada vira (ou reaproveita) uma Conta da organização,
+      // com o primeiro toque de origem, e o decisor encontrado vira Contato.
+      const accountId = await ensureAccountForCompany(tx, { organizationId, companyId: company.id, occurredAt: runTimestamp });
+      if (score.accountId !== accountId) await tx.opportunityScore.update({ where: { id: score.id }, data: { accountId } });
+      await ensureDecisionMakerContact(tx, { organizationId, accountId, name: opp.decisionMakerName, jobTitle: opp.decisionMaker });
 
       for (const signalRecord of signalRecords) {
         await tx.opportunityScoreSignal.upsert({

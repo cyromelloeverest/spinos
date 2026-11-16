@@ -1,3 +1,4 @@
+import { untouchedScoresWhere } from "@/lib/crm/accounts";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Prisma } from "@/generated/prisma/client";
@@ -29,7 +30,7 @@ const URGENCY_CONFIG: Record<string, { label: string; icon: typeof Flame; color:
 
 function fetchOpportunities(tx: Prisma.TransactionClient, organizationId: string) {
   return tx.opportunityScore.findMany({
-    where: { organizationId, stage: null, status: { not: "DISMISSED" } },
+    where: untouchedScoresWhere(organizationId),
     include: { company: true, signalsUsed: { include: { signal: true } } },
     orderBy: { score: "desc" },
   });

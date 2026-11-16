@@ -4,13 +4,15 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { setStage, type LossReason } from "@/lib/actions/pipeline";
 import { SpinosScore } from "./SpinosScore";
-import {
-  PIPELINE_STAGE_ORDER,
-  PIPELINE_STAGE_LABEL,
-  pipelineStageColor,
-  NOVA_STAGE_ID,
-  NOVA_STAGE_LABEL,
-} from "@/lib/pipeline-stages";
+import { NOVA_STAGE_ID, NOVA_STAGE_LABEL } from "@/lib/pipeline-stages";
+
+export type PipelineColumn = { key: string; label: string; kind: "OPEN" | "WON" | "LOST" };
+
+function columnColor(kind: PipelineColumn["kind"] | "NOVA", defaultColor: string): string {
+  if (kind === "WON") return "var(--good)";
+  if (kind === "LOST") return "var(--critical)";
+  return defaultColor;
+}
 
 export type PipelineCard = {
   id: string;
@@ -23,10 +25,6 @@ export type PipelineCard = {
   lastActionByName: string | null;
 };
 
-const COLUMNS = [
-  { stage: NOVA_STAGE_ID, label: NOVA_STAGE_LABEL },
-  ...PIPELINE_STAGE_ORDER.map((stage) => ({ stage, label: PIPELINE_STAGE_LABEL[stage] })),
-];
 
 const LOSS_REASONS: { value: LossReason; label: string }[] = [
   { value: "NOT_INTERESTED", label: "Não teve interesse" },
@@ -34,7 +32,13 @@ const LOSS_REASONS: { value: LossReason; label: string }[] = [
   { value: "NO_RESPONSE", label: "Sem resposta" },
 ];
 
-export function PipelineBoard({ initialCards }: { initialCards: PipelineCard[] }) {
+export function PipelineBoard({ initialCards, stages }: { initialCards: PipelineCard[]; stages: PipelineColumn[] }) {
+  // A primeira coluna é sempre "Oportunidades" (contas ainda sem negociação); as
+  // demais vêm do funil da organização.
+  const COLUMNS: { stage: string; label: string; kind: PipelineColumn["kind"] | "NOVA" }[] = [
+    { stage: NOVA_STAGE_ID, label: NOVA_STAGE_LABEL, kind: "NOVA" },
+    ...stages.map((st) => ({ stage: st.key, label: st.label, kind: st.kind })),
+  ];
   const [cards, setCards] = useState(initialCards);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [pendingLoss, setPendingLoss] = useState<{ cardId: string; companyName: string } | null>(null);
@@ -49,7 +53,7 @@ export function PipelineBoard({ initialCards }: { initialCards: PipelineCard[] }
 
   function handleDrop(targetStage: string, cardId: string) {
     setDragOverStage(null);
-    if (targetStage === "PERDIDO") {
+    if (stages.find((st) => st.key === targetStage)?.kind === "LOST") {
       const card = cards.find((c) => c.id === cardId);
       if (card) setPendingLoss({ cardId, companyName: card.companyName });
       return;
@@ -82,7 +86,7 @@ export function PipelineBoard({ initialCards }: { initialCards: PipelineCard[] }
               <div
                 className="text-[12px] font-semibold uppercase"
                 style={{
-                  color: pipelineStageColor(col.stage, "var(--fg-muted)"),
+                  color: columnColor(col.kind, "var(--fg-muted)"),
                   letterSpacing: "0.04em",
                 }}
               >

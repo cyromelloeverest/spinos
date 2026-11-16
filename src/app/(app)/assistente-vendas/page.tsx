@@ -1,3 +1,4 @@
+import { inProgressScoresWhere, PRIMARY_CONTACT_INCLUDE } from "@/lib/crm/accounts";
 import { redirect } from "next/navigation";
 import type { Prisma } from "@/generated/prisma/client";
 import { withOrgContext } from "@/lib/db/with-org-context";
@@ -10,16 +11,8 @@ import { logError } from "@/lib/log-error";
 
 function fetchActiveOpportunities(tx: Prisma.TransactionClient, organizationId: string) {
   return tx.opportunityScore.findMany({
-    where: {
-      organizationId,
-      status: { not: "DISMISSED" },
-      // NOT stage: { notIn: [...] } de propósito — em SQL, "NOT IN" com uma
-      // coluna que tem valor NULL nunca dá true (lógica de 3 valores), então
-      // toda oportunidade recém-criada (stage ainda null, o caso mais comum
-      // de "oportunidade nova") sumia daqui. OR explícito com null resolve.
-      OR: [{ stage: null }, { stage: { notIn: ["VENDIDO", "PERDIDO"] } }],
-    },
-    include: { company: true },
+    where: inProgressScoresWhere(organizationId),
+    include: { company: true, account: { include: PRIMARY_CONTACT_INCLUDE } },
     orderBy: { score: "desc" },
   });
 }
@@ -86,7 +79,7 @@ export default async function ScriptsPage({
             objections: opp.objections,
             buyerArea: opp.buyerArea,
             decisionMaker: opp.decisionMaker,
-            contactName: opp.contactName,
+            contactName: opp.account?.contacts[0]?.name ?? null,
             recommendedOffering: opp.recommendedOffering,
             orgName,
           });
@@ -98,7 +91,7 @@ export default async function ScriptsPage({
               state={opp.company.state}
               score={opp.score}
               script={script}
-              personName={opp.contactName || opp.decisionMakerName}
+              personName={opp.account?.contacts[0]?.name || opp.decisionMakerName}
               personTitle={opp.decisionMaker}
               highlighted={opp.id === foco}
             />

@@ -17,14 +17,28 @@ async function searchThirdPartyData(query: string) {
     where: {
       OR: [
         { decisionMakerName: { contains: query, mode: "insensitive" } },
-        { contactName: { contains: query, mode: "insensitive" } },
-        { contactEmail: { contains: query, mode: "insensitive" } },
-        { contactPhone: { contains: query } },
+        {
+          account: {
+            is: {
+              contacts: {
+                some: {
+                  anonymizedAt: null,
+                  OR: [
+                    { name: { contains: query, mode: "insensitive" } },
+                    { email: { contains: query, mode: "insensitive" } },
+                    { phone: { contains: query } },
+                  ],
+                },
+              },
+            },
+          },
+        },
       ],
     },
     include: {
       organization: { select: { name: true } },
       company: { select: { name: true } },
+      account: { include: { contacts: { where: { anonymizedAt: null } } } },
     },
     take: 50,
   });
@@ -100,15 +114,15 @@ export default async function AdminPrivacidadePage({
               style={{ borderTop: i > 0 ? "1px solid var(--border)" : undefined }}
             >
               <div>
-                <div className="font-semibold">{r.decisionMakerName || r.contactName || "—"}</div>
+                <div className="font-semibold">{r.decisionMakerName || r.account?.contacts[0]?.name || "—"}</div>
                 <div className="text-[11.5px]" style={{ color: "var(--fg-faint)" }}>
-                  {[r.contactEmail, r.contactPhone].filter(Boolean).join(" · ") || "sem e-mail/telefone"}
+                  {[r.account?.contacts[0]?.email, r.account?.contacts[0]?.phone].filter(Boolean).join(" · ") || "sem e-mail/telefone"}
                 </div>
                 <div className="text-[11.5px] mt-0.5" style={{ color: "var(--fg-faint)" }}>
                   Cliente: {r.organization.name} · Empresa monitorada: {r.company.name}
                 </div>
               </div>
-              <RedactThirdPartyButton opportunityScoreId={r.id} personName={r.decisionMakerName || r.contactName || "esta pessoa"} />
+              <RedactThirdPartyButton opportunityScoreId={r.id} personName={r.decisionMakerName || r.account?.contacts[0]?.name || "esta pessoa"} />
             </div>
           ))}
         </div>

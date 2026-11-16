@@ -4,6 +4,7 @@ import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { PipelineBoard, type PipelineCard } from "@/components/PipelineBoard";
 import { NOVA_STAGE_ID } from "@/lib/pipeline-stages";
+import { getDefaultPipeline } from "@/lib/crm/pipeline-config";
 import { logError } from "@/lib/log-error";
 
 function daysInStage(stageUpdatedAt: Date | null): string {
@@ -14,44 +15,60 @@ function daysInStage(stageUpdatedAt: Date | null): string {
   return `há ${days} dias`;
 }
 
-function fetchPipelineOpportunities(organizationId: string) {
-  return withOrgContext(organizationId, (tx) =>
-    tx.opportunityScore.findMany({
-      // Inclui stage: null agora — vira a primeira coluna do quadro
-      // ("Oportunidades", ver NOVA_STAGE_ID). status ainda filtra
-      // DISMISSED, senão uma oportunidade descartada na tela de
-      // Oportunidades reaparecia aqui.
+function fetchPipelineData(organizationId: string) {
+  return withOrgContext(organizationId, async (tx) => {
+    const pipeline = await getDefaultPipeline(tx, organizationId);
+    // Contas ainda sem negociação entram na primeira coluna ("Oportunidades").
+    // O que foi descartado não aparece, senão uma oportunidade descartada na
+    // tela de Oportunidades reaparecia aqui.
+    const scores = await tx.opportunityScore.findMany({
       where: { organizationId, status: { not: "DISMISSED" } },
-      include: { company: true, lastActionByUser: true },
-      orderBy: [{ stageUpdatedAt: "desc" }, { computedAt: "desc" }],
-    }),
-  );
+      include: {
+        company: true,
+        account: { include: { opportunities: { include: { stage: true }, orderBy: { createdAt: "desc" }, take: 1 } } },
+      },
+    });
+    const userIds = [...new Set(scores.map((s) => s.account?.opportunities[0]?.lastActionByUserId).filter((id): id is string => !!id))];
+    const users = userIds.length ? await tx.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, email: true } }) : [];
+    return { pipeline, scores, users };
+  });
 }
 
 export default async function PipelinePage() {
   const organizationId = await getCurrentOrganizationId();
   if (!organizationId) redirect("/onboarding");
 
-  let opportunities: Awaited<ReturnType<typeof fetchPipelineOpportunities>> = [];
+  let data: Awaited<ReturnType<typeof fetchPipelineData>> | null = null;
   let dbError = false;
   try {
-    opportunities = await fetchPipelineOpportunities(organizationId);
+    data = await fetchPipelineData(organizationId);
   } catch (err) {
     logError("pipeline: falha ao carregar pipeline", err, { organizationId });
     dbError = true;
   }
-  if (dbError) return <DbSetupNotice />;
+  if (dbError || !data) return <DbSetupNotice />;
 
-  const cards: PipelineCard[] = opportunities.map((opp) => ({
-    id: opp.id,
-    companyName: opp.company.name,
-    city: opp.company.city,
-    state: opp.company.state,
-    score: opp.score,
-    stage: opp.stage ?? NOVA_STAGE_ID,
-    daysLabel: daysInStage(opp.stageUpdatedAt),
-    lastActionByName: opp.lastActionByUser?.name || opp.lastActionByUser?.email || null,
-  }));
+  const userName = new Map(data.users.map((u) => [u.id, u.name || u.email]));
+  const cards: PipelineCard[] = data.scores
+    .map((sc) => {
+      const opp = sc.account?.opportunities[0] ?? null;
+      return {
+        sortKey: (opp?.stageChangedAt ?? sc.computedAt).getTime(),
+        card: {
+          id: sc.id,
+          companyName: sc.company.name,
+          city: sc.company.city,
+          state: sc.company.state,
+          score: sc.score,
+          stage: opp?.stage.key ?? NOVA_STAGE_ID,
+          daysLabel: daysInStage(opp?.stageChangedAt ?? null),
+          lastActionByName: (opp?.lastActionByUserId && userName.get(opp.lastActionByUserId)) || null,
+        } satisfies PipelineCard,
+      };
+    })
+    .sort((a, b) => b.sortKey - a.sortKey)
+    .map((x) => x.card);
+  const columns = data.pipeline.stages.map((st) => ({ key: st.key, label: st.name, kind: st.kind }));
 
   return (
     <div>
@@ -64,7 +81,7 @@ export default async function PipelinePage() {
         </p>
       </div>
 
-      <PipelineBoard initialCards={cards} />
+      <PipelineBoard initialCards={cards} stages={columns} />
     </div>
   );
 }

@@ -8,7 +8,8 @@ import { SpinosScore } from "@/components/SpinosScore";
 import { EmptyState } from "@/components/EmptyState";
 import { Target, Kanban, Trophy, Sparkles, TrendingUp, ArrowRight, Rocket } from "lucide-react";
 import { logError } from "@/lib/log-error";
-import { PIPELINE_STAGE_ORDER, PIPELINE_STAGE_LABEL, pipelineStageColor } from "@/lib/pipeline-stages";
+import { getDefaultPipeline } from "@/lib/crm/pipeline-config";
+import { untouchedScoresWhere } from "@/lib/crm/accounts";
 
 function getGreeting(): string {
   const hour = Number(
@@ -25,7 +26,11 @@ function greetingName(userName: string | null | undefined, orgName: string | nul
   return "";
 }
 
-const FUNNEL_STAGES = PIPELINE_STAGE_ORDER.map((stage) => ({ stage, label: PIPELINE_STAGE_LABEL[stage] }));
+function stageColor(kind: "OPEN" | "WON" | "LOST", defaultColor: string): string {
+  if (kind === "WON") return "var(--good)";
+  if (kind === "LOST") return "var(--critical)";
+  return defaultColor;
+}
 
 const RECENT_WINDOW_MS = 10 * 24 * 60 * 60 * 1000;
 const HOT_SCORE_THRESHOLD = 85;
@@ -35,25 +40,23 @@ const HOT_SCORE_THRESHOLD = 85;
 // está em conversa. Se a missão inteira já foi trabalhada, cai pra maior
 // nota geral em vez de não sugerir nada.
 function pickNextMissionOpportunity(
-  scores: { id: string; status: string; stage: string | null; score: number }[],
+  scores: { id: string; status: string; hasOpportunity: boolean; score: number }[],
 ): string | null {
   if (scores.length === 0) return null;
-  const untouched = scores.filter((o) => o.status === "NEW" && o.stage === null);
+  const untouched = scores.filter((o) => o.status === "NEW" && !o.hasOpportunity);
   const pool = untouched.length > 0 ? untouched : scores;
   return pool.reduce((best, o) => (o.score > best.score ? o : best), pool[0]).id;
 }
 
 async function fetchDashboardData(tx: Prisma.TransactionClient, organizationId: string) {
   const since = new Date(Date.now() - RECENT_WINDOW_MS);
-  const activeFilter = { organizationId, stage: null, status: { not: "DISMISSED" } } as const;
+  const activeFilter = untouchedScoresWhere(organizationId);
 
   const [active, staged, won, lost, recentSignals, best, avgScoreResult, hotCount] = await Promise.all([
     tx.opportunityScore.count({ where: activeFilter }),
-    tx.opportunityScore.count({
-      where: { organizationId, stage: { notIn: ["VENDIDO", "PERDIDO"] } },
-    }),
-    tx.opportunityScore.count({ where: { organizationId, stage: "VENDIDO" } }),
-    tx.opportunityScore.count({ where: { organizationId, stage: "PERDIDO" } }),
+    tx.opportunity.count({ where: { organizationId, status: "OPEN" } }),
+    tx.opportunity.count({ where: { organizationId, status: "WON" } }),
+    tx.opportunity.count({ where: { organizationId, status: "LOST" } }),
     tx.opportunityScoreSignal.count({
       where: {
         opportunityScore: { organizationId, status: { not: "DISMISSED" } },
@@ -67,12 +70,12 @@ async function fetchDashboardData(tx: Prisma.TransactionClient, organizationId: 
       take: 5,
     }),
     tx.opportunityScore.aggregate({ where: activeFilter, _avg: { score: true } }),
-    tx.opportunityScore.count({ where: { ...activeFilter, score: { gte: HOT_SCORE_THRESHOLD } } }),
+    tx.opportunityScore.count({ where: { AND: [activeFilter, { score: { gte: HOT_SCORE_THRESHOLD } }] } }),
   ]);
 
-  const funnelCounts = await Promise.all(
-    FUNNEL_STAGES.map(({ stage }) => tx.opportunityScore.count({ where: { organizationId, stage: stage as never } })),
-  );
+  const pipeline = await getDefaultPipeline(tx, organizationId);
+  const byStage = await tx.opportunity.groupBy({ by: ["stageId"], where: { organizationId }, _count: { _all: true } });
+  const countByStage = new Map(byStage.map((g) => [g.stageId, g._count._all]));
 
   const closedTotal = won + lost;
   const conversionRate = closedTotal > 0 ? Math.round((won / closedTotal) * 100) : null;
@@ -80,16 +83,23 @@ async function fetchDashboardData(tx: Prisma.TransactionClient, organizationId: 
   const latestMission = await tx.mission.findFirst({
     where: { organizationId },
     orderBy: { createdAt: "desc" },
-    include: { opportunityScores: { select: { id: true, status: true, stage: true, score: true } } },
+    include: { opportunityScores: { select: { id: true, status: true, score: true, account: { select: { opportunities: { select: { status: true }, take: 1 } } } } } },
   });
+  const missionScores = (latestMission?.opportunityScores ?? []).map((o) => ({
+    id: o.id,
+    status: o.status,
+    score: o.score,
+    hasOpportunity: (o.account?.opportunities.length ?? 0) > 0,
+    won: o.account?.opportunities[0]?.status === "WON",
+  }));
   const mission =
-    latestMission && latestMission.opportunityScores.length > 0
+    latestMission && missionScores.length > 0
       ? {
           createdAt: latestMission.createdAt,
-          total: latestMission.opportunityScores.length,
-          worked: latestMission.opportunityScores.filter((o) => o.status !== "NEW" || o.stage !== null).length,
-          won: latestMission.opportunityScores.filter((o) => o.stage === "VENDIDO").length,
-          nextOpportunityId: pickNextMissionOpportunity(latestMission.opportunityScores),
+          total: missionScores.length,
+          worked: missionScores.filter((o) => o.status !== "NEW" || o.hasOpportunity).length,
+          won: missionScores.filter((o) => o.won).length,
+          nextOpportunityId: pickNextMissionOpportunity(missionScores),
         }
       : null;
 
@@ -102,7 +112,7 @@ async function fetchDashboardData(tx: Prisma.TransactionClient, organizationId: 
     avgScore: avgScoreResult._avg.score,
     hotCount,
     conversionRate,
-    funnel: FUNNEL_STAGES.map((s, i) => ({ ...s, count: funnelCounts[i] })),
+    funnel: pipeline.stages.map((st) => ({ stage: st.key, label: st.name, kind: st.kind, count: countByStage.get(st.id) ?? 0 })),
     mission,
   };
 }
@@ -320,7 +330,7 @@ export default async function DashboardPage({
                     className="h-full rounded-full"
                     style={{
                       width: `${(f.count / maxFunnel) * 100}%`,
-                      background: pipelineStageColor(f.stage, "var(--primary)"),
+                      background: stageColor(f.kind, "var(--primary)"),
                     }}
                   />
                 </div>

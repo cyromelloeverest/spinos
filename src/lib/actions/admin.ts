@@ -204,10 +204,21 @@ export async function redactThirdPartyData(opportunityScoreId: string) {
   });
   if (!opportunity) redirect("/admin/privacidade");
 
-  await prismaAdmin.opportunityScore.update({
-    where: { id: opportunityScoreId },
-    data: { decisionMakerName: null, contactName: null, contactPhone: null, contactEmail: null },
-  });
+  // Anonimiza as pessoas da conta (contatos) e apaga o nome do decisor que a IA
+  // achou. A conta, a empresa e a nota continuam: são fato de mercado, não dado
+  // pessoal. O contato é anonimizado, não apagado, porque pode estar ligado a uma
+  // negociação.
+  await prismaAdmin.$transaction([
+    prismaAdmin.opportunityScore.update({ where: { id: opportunityScoreId }, data: { decisionMakerName: null } }),
+    ...(opportunity.accountId
+      ? [
+          prismaAdmin.contact.updateMany({
+            where: { accountId: opportunity.accountId, organizationId: opportunity.organizationId },
+            data: { name: "Pessoa removida (LGPD)", jobTitle: null, email: null, phone: null, phoneE164: null, linkedinUrl: null, legalBasisNote: null, anonymizedAt: new Date() },
+          }),
+        ]
+      : []),
+  ]);
 
   await logSecurityEvent({
     type: "privacy.third_party_data_redacted",

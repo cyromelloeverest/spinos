@@ -1,3 +1,4 @@
+import { ensureAccountForCompany, ensureDecisionMakerContact, untouchedScoresWhere } from "@/lib/crm/accounts";
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
@@ -145,7 +146,7 @@ export async function matchFreeSignalsToOrganizations(ingested: IngestedSignal[]
 
     const { maxActiveOpportunities } = effectiveLimits(organization);
     const activeCount = await prisma.opportunityScore.count({
-      where: { organizationId: organization.id, stage: null, status: { not: "DISMISSED" } },
+      where: untouchedScoresWhere(organization.id),
     });
     if (activeCount >= maxActiveOpportunities) continue;
 
@@ -199,6 +200,10 @@ export async function matchFreeSignalsToOrganizations(ingested: IngestedSignal[]
             missionId: mission.id,
           },
         });
+
+        const accountId = await ensureAccountForCompany(tx, { organizationId: organization.id, companyId: candidate.companyId });
+        if (score.accountId !== accountId) await tx.opportunityScore.update({ where: { id: score.id }, data: { accountId } });
+        await ensureDecisionMakerContact(tx, { organizationId: organization.id, accountId, name: opp.decisionMakerName, jobTitle: opp.decisionMaker });
 
         await tx.opportunityScoreSignal.upsert({
           where: { opportunityScoreId_signalId: { opportunityScoreId: score.id, signalId: candidate.signalId } },

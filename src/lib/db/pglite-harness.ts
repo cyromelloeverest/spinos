@@ -45,3 +45,24 @@ export async function asOrg<T>(db: PGlite, organizationId: string, fn: (q: PGlit
     await db.exec("ROLLBACK");
   }
 }
+
+// Cliente Prisma de verdade (o mesmo gerado do schema) falando com o PGlite, já
+// no papel restrito do app (sem bypass de RLS), como em produção. O seed deve
+// ser feito ANTES, pelo `db` (superusuário), com `await db.exec("RESET ROLE")`
+// se já tiver entrado no papel restrito.
+export async function createPrismaOnPglite() {
+  const { PrismaPGlite } = await import("pglite-prisma-adapter");
+  const { PrismaClient } = await import("@/generated/prisma/client");
+  const db = await createMigratedDb();
+  const adapter = new PrismaPGlite(db);
+  const prisma = new PrismaClient({ adapter });
+  return { db, prisma };
+}
+
+export async function enterAppRole(db: PGlite) {
+  await db.exec("SET ROLE spinos_app");
+}
+
+export async function leaveAppRole(db: PGlite) {
+  await db.exec("RESET ROLE");
+}

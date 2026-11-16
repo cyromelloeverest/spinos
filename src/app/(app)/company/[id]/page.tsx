@@ -10,7 +10,6 @@ import { linkedinPersonSearchUrl, linkedinTitleSearchUrl, linkedinCompanySearchU
 import { LinkedInButton } from "@/components/LinkedInButton";
 import { SpinosScore } from "@/components/SpinosScore";
 import { ArrowLeft, ArrowRight, ExternalLink, CircleAlert } from "lucide-react";
-import { PIPELINE_STAGE_LABEL, type PipelineStage } from "@/lib/pipeline-stages";
 import { formatLocation } from "@/lib/format-location";
 
 export default async function CompanyPage({
@@ -22,28 +21,41 @@ export default async function CompanyPage({
   const organizationId = await getCurrentOrganizationId();
   if (!organizationId) notFound();
 
-  const { opp, icp } = await withOrgContext(organizationId, async (tx) => {
+  const { opp, icp, actionUser } = await withOrgContext(organizationId, async (tx) => {
     const opp = await tx.opportunityScore.findUnique({
       where: { id },
       include: {
         company: true,
-        lastActionByUser: true,
+        account: {
+          include: {
+            contacts: { where: { isPrimary: true }, take: 1 },
+            opportunities: { include: { stage: true }, orderBy: { createdAt: "desc" }, take: 1 },
+          },
+        },
         signalsUsed: { include: { signal: true }, orderBy: { signal: { detectedAt: "desc" } } },
       },
     });
 
-    if (!opp || opp.organizationId !== organizationId) return { opp: null, icp: null };
+    if (!opp || opp.organizationId !== organizationId) return { opp: null, icp: null, actionUser: null };
+
+    const lastActionById = opp.account?.opportunities[0]?.lastActionByUserId;
+    const actionUser = lastActionById ? await tx.user.findUnique({ where: { id: lastActionById }, select: { name: true, email: true } }) : null;
 
     const icp = await tx.iCP.findFirst({
       where: { organizationId: opp.organizationId, isActive: true },
       orderBy: { createdAt: "desc" },
     });
-    return { opp, icp };
+    return { opp, icp, actionUser };
   });
 
   if (!opp) notFound();
   const offeringOptions = [...new Set([...(icp?.servicesSold ?? []), ...(icp?.productsSold ?? [])])];
   const updateContactWithId = updateContactInfo.bind(null, opp.id);
+  const primaryContact = opp.account?.contacts[0] ?? null;
+  const contactName = primaryContact?.name ?? null;
+  const contactPhone = primaryContact?.phone ?? null;
+  const contactEmail = primaryContact?.email ?? null;
+  const deal = opp.account?.opportunities[0] ?? null;
 
   return (
     <div className="pt-6 px-4 md:px-10 pb-16 max-w-[760px]">
@@ -161,8 +173,8 @@ export default async function CompanyPage({
             Decisor provável
           </div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="text-[14px]">{opp.contactName || opp.decisionMakerName || opp.decisionMaker || "—"}</div>
-            {!opp.contactName && opp.decisionMakerName && (
+            <div className="text-[14px]">{contactName || opp.decisionMakerName || opp.decisionMaker || "—"}</div>
+            {!contactName && opp.decisionMakerName && (
               <span
                 className="text-[10px] font-semibold uppercase rounded-full px-2 py-[2px]"
                 style={{ background: "var(--primary-soft)", color: "var(--primary)", letterSpacing: "0.04em" }}
@@ -170,9 +182,9 @@ export default async function CompanyPage({
                 Encontrado pela IA
               </span>
             )}
-            {opp.contactName || opp.decisionMakerName ? (
+            {contactName || opp.decisionMakerName ? (
               <LinkedInButton
-                href={linkedinPersonSearchUrl(opp.contactName || opp.decisionMakerName || "", opp.company.name)}
+                href={linkedinPersonSearchUrl(contactName || opp.decisionMakerName || "", opp.company.name)}
                 size="sm"
               />
             ) : opp.decisionMaker ? (
@@ -206,12 +218,12 @@ export default async function CompanyPage({
             <ContactField
               label="Nome do contato"
               name="contactName"
-              defaultValue={opp.contactName ?? opp.decisionMakerName ?? ""}
+              defaultValue={contactName ?? opp.decisionMakerName ?? ""}
               placeholder="Ex: Maria Silva"
             />
-            <ContactField label="Telefone" name="contactPhone" defaultValue={opp.contactPhone ?? ""} placeholder="Ex: (19) 99999-0000" />
+            <ContactField label="Telefone" name="contactPhone" defaultValue={contactPhone ?? ""} placeholder="Ex: (19) 99999-0000" />
           </div>
-          <ContactField label="E-mail" name="contactEmail" defaultValue={opp.contactEmail ?? ""} placeholder="Ex: maria@empresa.com.br" />
+          <ContactField label="E-mail" name="contactEmail" defaultValue={contactEmail ?? ""} placeholder="Ex: maria@empresa.com.br" />
           <label className="flex flex-col gap-1.5">
             <span className="text-[12.5px] font-medium" style={{ color: "var(--fg)" }}>
               Produto/serviço a oferecer
@@ -241,17 +253,17 @@ export default async function CompanyPage({
       </Section>
 
       <div className="flex items-center gap-2.5 mt-1.5">
-        {opp.stage ? (
+        {deal ? (
           <>
             <div
               className="text-[12.5px] font-semibold rounded-full px-3.5 py-2"
               style={{ background: "var(--primary-soft)", color: "var(--primary)" }}
             >
-              No pipeline: {PIPELINE_STAGE_LABEL[opp.stage as PipelineStage]}
+              No pipeline: {deal.stage.name}
             </div>
-            {opp.lastActionByUser && (
+            {actionUser && (
               <span className="text-[12px]" style={{ color: "var(--fg-faint)" }}>
-                por {opp.lastActionByUser.name || opp.lastActionByUser.email}
+                por {actionUser.name || actionUser.email}
               </span>
             )}
             <Link href="/pipeline" className="text-[13px] inline-flex items-center gap-1 no-underline" style={{ color: "var(--fg-muted)" }}>

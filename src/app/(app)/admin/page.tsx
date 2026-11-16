@@ -1,3 +1,4 @@
+import { untouchedScoresWhere } from "@/lib/crm/accounts";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prismaAdmin } from "@/lib/prisma-admin";
@@ -31,7 +32,7 @@ async function fetchOrganizations() {
     organizations.map(async (org) => {
       const [activeOpportunities, usageAgg] = await Promise.all([
         prismaAdmin.opportunityScore.count({
-          where: { organizationId: org.id, stage: null, status: { not: "DISMISSED" } },
+          where: untouchedScoresWhere(org.id),
         }),
         prismaAdmin.searchUsageLog.aggregate({
           where: { organizationId: org.id, createdAt: { gte: thirtyDaysAgo } },

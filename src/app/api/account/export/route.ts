@@ -23,7 +23,10 @@ export async function GET() {
       }),
       tx.opportunityScore.findMany({
         where: { organizationId },
-        include: { company: { select: { name: true, city: true, state: true, site: true } } },
+        include: {
+          company: { select: { name: true, city: true, state: true, site: true } },
+          account: { include: { contacts: true, opportunities: { include: { stage: true }, orderBy: { createdAt: "desc" }, take: 1 } } },
+        },
       }),
     ]),
   );
@@ -59,11 +62,17 @@ export async function GET() {
       site: o.company.site,
       score: o.score,
       urgencia: o.urgency,
-      etapaPipeline: o.stage,
+      etapaPipeline: o.account?.opportunities[0]?.stage.key ?? null,
       resumo: o.headline,
-      contatoNome: o.contactName,
-      contatoTelefone: o.contactPhone,
-      contatoEmail: o.contactEmail,
+      contatos: (o.account?.contacts ?? []).map((c) => ({
+        nome: c.name,
+        cargo: c.jobTitle,
+        telefone: c.phone,
+        email: c.email,
+        principal: c.isPrimary,
+        baseLegal: c.legalBasis,
+        anonimizadoEm: c.anonymizedAt,
+      })),
       decisorProvavel: o.decisionMaker,
       decisorEncontradoPelaIA: o.decisionMakerName,
     })),

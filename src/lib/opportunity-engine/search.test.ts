@@ -47,7 +47,7 @@ const {
 const mockDb = {
   organization: { findUnique: organizationFindUnique, update: organizationUpdate },
   iCP: { findFirst: icpFindFirst },
-  opportunityScore: { count: opportunityScoreCount, upsert: opportunityScoreUpsert },
+  opportunityScore: { count: opportunityScoreCount, upsert: opportunityScoreUpsert, update: vi.fn() },
   searchRun: { count: searchRunCount, create: searchRunCreate, delete: searchRunDelete },
   company: { findMany: companyFindMany, create: companyCreate },
   signal: { findFirst: signalFindFirst, create: signalCreate },
@@ -64,6 +64,17 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+// A criação da Conta/Contato tem teste de integração próprio (pipeline.test.ts);
+// aqui só importa que a busca chama o vínculo, não como ele grava.
+vi.mock("@/lib/crm/accounts", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/crm/accounts")>("@/lib/crm/accounts");
+  return {
+    ensureAccountForCompany: vi.fn().mockResolvedValue("acc-1"),
+    ensureDecisionMakerContact: vi.fn().mockResolvedValue(undefined),
+    untouchedScoresWhere: actual.untouchedScoresWhere,
+  };
+});
+
 vi.mock("@/lib/og-image", () => ({ fetchOgImage: vi.fn().mockResolvedValue(null) }));
 
 vi.mock("@anthropic-ai/sdk", () => {
@@ -78,6 +89,7 @@ vi.mock("@anthropic-ai/sdk", () => {
 // Import depois dos vi.mock acima (hoisted pelo vitest, mas mantido nesta
 // ordem por legibilidade).
 const { searchOpportunities, searchSpecificCompany } = await import("./search");
+const { untouchedScoresWhere } = await import("@/lib/crm/accounts");
 const Anthropic = (await import("@anthropic-ai/sdk")).default;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -187,7 +199,7 @@ describe("searchOpportunities — gating", () => {
     const result = await searchOpportunities("org-1");
     expect(result).toEqual({ status: "plan_limit", limit: PLANS.STARTER.maxActiveOpportunities });
     expect(opportunityScoreCount).toHaveBeenCalledWith({
-      where: { organizationId: "org-1", stage: null, status: { not: "DISMISSED" } },
+      where: untouchedScoresWhere("org-1"),
     });
     // Deve parar aqui — não gasta uma query extra checando limite mensal.
     expect(searchRunCount).not.toHaveBeenCalled();

@@ -22,14 +22,20 @@ function fetchHistory(organizationId: string) {
   return withOrgContext(organizationId, (tx) =>
     tx.opportunityScore.findMany({
       where: { organizationId },
-      include: { company: true },
-      orderBy: [{ stageUpdatedAt: "desc" }, { computedAt: "desc" }],
+      include: {
+        company: true,
+        account: { include: { opportunities: { include: { stage: true }, orderBy: { createdAt: "desc" }, take: 1 } } },
+      },
     }),
+  ).then((rows) =>
+    rows
+      .map((r) => ({ ...r, stageKey: r.account?.opportunities[0]?.stage.key ?? null, sortKey: (r.account?.opportunities[0]?.stageChangedAt ?? r.computedAt).getTime() }))
+      .sort((a, b) => b.sortKey - a.sortKey),
   );
 }
 
-function statusKey(opp: { stage: string | null; status: string }): string {
-  if (opp.stage) return opp.stage;
+function statusKey(opp: { stageKey: string | null; status: string }): string {
+  if (opp.stageKey) return opp.stageKey;
   if (opp.status === "DISMISSED") return "DESCARTADA";
   return "ATIVA";
 }

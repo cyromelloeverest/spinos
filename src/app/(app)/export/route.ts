@@ -22,7 +22,10 @@ export async function GET() {
 
     const opportunities = await tx.opportunityScore.findMany({
       where: { organizationId },
-      include: { company: true },
+      include: {
+        company: true,
+        account: { include: { opportunities: { include: { stage: true }, orderBy: { createdAt: "desc" }, take: 1 } } },
+      },
       orderBy: { score: "desc" },
     });
     return { allowed: true as const, opportunities };
@@ -55,7 +58,7 @@ export async function GET() {
       opp.company.state ?? "",
       String(opp.score),
       opp.urgency,
-      opp.stage ?? "Não iniciado",
+      opp.account?.opportunities[0]?.stage.key ?? "Não iniciado",
       opp.headline,
       opp.decisionMaker ?? "",
       opp.suggestedApproach,

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-org";
 import { withOrgContext } from "@/lib/db/with-org-context";
 import { NOVA_STAGE_ID } from "@/lib/pipeline-stages";
+import { startInPipeline, moveToStage, dismissAccountForScore, NOVA } from "@/lib/crm/opportunities";
 
 async function requireOrgId(): Promise<string> {
   const orgId = await getCurrentOrganizationId();
@@ -15,12 +16,7 @@ async function requireOrgId(): Promise<string> {
 export async function moveToPipeline(opportunityScoreId: string) {
   const organizationId = await requireOrgId();
   const userId = await getCurrentUserId();
-  await withOrgContext(organizationId, (tx) =>
-    tx.opportunityScore.update({
-      where: { id: opportunityScoreId, organizationId },
-      data: { stage: "CONTATO_FEITO", stageUpdatedAt: new Date(), lastActionByUserId: userId, lastActionAt: new Date() },
-    }),
-  );
+  await withOrgContext(organizationId, (tx) => startInPipeline(tx, { organizationId, userId }, opportunityScoreId));
   revalidatePath("/");
   revalidatePath("/oportunidades");
   revalidatePath("/pipeline");
@@ -42,51 +38,30 @@ export async function setStage(
   const userId = await getCurrentUserId();
 
   // NOVA_STAGE_ID é o sentinel client-side da coluna "Oportunidades" no
-  // quadro — não existe no enum, volta pra stage: null de verdade.
-  const isBackToOportunidades = stage === NOVA_STAGE_ID;
+  // quadro — não é uma etapa real: devolve a conta para "oportunidades
+  // encontradas" (sem negociação).
+  const stageKey = stage === NOVA_STAGE_ID ? NOVA : stage;
 
   await withOrgContext(organizationId, async (tx) => {
-    const updated = await tx.opportunityScore.update({
-      where: { id: opportunityScoreId, organizationId },
-      data: {
-        stage: isBackToOportunidades
-          ? null
-          : (stage as "CONTATO_FEITO" | "VISITA_AGENDADA" | "PROPOSTA_ENVIADA" | "VENDIDO" | "PERDIDO"),
-        stageUpdatedAt: new Date(),
-        lastActionByUserId: userId,
-        lastActionAt: new Date(),
-      },
-      select: { id: true, companyId: true },
-    });
+    const { companyId, kind } = await moveToStage(tx, { organizationId, userId }, opportunityScoreId, stageKey);
 
-    if (stage === "VENDIDO") {
+    if (kind === "WON") {
       await tx.feedback.upsert({
-        where: { opportunityScoreId: updated.id },
+        where: { opportunityScoreId },
         update: { outcome: "CONVERTED", notes: null },
-        create: {
-          organizationId,
-          companyId: updated.companyId,
-          opportunityScoreId: updated.id,
-          outcome: "CONVERTED",
-        },
+        create: { organizationId, companyId, opportunityScoreId, outcome: "CONVERTED" },
       });
-    } else if (stage === "PERDIDO") {
+    } else if (kind === "LOST") {
       const outcome = lossReason ?? "NOT_INTERESTED";
       await tx.feedback.upsert({
-        where: { opportunityScoreId: updated.id },
+        where: { opportunityScoreId },
         update: { outcome, notes: lossNotes?.trim() || null },
-        create: {
-          organizationId,
-          companyId: updated.companyId,
-          opportunityScoreId: updated.id,
-          outcome,
-          notes: lossNotes?.trim() || null,
-        },
+        create: { organizationId, companyId, opportunityScoreId, outcome, notes: lossNotes?.trim() || null },
       });
     } else {
       // Voltou de um estágio terminal pra um não-terminal — o Feedback antigo
       // não reflete mais a realidade dessa oportunidade.
-      await tx.feedback.deleteMany({ where: { opportunityScoreId: updated.id } });
+      await tx.feedback.deleteMany({ where: { opportunityScoreId } });
     }
   });
 
@@ -100,12 +75,7 @@ export async function setStage(
 export async function dismissOpportunity(opportunityScoreId: string) {
   const organizationId = await requireOrgId();
   const userId = await getCurrentUserId();
-  await withOrgContext(organizationId, (tx) =>
-    tx.opportunityScore.update({
-      where: { id: opportunityScoreId, organizationId },
-      data: { status: "DISMISSED", lastActionByUserId: userId, lastActionAt: new Date() },
-    }),
-  );
+  await withOrgContext(organizationId, (tx) => dismissAccountForScore(tx, { organizationId, userId }, opportunityScoreId));
   revalidatePath("/");
   revalidatePath("/oportunidades");
   redirect("/oportunidades");

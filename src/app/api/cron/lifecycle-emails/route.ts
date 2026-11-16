@@ -1,3 +1,4 @@
+import { untouchedScoresWhere } from "@/lib/crm/accounts";
 import { prismaAdmin } from "@/lib/prisma-admin";
 import { logError } from "@/lib/log-error";
 import {
@@ -117,13 +118,13 @@ function countSearchRuns(organizationId: string): Promise<number> {
 
 function countActiveOpportunities(organizationId: string): Promise<number> {
   return prismaAdmin.opportunityScore.count({
-    where: { organizationId, stage: null, status: { not: "DISMISSED" } },
+    where: untouchedScoresWhere(organizationId),
   });
 }
 
 function countStaleOpportunities(organizationId: string, now: Date): Promise<number> {
   const staleThreshold = new Date(now.getTime() - STALE_OPPORTUNITIES_AFTER_DAYS * DAY_MS);
   return prismaAdmin.opportunityScore.count({
-    where: { organizationId, stage: null, status: { not: "DISMISSED" }, computedAt: { lte: staleThreshold } },
+    where: { AND: [untouchedScoresWhere(organizationId), { computedAt: { lte: staleThreshold } }] },
   });
 }
