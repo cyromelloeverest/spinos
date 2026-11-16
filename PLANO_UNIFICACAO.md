@@ -75,6 +75,33 @@ Como ler as estimativas: são "dias úteis de trabalho assistido por Claude, uma
 
 ---
 
+## Atualização 3 de 2026-11-15 (WP1 aplicado e decisões D3, D6 e corte do CRM)
+
+**WP1 no banco real (feito em 15/11/2026):**
+- Migração aditiva `20261116120000_unified_model_expand` aplicada: 11 tabelas novas, todas com RLS (confirmado no banco).
+- Cópia dos dados rodada e repetida (a segunda rodada não alterou nada):
+
+| | Resultado |
+|---|---|
+| Funis "Geral B2B" | 9 (um por organização), com 45 etapas (5 cada) |
+| Contas | 58 (uma por nota; 48 alvo, 8 em contato, 2 clientes) |
+| Oportunidades | 10 (6 em "Contato feito", 2 em "Visita agendada", 2 vendidas) |
+| Contatos | 9 (1 principal, 8 decisores) |
+| Origens | 58 (primeiro toque de prospecção) |
+| Notas sem conta | 0 |
+
+- O app em produção continua lendo o modelo antigo e respondendo normalmente. A troca do código é a próxima etapa.
+
+**Decisões**
+
+| # | Decisão |
+|---|---|
+| Corte do CRM | **Hoje, 15/11/2026.** O módulo do Spinos reproduz o Everest CRM no estado do commit `cc1eb55` (inclui as 7 automações). O que o CRM ganhar depois entra em atualizações. |
+| D3 | **O Sites usa o banco do Spinos.** As landing pages novas ficam no banco do Spinos desde o início (sem a ponte transitória). Os 19 tenants atuais do Everest Sites continuam onde estão até a migração, que fica depois do MVP. |
+| D6 | **Os preços ficam como estão** (R$ 309, 649 e 1.699). Só mudam as informações do que cada plano inclui. |
+
+---
+
 ## 0. Resumo executivo
 
 **1. A unificação é viável, mas não do jeito "juntar os quatro códigos".** Os quatro sistemas têm bancos, logins e premissas de tenant diferentes (seção 1). O caminho que sobrevive é: o Spinos vira o núcleo (banco, login, tenant), e CRM, Pulse e Sites entram como módulos **portando o modelo e a lógica**, não copiando o código inteiro.
