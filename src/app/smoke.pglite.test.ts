@@ -147,6 +147,21 @@ describe("as telas montam com dados reais em todos os estados", () => {
     // Briefing inválido volta para a tela com a explicação, sem criar nada.
     await expect(createMySite(new FormData())).rejects.toThrow(/REDIRECT:\/meu-site\?erro=/);
   }, 30_000);
+  it("relatórios: monta em cada período, com origem, atendimento, site e investimento", async () => {
+    const Page = (await import("@/app/(platform)/(app)/relatorios/page")).default;
+    for (const periodo of ["7d", "30d", "90d", "mes", "ano", "invalido"]) {
+      const html = renderToStaticMarkup((await Page({ searchParams: Promise.resolve({ periodo }) })) as never);
+      expect(html).toContain("Por origem");
+      expect(html).toContain("Investimento em marketing");
+    }
+    const { addSpendEntry } = await import("@/lib/actions/spend");
+    const form = new FormData();
+    for (const [k, v] of Object.entries({ name: "Google Ads de teste", channel: "google_ads", amount: "250,00", date: "" })) form.set(k, v);
+    await expect(addSpendEntry(form)).rejects.toThrow("REDIRECT:/relatorios?salvo=1");
+    const html = renderToStaticMarkup((await Page({ searchParams: Promise.resolve({ periodo: "ano" }) })) as never);
+    expect(html).toContain("Google Ads de teste");
+    expect(html).toContain("R$");
+  }, 30_000);
   it("oportunidades", async () => {
     const Page = (await import("@/app/(platform)/(app)/oportunidades/page")).default;
     expect(await Page({ searchParams: Promise.resolve({}) } as never)).toBeTruthy();
