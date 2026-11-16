@@ -76,6 +76,13 @@ describe("as telas montam com dados reais em todos os estados", () => {
     const el = await Page({ searchParams: Promise.resolve({}) });
     expect(el).toBeTruthy();
   });
+  it("painel mostra os primeiros passos com o estado real da conta", async () => {
+    const Page = (await import("@/app/(platform)/(app)/page")).default;
+    const html = renderToStaticMarkup((await Page({ searchParams: Promise.resolve({}) })) as never);
+    expect(html).toContain("Primeiros passos");
+    expect(html).toContain("Publicar o seu site");
+    expect(html).toContain('role="progressbar"');
+  });
   it("pipeline: as 3 negociações e a coluna 'Oportunidades' (sem as descartadas)", async () => {
     const Page = (await import("@/app/(platform)/(app)/pipeline/page")).default;
     const el = (await Page({ searchParams: Promise.resolve({ owner: "all" }) })) as { props: { children: Array<{ props?: { initialCards?: { id: string; stage: string }[]; stages?: unknown[] } }> } };

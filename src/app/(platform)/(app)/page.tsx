@@ -10,6 +10,8 @@ import { Target, Kanban, Trophy, Sparkles, TrendingUp, ArrowRight, Rocket } from
 import { logError } from "@/lib/log-error";
 import { getDefaultPipeline } from "@/lib/crm/pipeline-config";
 import { untouchedScoresWhere } from "@/lib/crm/accounts";
+import { getActivationSteps } from "@/lib/onboarding/activation";
+import { ActivationCard } from "@/components/ActivationCard";
 
 function getGreeting(): string {
   const hour = Number(
@@ -129,12 +131,14 @@ export default async function DashboardPage({
   let data: Awaited<ReturnType<typeof fetchDashboardData>>;
   let user: { name: string | null } | null = null;
   let organization: { name: string } | null = null;
+  let steps: Awaited<ReturnType<typeof getActivationSteps>> = [];
   try {
-    [data, user, organization] = await withOrgContext(organizationId, (tx) =>
+    [data, user, organization, steps] = await withOrgContext(organizationId, (tx) =>
       Promise.all([
         fetchDashboardData(tx, organizationId),
         userId ? tx.user.findUnique({ where: { id: userId }, select: { name: true } }) : Promise.resolve(null),
         tx.organization.findUnique({ where: { id: organizationId }, select: { name: true } }),
+        getActivationSteps(tx, organizationId),
       ]),
     );
   } catch (err) {
@@ -166,6 +170,8 @@ export default async function DashboardPage({
           Senha atualizada com sucesso.
         </div>
       )}
+
+      <ActivationCard steps={steps} />
 
       <div className="px-4 md:px-10 pt-6">
         <Link
