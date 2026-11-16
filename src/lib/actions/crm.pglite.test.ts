@@ -120,7 +120,7 @@ describe("detalhes da negociação", () => {
     const icp = await prisma.iCP.findFirstOrThrow({ where: { organizationId: "org-A" } });
     const score = await prisma.opportunityScore.create({ data: { organizationId: "org-A", companyId: company.id, icpId: icp.id, score: 1, urgency: "BAIXA", headline: "h", execSummary: "x", reasoning: "x", suggestedApproach: "x", commercialArguments: [], objections: [] } });
     await enterAppRole(db);
-    expect((await call(() => crm.saveDetails(score.id, form({ expectedValue: "1" })))).get("erro")).toMatch(/pipeline primeiro/);
+    expect((await call(() => crm.saveDetails(score.id, form({ expectedValue: "1" })))).get("erro")).toMatch(/CRM primeiro/);
   });
 });
 

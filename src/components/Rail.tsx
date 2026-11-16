@@ -20,7 +20,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/oportunidades", label: "Oportunidades", icon: Target },
   { href: "/radar", label: "Radar", icon: Radar },
-  { href: "/pipeline", label: "Pipeline", icon: Kanban },
+  { href: "/pipeline", label: "CRM", icon: Kanban },
   { href: "/leads", label: "Leads", icon: Inbox },
   { href: "/contatos", label: "Contatos", icon: Contact },
   { href: "/atividades", label: "Atividades", icon: ListChecks },

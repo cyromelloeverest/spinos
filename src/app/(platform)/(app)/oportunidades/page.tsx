@@ -259,10 +259,10 @@ export default async function OpportunitiesPage({
       {params.search === "plan_limit" && (
         <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
           {isTrialing
-            ? `Seu teste grátis permite até ${params.limit ?? maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no pipeline para liberar espaço, ou assine um plano pago pra continuar sem esse teto.`
+            ? `Seu teste grátis permite até ${params.limit ?? maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no CRM para liberar espaço, ou assine um plano pago pra continuar sem esse teto.`
             : isPaidEnterprise
-              ? `Seu plano ${plan.name} permite até ${params.limit ?? maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no pipeline para liberar espaço, ou fale com nosso time comercial pra ajustar seu limite.`
-              : `Seu plano permite até ${params.limit ?? maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no pipeline para liberar espaço, ou compre buscas extras/evolua de plano abaixo.`}
+              ? `Seu plano ${plan.name} permite até ${params.limit ?? maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no CRM para liberar espaço, ou fale com nosso time comercial pra ajustar seu limite.`
+              : `Seu plano permite até ${params.limit ?? maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no CRM para liberar espaço, ou compre buscas extras/evolua de plano abaixo.`}
         </div>
       )}
       {params.search === "search_limit" && (
@@ -413,12 +413,12 @@ export default async function OpportunitiesPage({
                   <form action={moveToPipeline.bind(null, opp.id)}>
                     <button
                       type="submit"
-                      title="Mover para o pipeline"
-                      aria-label="Mover para o pipeline"
+                      title="Mover para o CRM"
+                      aria-label="Mover para o CRM"
                       className="flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1 border cursor-pointer"
                       style={{ background: "var(--primary-soft)", color: "var(--primary)", borderColor: "transparent" }}
                     >
-                      Pipeline
+                      CRM
                       <ArrowRight size={12} strokeWidth={2} />
                     </button>
                   </form>

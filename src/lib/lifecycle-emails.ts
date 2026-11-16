@@ -152,7 +152,7 @@ export async function sendStaleOpportunitiesEmail(input: {
 }): Promise<void> {
   const link = `${SITE_URL}/oportunidades`;
   const html = `<p>${greeting(input.name)}</p>
-<p>A Spinos encontrou ${input.opportunitiesCount} oportunidades pro seu ICP que ainda estão paradas — nenhuma foi movida pro pipeline ou descartada nos últimos ${input.daysStale} dias.</p>
+<p>A Spinos encontrou ${input.opportunitiesCount} oportunidades pro seu ICP que ainda estão paradas — nenhuma foi movida pro CRM ou descartada nos últimos ${input.daysStale} dias.</p>
 <p><a href="${link}">Ver minhas oportunidades</a></p>
 ${unsubscribeFooter(input.organizationId)}`;
   await sendResendEmail(input.to, `Você tem ${input.opportunitiesCount} oportunidades esperando uma ação na Spinos`, html);

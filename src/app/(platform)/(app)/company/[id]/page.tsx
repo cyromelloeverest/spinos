@@ -259,7 +259,7 @@ export default async function CompanyPage({
               className="text-[12.5px] font-semibold rounded-full px-3.5 py-2"
               style={{ background: "var(--primary-soft)", color: "var(--primary)" }}
             >
-              No pipeline: {deal.stage.name}
+              No CRM: {deal.stage.name}
             </div>
             {actionUser && (
               <span className="text-[12px]" style={{ color: "var(--fg-faint)" }}>
@@ -267,7 +267,7 @@ export default async function CompanyPage({
               </span>
             )}
             <Link href="/pipeline" className="text-[13px] inline-flex items-center gap-1 no-underline" style={{ color: "var(--fg-muted)" }}>
-              Ver no pipeline
+              Ver no CRM
               <ArrowRight size={13} strokeWidth={2} />
             </Link>
           </>

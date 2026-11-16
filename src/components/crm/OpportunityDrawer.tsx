@@ -111,10 +111,10 @@ export function OpportunityDrawer({ data, messages, scoreId, ownerParam, erro, s
 
         {!deal ? (
           <Section title="Negociação">
-            <p className="text-[13px] mt-0 mb-3" style={{ color: "var(--fg-muted)" }}>Essa oportunidade ainda não está no pipeline.</p>
+            <p className="text-[13px] mt-0 mb-3" style={{ color: "var(--fg-muted)" }}>Essa oportunidade ainda não está no CRM.</p>
             <form action={startDeal.bind(null, scoreId)}>
               <input type="hidden" name="owner" value={ownerParam} />
-              <button type="submit" className={btn} style={{ background: "var(--primary)", borderColor: "var(--primary)", color: "#ffffff" }}>Mover para o pipeline</button>
+              <button type="submit" className={btn} style={{ background: "var(--primary)", borderColor: "var(--primary)", color: "#ffffff" }}>Mover para o CRM</button>
             </form>
           </Section>
         ) : (

@@ -64,7 +64,7 @@ async function dealOf(tx: Tx, organizationId: string, ref: string) {
   if (direct) return direct;
   const score = await tx.opportunityScore.findFirst({ where: { id: ref, organizationId }, select: { accountId: true } });
   const deal = score?.accountId ? await tx.opportunity.findFirst({ where: { accountId: score.accountId, organizationId }, orderBy: { createdAt: "desc" } }) : null;
-  if (!deal) throw new UserError("Mova a oportunidade para o pipeline primeiro.");
+  if (!deal) throw new UserError("Mova a oportunidade para o CRM primeiro.");
   return deal;
 }
 

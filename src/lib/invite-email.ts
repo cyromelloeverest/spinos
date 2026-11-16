@@ -23,7 +23,7 @@ export async function sendInviteEmail(
     ? `Você foi convidado para gerenciar a conta da ${orgName} na Spinos`
     : `Você foi convidado para a ${orgName} na Spinos`;
   const html = isAgency
-    ? `<p>Você foi convidado como <strong>agência parceira</strong> pra gerenciar a conta Spinos da <strong>${safeOrgName}</strong> — acesso operacional (oportunidades, pipeline, ICP), sem acesso à cobrança da conta.</p><p><a href="${link}">Clique aqui para aceitar o convite</a></p><p>Esse link expira em 7 dias.</p>`
+    ? `<p>Você foi convidado como <strong>agência parceira</strong> pra gerenciar a conta Spinos da <strong>${safeOrgName}</strong> — acesso operacional (oportunidades, CRM, ICP), sem acesso à cobrança da conta.</p><p><a href="${link}">Clique aqui para aceitar o convite</a></p><p>Esse link expira em 7 dias.</p>`
     : `<p>Você foi convidado para participar da organização <strong>${safeOrgName}</strong> na Spinos.</p><p><a href="${link}">Clique aqui para aceitar o convite</a></p><p>Esse link expira em 7 dias.</p>`;
 
   await fetch("https://api.resend.com/emails", {

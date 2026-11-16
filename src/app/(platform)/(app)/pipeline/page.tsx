@@ -164,7 +164,7 @@ export default async function PipelinePage({ searchParams }: { searchParams: Pro
     <div>
       <div className="pt-6 px-4 md:px-10">
         <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>
-          Pipeline comercial
+          CRM comercial
         </h1>
         <p className="m-0 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
           Da oportunidade nova até vendida ou perdida. Arraste os cards entre as colunas ou abra um card para ver e agendar o próximo passo.

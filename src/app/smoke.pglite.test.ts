@@ -107,7 +107,7 @@ describe("as telas montam com dados reais em todos os estados", () => {
     expect(html).toContain("Agendar");
     const fresh = (await Page({ searchParams: Promise.resolve({ owner: "me", abrir: ids.fresh! }) })) as { props: { children: Array<{ props?: { data?: unknown } } | false | null> } };
     const freshDrawer = fresh.props.children.find((c) => c && typeof c === "object" && c.props?.data) as { type: unknown; props: Record<string, unknown> };
-    expect(renderToStaticMarkup(createElement(freshDrawer.type as never, freshDrawer.props as never))).toContain("Mover para o pipeline");
+    expect(renderToStaticMarkup(createElement(freshDrawer.type as never, freshDrawer.props as never))).toContain("Mover para o CRM");
   });
   it("atividades, em cada aba", async () => {
     const Page = (await import("@/app/(platform)/(app)/atividades/page")).default;

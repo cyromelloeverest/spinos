@@ -45,7 +45,7 @@ export async function GET() {
     "Estado",
     "Score",
     "Urgência",
-    "Etapa do pipeline",
+    "Etapa no CRM",
     "Resumo",
     "Decisor provável",
     "Como abordar",

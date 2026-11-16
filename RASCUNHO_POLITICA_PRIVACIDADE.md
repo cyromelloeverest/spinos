@@ -57,6 +57,10 @@ Escrito em 2026-11-16, depois de o Spinos ganhar site, páginas de captação, c
 3. O conteúdo gerado por IA é rascunho; o cliente responde pelo que publica e pela conformidade com seu conselho profissional (ex.: NBC PG 01 para contadores).
 4. Limites de uso por plano (buscas, conteúdo, e-mails) e suspensão do envio em caso de reclamações ou abuso.
 5. O Spinos pode pausar o envio de e-mails e tirar um site do ar se houver indício de fraude, spam ou conteúdo ilícito.
+6. Condições comerciais (tabela de planos de 2026-11-16): implantação de R$ 1.500, paga uma vez, na primeira assinatura; fidelidade mínima de 6 meses (o Stripe não impede o cancelamento antes, então a cláusula precisa prever multa ou saldo devido e como o cliente pede o cancelamento); preço mensal por plano (Essencial R$ 997, Crescimento R$ 1.997, Aceleração R$ 3.497).
+7. A promessa de volume é "contas-alvo por mês" (100, 300 e 1.000), contadas por mês de calendário, sem acúmulo. Definir no contrato o que acontece com a franquia não usada e com o intervalo mínimo entre buscas por plano.
+8. Verba de mídia (Google Ads, Meta Ads) é paga direto pelo cliente às plataformas. Gestão de anúncios e conteúdo para redes sociais fazem parte do Aceleração e podem ser contratados à parte nos outros planos: definir escopo e preço desse serviço fora da assinatura.
+9. Preço de fundador (10 primeiros clientes: sem implantação e preço travado por 12 meses), se mantido: registrar a condição no contrato de cada um, já que o sistema ainda não a controla.
 
 ## 5. O que o produto já faz (para o advogado conferir)
 

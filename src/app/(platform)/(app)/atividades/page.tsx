@@ -75,7 +75,7 @@ export default async function AtividadesPage({ searchParams }: { searchParams: P
       </div>
 
       {rows.length === 0 ? (
-        <EmptyState message={tab === "concluidas" ? "Nenhuma atividade concluída ainda." : "Nada por aqui. Agende o próximo passo de uma negociação no pipeline."} />
+        <EmptyState message={tab === "concluidas" ? "Nenhuma atividade concluída ainda." : "Nada por aqui. Agende o próximo passo de uma negociação no CRM."} />
       ) : (
         <div className="rounded-[12px] border overflow-hidden" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
           {rows.map((a, i) => {

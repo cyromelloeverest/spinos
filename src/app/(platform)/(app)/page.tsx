@@ -256,7 +256,7 @@ export default async function DashboardPage({
 
       <div className="px-4 md:px-10 pt-5 grid grid-cols-2 md:grid-cols-4 gap-3.5">
         <StatTile icon={Target} label="Oportunidades ativas" value={data.active} accent="var(--primary)" />
-        <StatTile icon={Kanban} label="No pipeline" value={data.staged} accent="var(--primary)" />
+        <StatTile icon={Kanban} label="No CRM" value={data.staged} accent="var(--primary)" />
         <StatTile icon={Trophy} label="Vendidas" value={data.won} accent="var(--good)" />
         <StatTile
           icon={TrendingUp}
