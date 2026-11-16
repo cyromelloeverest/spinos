@@ -30,6 +30,8 @@ export type PipelineCard = {
   whatsappUrl: string | null;
   noNextStep: boolean;
   overdue: boolean;
+  // Lead cadastrado ou vindo de formulário: não tem nota da IA.
+  isLead?: boolean;
 };
 
 
@@ -129,7 +131,7 @@ export function PipelineBoard({ initialCards, stages, ownerParam }: { initialCar
                   <Link href={`/pipeline?abrir=${card.id}&owner=${ownerParam}`} className="no-underline" style={{ color: "var(--fg)" }}>
                     <div className="flex items-center gap-1.5 mb-1">
                       <div className="text-[13.5px] font-semibold flex-1 min-w-0 truncate">{card.companyName}</div>
-                      <SpinosScore value={card.score} variant="inline" />
+                      {card.isLead ? <span className="text-[10px] font-semibold uppercase rounded-full px-2 py-[2px]" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>Lead</span> : <SpinosScore value={card.score} variant="inline" />}
                     </div>
                     <div className="text-[11px] mb-1" style={{ color: "var(--fg-faint)" }}>
                       {card.city}, {card.state}

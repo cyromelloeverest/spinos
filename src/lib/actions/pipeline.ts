@@ -44,9 +44,9 @@ export async function setStage(
   const stageKey = stage === NOVA_STAGE_ID ? NOVA : stage;
 
   await withOrgContext(organizationId, async (tx) => {
-    const { companyId, kind } = await moveToStage(tx, { organizationId, userId }, opportunityScoreId, stageKey, lossNotes?.trim() || null);
+    const { companyId, scoreId, kind } = await moveToStage(tx, { organizationId, userId }, opportunityScoreId, stageKey, lossNotes?.trim() || null);
 
-    await syncFeedback(tx, { organizationId, companyId, scoreId: opportunityScoreId, kind, lossReason, lossNotes });
+    await syncFeedback(tx, { organizationId, companyId, scoreId, kind, lossReason, lossNotes });
   });
 
   revalidatePath("/");

@@ -10,6 +10,7 @@ import { ORIGIN_OPTIONS, setFirstTouchOrigin } from "@/lib/crm/origin-options";
 import { scheduleActivity, completeActivity, rescheduleActivity, cancelActivity, NextStepRequiredError, type ActivityTypeKey } from "@/lib/crm/activities";
 import { moveToKind, moveToStage, startInPipeline } from "@/lib/crm/opportunities";
 import { getDefaultPipeline } from "@/lib/crm/pipeline-config";
+import { createLead, DuplicateLeadError, LeadValidationError } from "@/lib/crm/leads";
 import { syncFeedback, type LossReasonKey } from "@/lib/crm/feedback";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -55,9 +56,12 @@ async function run(scoreId: string, formData: FormData | null, work: (tx: Tx, c:
 }
 
 // A negociação da nota; erro de usuário se a nota ainda não está no funil.
-async function dealOf(tx: Tx, organizationId: string, scoreId: string) {
-  const score = await tx.opportunityScore.findFirstOrThrow({ where: { id: scoreId, organizationId }, select: { accountId: true } });
-  const deal = score.accountId ? await tx.opportunity.findFirst({ where: { accountId: score.accountId, organizationId }, orderBy: { createdAt: "desc" } }) : null;
+async function dealOf(tx: Tx, organizationId: string, ref: string) {
+  // A referência é o id da nota (oportunidade da IA) ou da própria negociação (lead).
+  const direct = await tx.opportunity.findFirst({ where: { id: ref, organizationId } });
+  if (direct) return direct;
+  const score = await tx.opportunityScore.findFirst({ where: { id: ref, organizationId }, select: { accountId: true } });
+  const deal = score?.accountId ? await tx.opportunity.findFirst({ where: { accountId: score.accountId, organizationId }, orderBy: { createdAt: "desc" } }) : null;
   if (!deal) throw new UserError("Mova a oportunidade para o pipeline primeiro.");
   return deal;
 }
@@ -135,8 +139,8 @@ export async function dropStep(scoreId: string, activityId: string, formData: Fo
 
 export async function winDeal(scoreId: string, formData: FormData) {
   return run(scoreId, formData, async (tx, c) => {
-    const { companyId } = await moveToKind(tx, c, scoreId, "WON");
-    await syncFeedback(tx, { organizationId: c.organizationId, companyId, scoreId, kind: "WON" });
+    const r = await moveToKind(tx, c, scoreId, "WON");
+    await syncFeedback(tx, { organizationId: c.organizationId, companyId: r.companyId, scoreId: r.scoreId, kind: "WON" });
   });
 }
 
@@ -145,8 +149,8 @@ export async function loseDeal(scoreId: string, formData: FormData) {
     const reason = String(formData.get("reason") ?? "") as LossReasonKey;
     if (!LOSS_REASONS.includes(reason)) throw new UserError("Escolha o motivo da perda.");
     const notes = String(formData.get("notes") ?? "").trim() || null;
-    const { companyId } = await moveToKind(tx, c, scoreId, "LOST", notes);
-    await syncFeedback(tx, { organizationId: c.organizationId, companyId, scoreId, kind: "LOST", lossReason: reason, lossNotes: notes });
+    const r = await moveToKind(tx, c, scoreId, "LOST", notes);
+    await syncFeedback(tx, { organizationId: c.organizationId, companyId: r.companyId, scoreId: r.scoreId, kind: "LOST", lossReason: reason, lossNotes: notes });
   });
 }
 
@@ -159,7 +163,70 @@ export async function moveStage(scoreId: string, formData: FormData) {
     const stage = pipeline.stages.find((s) => s.key === key);
     if (!stage) throw new UserError("Etapa inválida.");
     if (stage.kind === "LOST") throw new UserError("Use o botão Perdida para informar o motivo.");
-    const { companyId, kind } = await moveToStage(tx, c, scoreId, key);
-    await syncFeedback(tx, { organizationId: c.organizationId, companyId, scoreId, kind });
+    const r = await moveToStage(tx, c, scoreId, key);
+    await syncFeedback(tx, { organizationId: c.organizationId, companyId: r.companyId, scoreId: r.scoreId, kind: r.kind });
   });
+}
+
+// ---- Leads ----
+
+export async function newLead(formData: FormData) {
+  const c = await requireCtx();
+  let target = "/leads";
+  try {
+    const result = await withOrgContext(c.organizationId, (tx) =>
+      createLead(tx, c, {
+        name: String(formData.get("name") ?? ""),
+        company: String(formData.get("company") ?? ""),
+        phone: String(formData.get("phone") ?? ""),
+        email: String(formData.get("email") ?? ""),
+        message: String(formData.get("message") ?? ""),
+        originKey: String(formData.get("origin") ?? "outro"),
+      }),
+    );
+    revalidatePath("/leads");
+    revalidatePath("/pipeline");
+    target = `/pipeline?abrir=${result.opportunityId}&owner=me`;
+  } catch (err) {
+    let message = "Não foi possível cadastrar o lead. Tente novamente.";
+    if (err instanceof DuplicateLeadError || err instanceof LeadValidationError) message = err.message;
+    else console.error("newLead failed", err);
+    target = `/leads?erro=${encodeURIComponent(message)}`;
+  }
+  redirect(target);
+}
+
+// ---- Contatos ----
+
+const LEGAL_BASES = ["LEGITIMATE_INTEREST", "CONSENT", "CONTRACT"] as const;
+
+async function requireManager() {
+  const c = await requireCtx();
+  const m = await withOrgContext(c.organizationId, (tx) => tx.membership.findFirst({ where: { organizationId: c.organizationId, userId: c.userId ?? "" }, select: { role: true } }));
+  if (!m || (m.role !== "OWNER" && m.role !== "ADMIN")) redirect("/contatos?erro=" + encodeURIComponent("Só donos e administradores podem fazer isso."));
+  return c;
+}
+
+export async function setContactLegalBasis(contactId: string, formData: FormData) {
+  const c = await requireCtx();
+  const basis = String(formData.get("legalBasis") ?? "");
+  const value = (LEGAL_BASES as readonly string[]).includes(basis) ? (basis as (typeof LEGAL_BASES)[number]) : null;
+  const note = String(formData.get("legalBasisNote") ?? "").trim().slice(0, 300) || null;
+  await withOrgContext(c.organizationId, (tx) => tx.contact.updateMany({ where: { id: contactId, organizationId: c.organizationId, anonymizedAt: null }, data: { legalBasis: value, legalBasisNote: note } }));
+  revalidatePath("/contatos");
+  redirect("/contatos?salvo=1");
+}
+
+// LGPD: anonimiza a pessoa (nome, e-mail, telefone e cargo somem), mantém a conta e a
+// negociação. Não apaga a linha porque ela pode estar ligada a uma negociação.
+export async function anonymizeContact(contactId: string) {
+  const c = await requireManager();
+  await withOrgContext(c.organizationId, (tx) =>
+    tx.contact.updateMany({
+      where: { id: contactId, organizationId: c.organizationId },
+      data: { name: "Pessoa removida (LGPD)", jobTitle: null, email: null, phone: null, phoneE164: null, linkedinUrl: null, legalBasisNote: null, anonymizedAt: new Date(), isPrimary: false },
+    }),
+  );
+  revalidatePath("/contatos");
+  redirect("/contatos?salvo=1");
 }

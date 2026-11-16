@@ -8,9 +8,11 @@ export type LossReasonKey = "NOT_INTERESTED" | "WRONG_FIT" | "NO_RESPONSE";
 // grava o motivo, e sair de um estágio terminal apaga o registro antigo.
 export async function syncFeedback(
   tx: Tx,
-  input: { organizationId: string; companyId: string; scoreId: string; kind: "OPEN" | "WON" | "LOST" | "NOVA"; lossReason?: LossReasonKey; lossNotes?: string | null },
+  input: { organizationId: string; companyId: string | null; scoreId: string | null; kind: "OPEN" | "WON" | "LOST" | "NOVA"; lossReason?: LossReasonKey; lossNotes?: string | null },
 ) {
   const { organizationId, companyId, scoreId, kind } = input;
+  // Feedback calibra o motor de busca: só existe para oportunidades que vieram de uma nota.
+  if (!scoreId || !companyId) return;
   if (kind === "WON") {
     await tx.feedback.upsert({
       where: { opportunityScoreId: scoreId },

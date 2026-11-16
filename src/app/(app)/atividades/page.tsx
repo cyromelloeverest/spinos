@@ -79,7 +79,7 @@ export default async function AtividadesPage({ searchParams }: { searchParams: P
       ) : (
         <div className="rounded-[12px] border overflow-hidden" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
           {rows.map((a, i) => {
-            const scoreId = a.account?.scores[0]?.id;
+            const scoreId = a.account?.scores[0]?.id ?? a.opportunityId;
             const late = a.status === "OPEN" && a.dueAt !== null && a.dueAt < now;
             const inner = (
               <div className="flex items-center justify-between gap-4 px-4 py-3" style={{ borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>

@@ -104,6 +104,8 @@ model Organization {
   opportunities     Opportunity[]
   activities        Activity[]
   origins           Origin[]
+  automations       Automation[]
+  automationRuns    AutomationRun[]
 
   @@map("organizations")
 }
@@ -903,4 +905,38 @@ model Origin {
   @@index([organizationId, accountId])
   @@index([organizationId, kind, occurredAt])
   @@map("origins")
+}
+
+// Automações do CRM: uma linha por receita por organização (ligada ou não, com os
+// ajustes) e um registro de tudo que cada receita fez. O dedupeKey único garante que
+// repetir um evento (reenvio, rotina de tempo rodando duas vezes) nunca duplica.
+model Automation {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String
+  enabled        Boolean  @default(false)
+  config         Json?
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, key])
+  @@map("automations")
+}
+
+model AutomationRun {
+  id             String   @id @default(cuid())
+  organizationId String
+  automationKey  String
+  dedupeKey      String
+  opportunityId  String?
+  activityId     String?
+  summary        String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, dedupeKey])
+  @@index([organizationId, createdAt])
+  @@map("automation_runs")
 }

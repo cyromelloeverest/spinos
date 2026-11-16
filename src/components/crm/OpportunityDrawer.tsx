@@ -82,7 +82,7 @@ export function OpportunityDrawer({ data, scoreId, ownerParam, erro, salvo, now 
           <div className="flex flex-wrap gap-2 mt-3">
             {whatsapp && <a href={whatsapp} target="_blank" rel="noreferrer" className={`${btn} no-underline`} style={{ background: "var(--good)", borderColor: "var(--good)", color: "#ffffff" }}>WhatsApp</a>}
             {tel && <a href={tel} className={`${btn} no-underline`} style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}>Ligar</a>}
-            <Link href={`/company/${scoreId}`} className={`${btn} no-underline`} style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}>Ficha e análise</Link>
+            {data.scoreId && <Link href={`/company/${data.scoreId}`} className={`${btn} no-underline`} style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}>Ficha e análise</Link>}
           </div>
         </div>
 

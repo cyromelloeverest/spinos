@@ -105,6 +105,24 @@ describe("as telas montam com dados reais em todos os estados", () => {
       expect(await Page({ searchParams: Promise.resolve({ aba, owner: "all" }) })).toBeTruthy();
     }
   });
+  it("leads, contatos e automações montam e renderizam em HTML", async () => {
+    const { createLead } = await import("@/lib/crm/leads");
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_org_id', ${"org-A"}, true)`;
+      await createLead(tx, { organizationId: "org-A", userId: "user-1" }, { name: "Lead Fumaça", company: "Empresa Fumaça", phone: "11988887777", originKey: "site" });
+    });
+    const Leads = (await import("@/app/(app)/leads/page")).default;
+    const leadsHtml = renderToStaticMarkup((await Leads({ searchParams: Promise.resolve({}) })) as never);
+    expect(leadsHtml).toContain("Lead Fumaça");
+    expect(leadsHtml).toContain("Cadastrar lead");
+    const Contatos = (await import("@/app/(app)/contatos/page")).default;
+    const contatosHtml = renderToStaticMarkup((await Contatos({ searchParams: Promise.resolve({ q: "Fumaça" }) })) as never);
+    expect(contatosHtml).toContain("Lead Fumaça");
+    expect(contatosHtml).toContain("a registrar");
+    const Auto = (await import("@/app/(app)/automacoes/page")).default;
+    const autoHtml = renderToStaticMarkup((await Auto({ searchParams: Promise.resolve({}) })) as never);
+    for (const title of ["Lead sem resposta", "Rodízio de leads", "Tarefas por etapa", "Follow-up de proposta", "Negociação sem próximo passo", "Venda fechada", "Retomar perdidos"]) expect(autoHtml).toContain(title);
+  });
   it("oportunidades", async () => {
     const Page = (await import("@/app/(app)/oportunidades/page")).default;
     expect(await Page({ searchParams: Promise.resolve({}) } as never)).toBeTruthy();

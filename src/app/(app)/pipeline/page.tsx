@@ -45,9 +45,14 @@ async function fetchPipelineData(organizationId: string, userId: string | null, 
         },
       },
     });
+    // Leads (entraram por formulário ou cadastro manual) não têm nota da IA: entram direto pela negociação.
+    const leadDeals = await tx.opportunity.findMany({
+      where: { organizationId, account: { is: { scores: { none: {} } } } },
+      include: { stage: true, account: { include: { contacts: { where: { isPrimary: true, anonymizedAt: null }, take: 1 } } } },
+    });
     const members = await tx.membership.findMany({ where: { organizationId }, include: { user: { select: { id: true, name: true, email: true } } } });
     const drawer = openId ? await getDrawerData(tx, organizationId, openId) : null;
-    return { pipeline, scores, members, attention, drawer, now };
+    return { pipeline, scores, leadDeals, members, attention, drawer, now };
   });
 }
 
@@ -95,6 +100,31 @@ export default async function PipelinePage({ searchParams }: { searchParams: Pro
       whatsappUrl: toWhatsAppUrl(sc.account?.contacts[0]?.phone),
       noNextStep: !!deal && deal.status === "OPEN" && deal.nextActivityAt === null,
       overdue: !!deal && deal.status === "OPEN" && deal.nextActivityAt !== null && deal.nextActivityAt < data.now,
+    });
+  }
+  for (const deal of data.leadDeals) {
+    if (!isMine(deal.ownerUserId)) {
+      if (deal.status === "OPEN") hiddenByOwner++;
+      continue;
+    }
+    stageCount.set(deal.stage.key, (stageCount.get(deal.stage.key) ?? 0) + 1);
+    const ownerName = deal.ownerUserId ? memberName.get(deal.ownerUserId) ?? null : null;
+    cards.push({
+      id: deal.id,
+      companyName: deal.account.name,
+      city: deal.account.city,
+      state: deal.account.state,
+      score: 0,
+      stage: deal.stage.key,
+      daysLabel: daysInStage(deal.stageChangedAt),
+      lastActionByName: ownerName,
+      hasDeal: true,
+      valueLabel: deal.expectedValueBRL != null ? formatBRL(deal.expectedValueBRL) : null,
+      ownerInitials: ownerName ? initials(ownerName) : null,
+      whatsappUrl: toWhatsAppUrl(deal.account.contacts[0]?.phone),
+      noNextStep: deal.status === "OPEN" && deal.nextActivityAt === null,
+      overdue: deal.status === "OPEN" && deal.nextActivityAt !== null && deal.nextActivityAt < data.now,
+      isLead: true,
     });
   }
   function hiddenByOwn(d: { id: string }) {
