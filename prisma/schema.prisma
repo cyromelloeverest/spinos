@@ -95,6 +95,15 @@ model Organization {
   searchUsageLogs   SearchUsageLog[]
   missions          Mission[]
   creditPurchases   CreditPurchase[]
+  pack              OrganizationPack?
+  pipelines         Pipeline[]
+  lossReasons       LossReason[]
+  campaigns         Campaign[]
+  accounts          Account[]
+  contacts          Contact[]
+  opportunities     Opportunity[]
+  activities        Activity[]
+  origins           Origin[]
 
   @@map("organizations")
 }
@@ -325,6 +334,7 @@ model Company {
   signals           Signal[]
   opportunityScores OpportunityScore[]
   feedbacks         Feedback[]
+  accounts          Account[]
 
   @@index([state, city])
   @@index([segment])
@@ -407,6 +417,7 @@ model OpportunityScore {
   companyId           String
   icpId               String
   missionId           String?
+  accountId           String?
   score               Int
   urgency             Urgency
   headline            String
@@ -436,6 +447,7 @@ model OpportunityScore {
   company          Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   icp              ICP                      @relation(fields: [icpId], references: [id], onDelete: Cascade)
   mission          Mission?                 @relation(fields: [missionId], references: [id], onDelete: SetNull)
+  account          Account?                 @relation(fields: [accountId], references: [id], onDelete: SetNull)
   lastActionByUser User?                    @relation(fields: [lastActionByUserId], references: [id], onDelete: SetNull)
   signalsUsed      OpportunityScoreSignal[]
   feedback         Feedback?
@@ -558,4 +570,329 @@ model CrmExport {
   opportunityScore OpportunityScore @relation(fields: [opportunityScoreId], references: [id], onDelete: Cascade)
 
   @@map("crm_exports")
+}
+
+// ============================================================
+// MODELO UNIFICADO (rascunho do WP1) — tudo do tenant com RLS e FK composta.
+// ============================================================
+
+enum AccountLifecycle {
+  TARGET // conta-alvo, ainda sem contato
+  ENGAGED // em contato / em negociação
+  CUSTOMER // cliente
+  LOST // perdida
+  DISMISSED // descartada
+}
+
+enum StageKind {
+  OPEN
+  WON
+  LOST
+}
+
+enum DealStatus {
+  OPEN
+  WON
+  LOST
+}
+
+enum ActivityType {
+  CALL
+  WHATSAPP
+  EMAIL
+  LINKEDIN
+  MEETING
+  PROPOSAL
+  TASK
+  OTHER
+}
+
+enum ActivityStatus {
+  OPEN
+  DONE
+  CANCELED
+}
+
+enum OriginKind {
+  PROSPECTING
+  LANDING_PAGE
+  AD
+  REFERRAL
+  MANUAL
+  IMPORT
+  OTHER
+}
+
+enum CampaignKind {
+  AD
+  EMAIL
+  OUTBOUND
+  EVENT
+  OTHER
+}
+
+enum LegalBasis {
+  LEGITIMATE_INTEREST
+  CONSENT
+  CONTRACT
+}
+
+model OrganizationPack {
+  id             String   @id @default(cuid())
+  organizationId String   @unique
+  packKey        String
+  packVersion    String
+  snapshot       Json
+  installedAt    DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("organization_packs")
+}
+
+model Pipeline {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stages        Stage[]
+  opportunities Opportunity[]
+
+  @@unique([id, organizationId])
+  @@map("pipelines")
+}
+
+model Stage {
+  id             String    @id @default(cuid())
+  organizationId String
+  pipelineId     String
+  key            String
+  name           String
+  position       Int
+  kind           StageKind @default(OPEN)
+  targetPct      Float?
+
+  pipeline      Pipeline                @relation(fields: [pipelineId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  opportunities Opportunity[]
+  events        OpportunityStageEvent[]
+
+  @@unique([id, organizationId])
+  @@unique([pipelineId, key])
+  @@map("stages")
+}
+
+model LossReason {
+  id             String  @id @default(cuid())
+  organizationId String
+  key            String
+  label          String
+  requiresNote   Boolean @default(false)
+  position       Int     @default(0)
+
+  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  opportunities Opportunity[]
+
+  @@unique([id, organizationId])
+  @@unique([organizationId, key])
+  @@map("loss_reasons")
+}
+
+model Campaign {
+  id             String       @id @default(cuid())
+  organizationId String
+  kind           CampaignKind
+  channel        String?
+  name           String
+  externalRef    String?
+  spendBRL       Float?
+  startsAt       DateTime?
+  endsAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  origins       Origin[]
+  opportunities Opportunity[]
+
+  @@unique([id, organizationId])
+  @@map("campaigns")
+}
+
+model Account {
+  id             String           @id @default(cuid())
+  organizationId String
+  companyId      String?
+  name           String
+  cnpj           String?
+  site           String?
+  city           String?
+  state          String?
+  segment        String?
+  lifecycle      AccountLifecycle @default(TARGET)
+  ownerUserId    String?
+  customFields   Json?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization  Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  company       Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  contacts      Contact[]
+  opportunities Opportunity[]
+  activities    Activity[]
+  origins       Origin[]
+  scores        OpportunityScore[]
+
+  @@unique([id, organizationId])
+  @@unique([organizationId, companyId])
+  @@unique([organizationId, cnpj])
+  @@index([organizationId, lifecycle])
+  @@map("accounts")
+}
+
+model Contact {
+  id             String      @id @default(cuid())
+  organizationId String
+  accountId      String?
+  name           String
+  jobTitle       String?
+  decisionRole   String?
+  email          String?
+  phone          String?
+  phoneE164      String?
+  linkedinUrl    String?
+  isPrimary      Boolean     @default(false)
+  legalBasis     LegalBasis?
+  legalBasisNote String?
+  optedOutAt     DateTime?
+  anonymizedAt   DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  account       Account?      @relation(fields: [accountId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  opportunities Opportunity[]
+  activities    Activity[]
+  origins       Origin[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId, accountId])
+  @@index([organizationId, phoneE164])
+  @@map("contacts")
+}
+
+model Opportunity {
+  id                 String     @id @default(cuid())
+  organizationId     String
+  accountId          String
+  primaryContactId   String?
+  pipelineId         String
+  stageId            String
+  title              String
+  expectedValueBRL   Float?
+  wonValueBRL        Float?
+  status             DealStatus @default(OPEN)
+  lossReasonId       String?
+  lossNote           String?
+  closedAt           DateTime?
+  stageChangedAt     DateTime   @default(now())
+  nextActivityAt     DateTime?
+  ownerUserId        String?
+  campaignId         String?
+  firstResponseAt    DateTime?
+  lastActionByUserId String?
+  lastActionAt       DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  account        Account                 @relation(fields: [accountId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  primaryContact Contact?                @relation(fields: [primaryContactId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  pipeline       Pipeline                @relation(fields: [pipelineId, organizationId], references: [id, organizationId])
+  stage          Stage                   @relation(fields: [stageId, organizationId], references: [id, organizationId])
+  lossReason     LossReason?             @relation(fields: [lossReasonId, organizationId], references: [id, organizationId])
+  campaign       Campaign?               @relation(fields: [campaignId, organizationId], references: [id, organizationId])
+  activities     Activity[]
+  stageEvents    OpportunityStageEvent[]
+  origins        Origin[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId, status, stageId])
+  @@map("opportunities")
+}
+
+model OpportunityStageEvent {
+  id             String   @id @default(cuid())
+  organizationId String
+  opportunityId  String
+  fromStageId    String?
+  toStageId      String
+  userId         String?
+  createdAt      DateTime @default(now())
+
+  opportunity Opportunity @relation(fields: [opportunityId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  toStage     Stage       @relation(fields: [toStageId, organizationId], references: [id, organizationId])
+
+  @@index([opportunityId, createdAt])
+  @@map("opportunity_stage_events")
+}
+
+model Activity {
+  id              String         @id @default(cuid())
+  organizationId  String
+  type            ActivityType
+  accountId       String?
+  contactId       String?
+  opportunityId   String?
+  ownerUserId     String?
+  dueAt           DateTime?
+  doneAt          DateTime?
+  status          ActivityStatus @default(OPEN)
+  outcome         String?
+  notes           String?
+  cadenceId       String?
+  clientRequestId String?
+  createdAt       DateTime       @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  account      Account?     @relation(fields: [accountId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  contact      Contact?     @relation(fields: [contactId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  opportunity  Opportunity? @relation(fields: [opportunityId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@unique([organizationId, clientRequestId])
+  @@index([organizationId, status, dueAt])
+  @@map("activities")
+}
+
+model Origin {
+  id             String     @id @default(cuid())
+  organizationId String
+  kind           OriginKind
+  channel        String?
+  campaignId     String?
+  landingPageId  String?
+  accountId      String?
+  contactId      String?
+  opportunityId  String?
+  isFirstTouch   Boolean    @default(false)
+  utmSource      String?
+  utmMedium      String?
+  utmCampaign    String?
+  utmTerm        String?
+  utmContent     String?
+  gclid          String?
+  fbclid         String?
+  referrerHost   String?
+  occurredAt     DateTime   @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign     Campaign?    @relation(fields: [campaignId, organizationId], references: [id, organizationId])
+  account      Account?     @relation(fields: [accountId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  contact      Contact?     @relation(fields: [contactId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  opportunity  Opportunity? @relation(fields: [opportunityId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@index([organizationId, accountId])
+  @@index([organizationId, kind, occurredAt])
+  @@map("origins")
 }
