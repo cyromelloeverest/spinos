@@ -1,6 +1,6 @@
 # Plano de unificação da plataforma Spinos
 
-Data: 2026-11-15. Status: **em aprovação. Decisões D1, D5 e D8 já tomadas (D5 mudou em 15/11: Receita adiada). Única implementação feita: remoção do módulo Licitações.**
+Data: 2026-11-15. Status: **em aprovação. Decisões D1, D5 e D8 já tomadas (D5 mudou em 15/11: Receita adiada); escopo da v1 decidido na Atualização 2. Única implementação feita: remoção do módulo Licitações.**
 
 ## Atualização de 2026-11-15 (respostas às decisões e pesquisas)
 
@@ -39,6 +39,39 @@ Data: 2026-11-15. Status: **em aprovação. Decisões D1, D5 e D8 já tomadas (D
   4. **Alternativa para custo sem a API de anúncios:** puxar custo pelo GA4 quando a conta de anúncios estiver ligada a ele. Provável, **não confirmado**.
 
 Como ler as estimativas: são "dias úteis de trabalho assistido por Claude, uma pessoa em tempo integral", com margem de erro de ±40%. Fato confirmado no código vem com o caminho do arquivo. Quando não consegui confirmar, está escrito "não confirmado".
+
+---
+
+## Atualização 2 de 2026-11-15 (escopo da primeira versão)
+
+**Decisões do Cyro**
+
+1. **Visual do Spinos.** O módulo de CRM reproduz a **experiência** do Everest CRM atual (Kanban com faixa de avisos, gaveta lateral da oportunidade, "Minhas / Toda a equipe", próximo passo obrigatório, botão de WhatsApp, Ganha e Perdida com motivo), mas com o design system do Spinos (azul, Inter). Visto ao vivo no CRM em 15/11/2026.
+2. **Todos os módulos na primeira versão, em versão enxuta.** CRM, landing pages, relatórios e e-mail funcionando na v1. Escolha: **vender aos fundadores no dia 30 com o MVP, e entregar a v1 com os 4 módulos em versão enxuta em cerca de 18 a 23 semanas**. Relatórios e e-mail chegam como atualizações para quem já é cliente.
+3. **Ainda em aberto:** data de corte do que se porta do CRM (ver abaixo), D3 (destino do Sites), D4 (quem escreve o pacote), D6 (planos e preços).
+
+**Fato novo: o CRM mudou durante a análise.** O módulo **Automações** entrou em 15/11/2026 (commit `dab97c1`), depois do meu inventário, que dizia que não existia. São 7 receitas prontas e configuráveis: lead sem resposta, rodízio de leads, tarefas por etapa, follow-up de proposta, negociação sem próximo passo, venda fechada (boas-vindas e pós-venda) e retomar perdidos. Nenhuma envia e-mail a contato. Entram no WP3. O CRM é um alvo em movimento (entrou também e-mail reorganizado e convite por e-mail em duas semanas), então **proponho uma data de corte**: o módulo do Spinos reproduz o que o CRM tiver nessa data, e o resto vem depois.
+
+**Escopo revisado (uma pessoa)**
+
+| Pacote | Mudança | Dias úteis |
+|---|---|---|
+| WP3 (CRM) | passa a incluir as 7 automações (tabelas de receitas e execuções, rotina a cada 5 minutos) | 13 a 16 (era 10 a 12) |
+| WP10 (novo) | **Relatórios enxutos:** origem até contrato, relatório mensal por e-mail e PDF, investimento digitado ou importado por CSV para custo por lead e CAC. **Sem conectores de Google Ads e Meta** na v1; entram depois, com aprovação do Google | 9 a 11 |
+| WP11 (novo) | **E-mail enxuto:** listas, modelos do pacote, envio pelo SES com descadastro, supressões e base legal, só para contatos com base legal registrada. **Sem e-mail frio em massa** (D7) | 15 a 20 |
+| **Camada 1 revisada** | | **63 a 84** |
+| **v1 com os 4 módulos enxutos** | WP0 a WP9 + WP10 + WP11 | **87 a 115 (18 a 23 semanas)** |
+
+**Esperas externas, que não dependem de código:** aprovação do Google Ads para uso por clientes (semanas, pedir na semana 4) e saída do modo de teste do Amazon SES (a conta do CRM não está confirmada fora do modo de teste). Por isso o e-mail e os conectores de mídia são os dois itens com data menos controlável.
+
+**Cronograma de referência atualizado**
+
+| Semana | Entrega |
+|---|---|
+| 1 a 5 | MVP para os fundadores (seção 5.3) |
+| 6 a 12 | Camada 1 completa: WP3 com automações, landing completa, painel de resultados |
+| 13 a 16 | WP10 (relatórios enxutos), pedido do Google Ads |
+| 17 a 23 | WP11 (e-mail enxuto), WP8 e WP9 (LGPD, endurecimento) |
 
 ---
 
