@@ -1,6 +1,6 @@
 # Plano de unificação da plataforma Spinos
 
-Data: 2026-11-15. Status: **em aprovação. Decisões D1, D5 e D8 já tomadas. Única implementação feita: remoção do módulo Licitações.**
+Data: 2026-11-15. Status: **em aprovação. Decisões D1, D5 e D8 já tomadas (D5 mudou em 15/11: Receita adiada). Única implementação feita: remoção do módulo Licitações.**
 
 ## Atualização de 2026-11-15 (respostas às decisões e pesquisas)
 
@@ -9,7 +9,7 @@ Data: 2026-11-15. Status: **em aprovação. Decisões D1, D5 e D8 já tomadas. �
 | # | Decisão | Efeito no plano |
 |---|---|---|
 | D1 | **Remover o módulo Licitações** | Código e migração de remoção prontos e commitados (`e2fd9d4`). Falta publicar e aplicar a migração. As 10 tabelas, o bucket e o log estavam vazios. Seção 8 fica sem pendência |
-| D5 | **Investigar a base da Receita** | Aprovada. Primeiro passo da semana 1 |
+| D5 | ~~Investigar a base da Receita~~ | **Revisada em 2026-11-15: adiada.** O motor de busca por enquanto é a IA do Spinos. A base da Receita fica como um "plus" posterior. Tira o pacote WP4a e reduz o WP4b. Toda a pesquisa feita está guardada na seção 3.4 |
 | D8 | **Sem ambiente de testes** | Aceito. Hoje são 4 a 13 usuários. O risco R4 continua, com mitigação: flag por organização (WP0), migrações só aditivas, backup diário do Supabase Pro. WP0 cai para 2 a 3 dias |
 
 **Pesquisas feitas**
@@ -25,7 +25,7 @@ Data: 2026-11-15. Status: **em aprovação. Decisões D1, D5 e D8 já tomadas. �
    
    **Fonte oficial encontrada e listada (sem baixar nada):** pasta pública da Receita em `arquivos.receitafederal.gov.br` (compartilhamento `gn672Ad4CF8N6TK`, caminho `Dados/Cadastros/CNPJ/AAAA-MM/`), sem login. Há uma pasta por mês de **2023-05 até 2026-10** (publicada em 13/10/2026; a de novembro ainda não saiu). Cada mês traz: `Empresas0-9.zip` (~1,4 GB no total), `Estabelecimentos0-9.zip` (~5,5 GB; a parte 0 tem 2,3 GB e as outras ~340 MB), `Simples.zip` (311 MB), `Socios0-9.zip` (~0,65 GB) e tabelas pequenas (CNAEs, municípios, naturezas, motivos). O catálogo dados.gov.br não serve de fonte (parado). Cópias de terceiros avaliadas e **descartadas**: [Brasil.IO](https://brasil.io/dataset/socios-brasil/) parou em 2020; o Minha Receita é uma API de consulta por CNPJ e o repositório foi arquivado em 04/01/2026 (mudou para o Codeberg).
    **Pontos de atenção:** (1) o projeto [cnpj-sqlite](https://github.com/rictom/cnpj-sqlite) relata que em agosto de 2026 o layout de Sócios mudou (`cnpj_cpf_socio` traz só a raiz de 8 dígitos quando o sócio é pessoa jurídica); (2) a base tem mais de 60 milhões de registros e exige ~25 GB só para os arquivos: **não dá para carregar inteira no banco nem rodar no Vercel; a ingestão deve ler os arquivos em fluxo e gravar só o recorte** (UF, CNAE, ativa, abertura recente); (3) um tópico do catálogo fala em bloqueio de IPs fora do Brasil, **não confirmado**, e a listagem funcionou a partir do Mac do Cyro; precisa de teste a partir do local onde a coleta mensal vai rodar; (4) o layout de 2021 pode estar desatualizado, e o CNPJ alfanumérico nos arquivos ainda não foi visto.
-   **Próximo passo do WP4a:** baixar uma amostra do mês 2026-10 (`Simples.zip`, `Estabelecimentos1.zip`, `Empresas1.zip` e as tabelas pequenas, ~0,75 GB) para medir tempo de carga, confirmar colunas e o formato do CNPJ e provar os três sinais. Depende de autorização para o download.
+   **Retomada futura (adiada):** baixar uma amostra do mês 2026-10 (`Simples.zip`, `Estabelecimentos1.zip`, `Empresas1.zip` e as tabelas pequenas, ~0,75 GB) para medir tempo de carga, confirmar colunas e o formato do CNPJ e provar os três sinais. Depende de autorização para o download.
 
 **Google Ads: o que encaixa (substitui a recomendação da seção 4.5)**
 
@@ -48,9 +48,9 @@ Como ler as estimativas: são "dias úteis de trabalho assistido por Claude, uma
 
 **2. O que mais pesa é o modelo de dados.** O Spinos de hoje não tem Contato, não tem Atividade, não tem Origem, não tem Campanha. O funil é um enum fixo de 5 etapas (inclusive "Visita agendada", que é conceito de venda de campo) e os tipos de sinal são outro enum fixo. O CRM tem tenant, funil, atividades, contratos e origem do lead, mas não tem a entidade Empresa. O Pulse não tem tenant nem lead individual. Resolver isso é o trabalho central da camada 1.
 
-**3. Os 60 dias da camada 1 completa não são realistas para uma pessoa.** Somei os pacotes de trabalho: **67 a 89 dias úteis (cerca de 13 a 18 semanas)**. A camada 1 completa cabe em 90 a 120 dias corridos.
+**3. Os 60 dias da camada 1 completa não são realistas para uma pessoa.** Somei os pacotes de trabalho: **60 a 80 dias úteis (cerca de 12 a 16 semanas)**. A camada 1 completa cabe em 90 a 120 dias corridos.
 
-**4. A meta de 30 dias é possível só com uma versão mínima e escopo congelado.** Cortei um MVP de **cerca de 30 dias úteis** (seção 5.3) que dá para os 10 fundadores usarem e pagarem. A chance de escorregar de 1 a 2 semanas é real. O que o MVP entrega: prospecção por pacote de nicho de contabilidade, funil configurável, contatos por conta, uma landing page caindo no Spinos, origem do lead e um painel mínimo de resultados.
+**4. A meta de 30 dias é possível só com uma versão mínima e escopo congelado.** Cortei um MVP de **cerca de 32 dias úteis** (seção 5.3) que dá para os 10 fundadores usarem e pagarem. A chance de escorregar de 1 a 2 semanas é real. O que o MVP entrega: prospecção por pacote de nicho de contabilidade, funil configurável, contatos por conta, uma landing page caindo no Spinos, origem do lead e um painel mínimo de resultados.
 
 **5. Recomendei congelar o módulo Licitações; a decisão foi removê-lo.** Ele não ajudava a chegar nos próximos escritórios contábeis pagantes (seção 8).
 
@@ -136,7 +136,7 @@ Fonte: relatório de leitura do monorepo `everest-sites` (441 commits, 19 tenant
 | L3 | **Funil e etapas como dado** (por pacote de nicho e por organização) | Spinos: enum fixo. CRM: dado, mas um funil por organização | Alta |
 | L4 | **Sinais como dado** (catálogo por nicho) | Spinos: enum `SignalCategory` fixo | Alta |
 | L5 | **Pacote de nicho** (configuração, instalação, versão) | Não existe em nenhum | Alta |
-| L6 | **Fonte de dados para os sinais de contabilidade** (empresa recém-aberta, mudança de porte, saída do Simples, reforma tributária) | Spinos tem RSS, PNCP, BCB, BrasilAPI. **Não tem a base de CNPJ da Receita** | Alta, maior incerteza |
+| L6 | **Sinais de contabilidade** (empresa recém-aberta, mudança de porte, saída do Simples, reforma tributária) | Spinos tem busca por IA, RSS, PNCP, BCB, BrasilAPI. **Não tem a base de CNPJ da Receita.** *Decisão de 15/11: o motor continua sendo a IA do Spinos; a Receita fica como um plus depois* | Média (era Alta) |
 | L7 | **Origem e Campanha** como entidades, com toques (primeiro e demais) | CRM tem campos de origem no lead; Pulse só agregado | Média |
 | L8 | **Landing por conta ou segmento** a partir de modelos do pacote | Sites tem peças, falta o gerador e o modelo | Média |
 | L9 | **Lead de formulário caindo na conta certa** (criar ou mesclar conta e contato) | CRM recebe e marca duplicata, sem mesclar | Média |
@@ -240,7 +240,9 @@ TENANT (organizationId + RLS em todas)
 
 **Itens do código atual que hoje violam isso e precisam sair:** o enum de funil, o enum de categorias de sinal, o prompt da busca por IA (`buildSearchPrompt`), os 10 playbooks fixos, o roteiro determinístico de abordagem e rótulos em `src/lib`.
 
-### 3.4 Dados para os sinais de contabilidade (L6)
+### 3.4 Dados para os sinais de contabilidade (L6) — ADIADO (decisão de 2026-11-15)
+
+> O motor de busca continua sendo a IA do Spinos. A base da Receita fica como um "plus" para depois do MVP. O texto abaixo e a seção de atualização guardam o que foi pesquisado, para retomar sem refazer.
 
 Os sinais pedidos no briefing (empresa recém-aberta, mudança de porte, saída do Simples) só saem de forma confiável da **base aberta de CNPJ da Receita Federal**, que o Spinos hoje não usa. O que consegui confirmar na pesquisa:
 
@@ -331,16 +333,16 @@ Há uma decisão que depende de você (D3). Minha recomendação:
 | WP1 | **Modelo unificado:** Conta, Contato, Oportunidade, Atividade, Origem, Campanha, Funil/Etapa + RLS + testes + cópia dos dados atuais | 8 a 10 | WP0 |
 | WP2 | **Pacote de nicho:** esquema, instalação, versionamento, pacote de contabilidade v1; troca dos enums fixos por dados; teste de "nenhuma palavra de nicho fora de `packs/`" | 8 a 10 | WP1 |
 | WP3 | **CRM no Spinos:** Kanban com etapas dinâmicas, ficha da conta com contatos, atividades e tarefas, ganho e perda, contrato mínimo, importação de leads por CSV | 10 a 12 | WP1, WP2 |
-| WP4a | **Investigação da base de CNPJ da Receita** (seção 3.4) | 3 | — |
-| WP4b | **Prospecção por pacote:** lista de contas-alvo, pontuação, sinais por dado, ingestão da Receita (conforme resultado do WP4a), busca por IA parametrizada pelo pacote | 10 a 15 | WP2, WP4a |
+| WP4 | **Prospecção por pacote (motor = IA do Spinos):** busca por IA parametrizada pelo pacote (filtros, sinais e prompts saem do pacote), lista de contas-alvo, pontuação por perfil e sinais, sinais gratuitos já existentes (RSS, PNCP, BCB, BrasilAPI) | 6 a 9 | WP2 |
+| WP4+ | *(adiado)* Base da Receita como fonte adicional de sinais: recém-aberta, saída do Simples, mudança de porte | *(10 a 15, fora da conta)* | depois do MVP |
 | WP5 | **Landing pages:** gerador a partir de modelo do pacote, 3 modelos (abertura de empresa, IR, troca de contador), endpoint de entrada, ponte com o Sites, página por conta ou segmento | 8 a 12 | WP2 |
 | WP6 | **Origem ponta a ponta + painel mínimo de Resultados:** toque de origem em toda entrada, relatório por origem até contrato | 4 a 6 | WP1, WP3, WP5 |
 | WP7 | **Autoatendimento em 7 dias:** assistente de configuração (empresa, pacote, ICP, funil, importação, domínio), planos novos, Stripe em modo real, preço de fundador travado | 6 a 8 | WP2 |
 | WP8 | **LGPD:** base legal por registro, descadastro, retenção, documento de teste de legítimo interesse, revisão dos termos | 3 a 4 (+ advogado) | WP1 |
 | WP9 | **Endurecimento:** testes de ponta a ponta, migração das organizações existentes, correções | 4 a 5 | tudo |
-| | **Total** | **67 a 89** (64 a 86 sem a investigação WP4a) | |
+| | **Total** | **60 a 80** (sem o WP4+) | |
 
-Conclusão: com uma pessoa, a camada 1 completa leva de **13 a 18 semanas**. Para caber em 60 dias corridos seria preciso duas ou mais pessoas construindo em paralelo, o que também exige separar áreas de arquivo para não haver conflito.
+Conclusão: com uma pessoa, a camada 1 completa leva de **12 a 16 semanas**. Para caber em 60 dias corridos seria preciso duas ou mais pessoas construindo em paralelo, o que também exige separar áreas de arquivo para não haver conflito.
 
 ### 5.2 O que já existe e reduz o trabalho
 
@@ -348,32 +350,32 @@ Núcleo de tenant e RLS, Stripe, créditos e trial, convites, auditoria, busca p
 
 ### 5.3 Versão mínima em 30 dias (MVP para os 10 fundadores)
 
-Escopo congelado, nesta ordem. Estimativa: **cerca de 30 dias úteis**.
+Escopo congelado, nesta ordem. Estimativa: **cerca de 32 dias úteis**.
 
 | # | Entrega do MVP | Dias | Corte feito |
 |---|---|---|---|
 | 1 | Ambiente de testes + teste de RLS (WP0, versão mínima) | 3 | — |
 | 2 | Conta, Contato, Oportunidade, Origem, Funil/Etapa (WP1, só o que o MVP usa) | 6 | Sem Campanha e sem Contrato ainda; sem OpportunityContact |
 | 3 | Pacote de contabilidade v1 com funil, sinais e mensagens, instalado na criação da organização (WP2, mínimo) | 5 | Um só pacote; edição de pacote só por nós |
-| 4 | Prospecção: lista de contas-alvo com nota e justificativa + sinal "empresa recém-aberta" pela base da Receita (WP4a + WP4b mínimo) | 7 | Sem mudança de porte e sem saída do Simples; condicionado ao resultado da investigação |
+| 4 | Prospecção pelo motor atual (IA do Spinos) parametrizado pelo pacote: lista de contas-alvo com nota e justificativa (WP4 mínimo) | 4 | Sem a base da Receita; sinais só os que o Spinos já coleta |
 | 5 | CRM mínimo: Kanban dinâmico, ficha da conta com vários contatos, tarefas, ganho e perda | 5 | Sem contratos, sem metas, sem importação de CSV |
 | 6 | Uma landing page (abertura de empresa) criada pelo Spinos, formulário caindo na conta (WP5, mínimo) | 4 | Um modelo; ponte transitória com o Sites |
 | 7 | Origem do lead em toda entrada + painel mínimo de resultados (WP6 mínimo) | 2 | Só contagem por origem e etapa |
 | 8 | Onboarding guiado + planos da tese + Stripe real + preço de fundador (WP7, mínimo) | 3 | Onboarding assistido pela equipe nas primeiras semanas |
-| | **Total** | **≈ 35** | |
+| | **Total** | **≈ 32** | |
 
-Soma 35 contra 30. Para chegar nos 30: o item 4 pode entrar como segunda onda (os fundadores recebem a lista inicial gerada pela busca por IA que já existe), e o item 8 fica em versão mínima. **Mesmo assim, a margem é zero.** O cenário honesto é de 5 a 7 semanas corridas para o MVP, e é por isso que a venda dos fundadores não deve esperar o produto pronto: o diagnóstico gratuito da tese e o preço de fundador servem para fechar já, com entrega do MVP em fases dentro dos primeiros 30 dias de contrato.
+Soma 32 contra 30. Para chegar nos 30, o item 8 fica em versão mínima (onboarding assistido pela equipe nas primeiras semanas). **A margem continua curta.** O cenário honesto é de 5 a 6 semanas corridas para o MVP, e é por isso que a venda dos fundadores não deve esperar o produto pronto: o diagnóstico gratuito da tese e o preço de fundador servem para fechar já, com entrega do MVP em fases dentro dos primeiros 30 dias de contrato.
 
 ### 5.4 Cronograma de referência (uma pessoa, MVP em primeiro lugar)
 
 | Semana | Foco |
 |---|---|
-| 1 | WP0, WP4a (investigação da Receita), início do WP1 |
+| 1 | WP0 (2 a 3 dias), início do WP1 |
 | 2 a 3 | WP1 (modelo e cópia dos dados), WP2 mínimo (pacote) |
 | 3 a 4 | CRM mínimo, prospecção com sinal de empresa recém-aberta |
 | 5 | Landing page, origem e painel mínimo, onboarding, Stripe real |
 | 6 | Correções, 3 a 5 fundadores em uso, medir |
-| 7 a 17 | Completar a camada 1 (WP3 completo, WP4b completo, WP5 completo, WP6, WP7, WP8, WP9), conforme os fundadores pedirem |
+| 7 a 16 | Completar a camada 1 (WP3 completo, WP4 completo, WP5 completo, WP6, WP7, WP8, WP9), conforme os fundadores pedirem |
 
 ### 5.5 Critérios de aceite da camada 1
 
@@ -391,8 +393,8 @@ Soma 35 contra 30. Para chegar nos 30: o item 4 pode entrar como segunda onda (o
 
 | # | Risco | Impacto | Resposta |
 |---|---|---|---|
-| R1 | **Base da Receita não entrega os sinais** (layout, frequência, tamanho, histórico para detectar mudança) | Alto: o diferencial "encontra leads novos" do nicho depende disso | WP4a de 3 dias antes de comprometer prazo; MVP só com "recém-aberta"; fallback para a busca por IA que já existe |
-| R2 | **Prazo:** 67 a 89 dias úteis para uma pessoa contra a meta de 60 dias corridos | Alto | MVP cortado (5.3); portões de decisão; segunda pessoa só com separação de áreas de arquivo |
+| R1 | **A busca por IA sozinha pode não listar com completude as empresas certas** (não garante "todas as abertas nos últimos 90 dias"; pode esquecer ou errar) | Médio: o diferencial "encontra leads novos" fica menos preciso | Aceito por decisão de 15/11. Mitigar com validação por CNPJ na BrasilAPI, campos "não confirmado" e o botão de feedback. A Receita volta como plus quando houver clientes pagantes pedindo mais precisão |
+| R2 | **Prazo:** 60 a 80 dias úteis para uma pessoa contra a meta de 60 dias corridos | Alto | MVP cortado (5.3); portões de decisão; segunda pessoa só com separação de áreas de arquivo |
 | R3 | **Dois padrões de isolamento** (RLS por login no CRM, contexto de organização no Spinos) | Médio: copiar o código do CRM quebra o isolamento | Portar o modelo, não o código; um padrão só; teste de RLS em toda tabela |
 | R4 | **Sem ambiente de testes** no Spinos (testa-se no domínio ao vivo) com clientes pagantes em cima | Alto: a auditoria do CRM já registrou o mesmo problema (desenvolvimento no banco de produção) | WP0: segundo projeto Supabase ou ramo de banco e preview na Vercel (custo a confirmar, D8) |
 | R5 | **Migração do modelo antigo** pode perder dados ou mudar o comportamento percebido | Médio | Expandir, copiar, trocar por flag, limpar só depois; conferência manual (9 organizações); reversão por flag |
@@ -431,7 +433,7 @@ Soma 35 contra 30. Para chegar nos 30: o item 4 pode entrar como segunda onda (o
 
 ## 9. Próximo passo
 
-**Você aprova, ajusta ou recusa este plano.** Se aprovar, a primeira semana é WP0 + WP4a (ambiente de testes, teste de RLS e a investigação da base da Receita), com resultado em 5 dias úteis para decidir o escopo final do MVP. Eu não começo nada antes da sua resposta, principalmente às decisões D1, D5 e D8.
+**Você aprova, ajusta ou recusa este plano.** Se aprovar, a primeira semana é o WP0 (teste de RLS em toda tabela e flag por organização) e o início do WP1 (modelo unificado).
 
 ---
 
@@ -441,7 +443,7 @@ Soma 35 contra 30. Para chegar nos 30: o item 4 pode entrar como segunda onda (o
 - Estado em produção de cada um dos 21 sites do Everest Sites (domínios, publicados ou em implantação).
 - Se a conta SES do CRM saiu do sandbox e se há campanhas reais.
 - Se a vulnerabilidade F07 do CRM (vendedor altera negócio de colega) foi corrigida (existe a migração `member_guards`).
-- Colunas exatas e frequência de atualização da base de CNPJ da Receita (WP4a resolve).
+- Base de CNPJ da Receita (adiada): amostra não baixada; colunas e CNPJ alfanumérico nos arquivos reais não verificados.
 - Se o CRM consome o campo `attribution` do webhook do Sites.
 - Normas de publicidade do conselho de contabilidade aplicáveis a escritórios.
 - Aprovação do Google Ads para uso multi-conta por clientes finais.
