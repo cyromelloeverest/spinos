@@ -145,3 +145,31 @@ describe("gerar conteúdo", () => {
     expect(await drafts("T")).not.toEqual(await drafts("P"));
   });
 });
+
+describe("pedidos simultâneos não furam teto nem deixam o saldo negativo", () => {
+  it("5 pedidos ao mesmo tempo num teste de 3: exatamente 3 chamam a IA", async () => {
+    await prisma.organization.create({ data: { id: "C1", name: "Corrida", plan: "STARTER", trialEndsAt: new Date(Date.now() + 86400000) } });
+    const spy = vi.fn(okText);
+    const results = await Promise.all(Array.from({ length: 5 }, (_, i) => generateContent("C1", "u1", { kind: "ARTICLE", topic: `Assunto simultâneo ${i}` }, spy)));
+    expect(results.filter((r) => r.status === "ok")).toHaveLength(3);
+    expect(results.filter((r) => r.status === "limit")).toHaveLength(2);
+    expect(spy).toHaveBeenCalledTimes(3);
+    expect((await drafts("C1")).filter((d) => d.body !== "")).toHaveLength(3);
+  }, 30_000);
+
+  it("com 1 crédito e 4 pedidos acima do teto: só um usa o crédito e o saldo nunca fica negativo", async () => {
+    await prisma.organization.create({ data: { id: "C2", name: "Crédito", plan: "STARTER", trialEndsAt: new Date(Date.now() + 86400000), creditBalance: 1 } });
+    for (let i = 0; i < 3; i++) await generateContent("C2", "u1", { kind: "ARTICLE", topic: `Assunto do teste ${i}` }, okText);
+    const results = await Promise.all(Array.from({ length: 4 }, (_, i) => generateContent("C2", "u1", { kind: "ARTICLE", topic: `Assunto acima do teto ${i}` }, okText)));
+    expect(results.filter((r) => r.status === "ok")).toHaveLength(1);
+    expect((await prisma.organization.findUniqueOrThrow({ where: { id: "C2" } })).creditBalance).toBe(0);
+  }, 30_000);
+
+  it("a reserva não aparece como rascunho e some quando a IA falha", async () => {
+    await prisma.organization.create({ data: { id: "C3", name: "Falha", plan: "STARTER", trialEndsAt: new Date(Date.now() + 86400000) } });
+    await generateContent("C3", "u1", { kind: "ARTICLE", topic: "Vai falhar aqui" }, boom);
+    expect(await prisma.contentDraft.count({ where: { organizationId: "C3" } })).toBe(0);
+    // O uso foi liberado: ainda cabem os 3 pedidos do teste.
+    for (let i = 0; i < 3; i++) expect((await generateContent("C3", "u1", { kind: "ARTICLE", topic: `Assunto ${i} depois` }, okText)).status).toBe("ok");
+  }, 30_000);
+});

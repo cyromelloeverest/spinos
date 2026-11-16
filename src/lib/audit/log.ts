@@ -27,6 +27,7 @@ export type SecurityEventType =
   | "privacy.data_exported"
   | "privacy.contact_exported"
   | "privacy.contact_anonymized"
+  | "privacy.legal_basis_changed"
   | "privacy.deletion_requested"
   | "privacy.deletion_completed"
   | "privacy.third_party_data_redacted"

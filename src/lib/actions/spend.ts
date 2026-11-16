@@ -34,6 +34,8 @@ export async function addSpendEntry(formData: FormData) {
 export async function importSpendEntries(formData: FormData) {
   const organizationId = await requireManager();
   const file = formData.get("file");
+  // O tamanho é conferido antes de ler o arquivo para a memória.
+  if (file instanceof File && file.size > 200_000) go("erro=" + encodeURIComponent("Arquivo grande demais (máximo 200 KB)."));
   const text = file instanceof File && file.size > 0 ? await file.text() : String(formData.get("csv") ?? "");
   if (text.length > 200_000) go("erro=" + encodeURIComponent("Arquivo grande demais (máximo 200 KB)."));
   const result = await withOrgContext(organizationId, (tx) => importSpendCsv(tx, organizationId, text));

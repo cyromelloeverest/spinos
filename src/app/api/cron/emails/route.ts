@@ -1,5 +1,4 @@
 import { prismaAdmin } from "@/lib/prisma-admin";
-import { withOrgContext } from "@/lib/db/with-org-context";
 import { processOrganizationQueue } from "@/lib/email/campaign";
 import { resendProvider } from "@/lib/email/provider";
 import { logError } from "@/lib/log-error";
@@ -21,7 +20,7 @@ export async function GET(request: Request) {
   let errors = 0;
   for (const { organizationId } of orgs) {
     try {
-      const r = await withOrgContext(organizationId, (tx) => processOrganizationQueue(tx, organizationId, resendProvider));
+      const r = await processOrganizationQueue(organizationId, resendProvider);
       sent += r.sent;
       failed += r.failed;
     } catch (err) {

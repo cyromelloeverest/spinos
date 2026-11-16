@@ -1126,6 +1126,8 @@ enum EmailCampaignStatus {
 
 enum EmailMessageStatus {
   QUEUED
+  // Reservado por uma rodada de envio (a chamada ao provedor acontece fora de transação).
+  SENDING
   SENT
   FAILED
   BOUNCED
@@ -1178,6 +1180,7 @@ model EmailMessage {
   status         EmailMessageStatus @default(QUEUED)
   providerId     String?
   error          String?
+  claimedAt      DateTime?
   sentAt         DateTime?
   createdAt      DateTime           @default(now())
 

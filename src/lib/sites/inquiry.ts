@@ -2,6 +2,7 @@ import "server-only";
 import { prismaAdmin } from "@/lib/prisma-admin";
 import { withOrgContext } from "@/lib/db/with-org-context";
 import { createLead, DuplicateLeadError } from "@/lib/crm/leads";
+import { leadOverLimit } from "@/lib/sites/events";
 import { scheduleActivity } from "@/lib/crm/activities";
 import { escapeHtml } from "@/lib/html-escape";
 import { SITE_URL } from "@/lib/site-url";
@@ -40,10 +41,15 @@ function originKeyFor(input: PublicLeadInput): "site" | "google_ads" | "meta_ads
 // origem e uma tarefa para o responsável. Spam é guardado só como evento, nunca vira lead.
 export async function saveLead(input: PublicLeadInput): Promise<"saved" | "duplicate" | "spam"> {
   // Todo envio conta no limite (inclusive spam), pelo hash do IP.
-  await prismaAdmin.siteEvent
+  const event = await prismaAdmin.siteEvent
     .create({ data: { organizationId: input.organizationId, siteId: input.siteId, type: "FORM", path: input.pagePath, visitorHash: input.ipHash ?? "sem-ip", label: input.source === "spam" ? "spam" : "lead", utmSource: input.utmSource, utmMedium: input.utmMedium, utmCampaign: input.utmCampaign } })
-    .catch((e) => logError("sites: falha ao registrar envio do formulário", e, { siteId: input.siteId }));
+    .catch((e) => { logError("sites: falha ao registrar envio do formulário", e, { siteId: input.siteId }); return null; });
   if (input.source === "spam") return "spam";
+  // Grava primeiro e confere depois: uma rajada simultânea não passa do limite (ver leadOverLimit).
+  if (event && (await leadOverLimit(input.siteId, input.ipHash).catch(() => false))) {
+    await prismaAdmin.siteEvent.update({ where: { id: event.id }, data: { label: "limited" } }).catch(() => {});
+    return "spam";
+  }
 
   const ctx = { organizationId: input.organizationId, userId: null };
   const note = `Formulário do site ${input.host} em ${new Date().toISOString().slice(0, 10)}${input.consentText ? ` — ${input.consentText}` : ""}`.slice(0, 300);
@@ -65,7 +71,7 @@ export async function saveLead(input: PublicLeadInput): Promise<"saved" | "dupli
       const lead = await createLead(tx, ctx, { name: input.name, company: input.company, phone: input.phone, email: input.email, message: input.message, originKey: touch.channel });
       // O primeiro toque criado pelo createLead ganha os detalhes (UTM, anúncio, página).
       await tx.origin.updateMany({ where: { organizationId: input.organizationId, accountId: lead.accountId, isFirstTouch: true }, data: { landingPageId: touch.landingPageId, utmSource: touch.utmSource, utmMedium: touch.utmMedium, utmCampaign: touch.utmCampaign, gclid: touch.gclid, fbclid: touch.fbclid, referrerHost: touch.referrerHost } });
-      await tx.contact.updateMany({ where: { organizationId: input.organizationId, accountId: lead.accountId, isPrimary: true }, data: { legalBasis: "CONSENT", legalBasisNote: note } });
+      await tx.contact.updateMany({ where: { organizationId: input.organizationId, accountId: lead.accountId, isPrimary: true }, data: { legalBasis: input.consentText ? "CONSENT" : "LEGITIMATE_INTEREST", legalBasisNote: note } });
       // Primeira tarefa: atender agora, com o que a pessoa escreveu.
       await scheduleActivity(tx, ctx, { opportunityId: lead.opportunityId, type: "CALL", title: `Atender ${input.name} (veio do site)`, notes: details || null, dueAt: new Date() });
       return { kind: "saved" as const, opportunityId: lead.opportunityId };

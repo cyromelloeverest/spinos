@@ -30,7 +30,7 @@ export default async function ConteudoPage({ searchParams }: { searchParams: Pro
       const { max, isTrialing } = effectiveContentLimit(org);
       const since = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
       const used = (await tx.contentDraft.groupBy({ by: ["generationId"], where: isTrialing ? { organizationId } : { organizationId, createdAt: { gte: since } } })).length;
-      const drafts = await tx.contentDraft.findMany({ where: { organizationId, status: params.ver === "descartados" ? "DISCARDED" : { not: "DISCARDED" } }, orderBy: { createdAt: "desc" }, take: 60 });
+      const drafts = await tx.contentDraft.findMany({ where: { organizationId, body: { not: "" }, status: params.ver === "descartados" ? "DISCARDED" : { not: "DISCARDED" } }, orderBy: { createdAt: "desc" }, take: 60 });
       return { org, packKey: installed?.packKey ?? null, max, isTrialing, used, drafts };
     });
   } catch (err) {

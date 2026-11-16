@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   let failed = 0;
   for (const { id } of orgs) {
     try {
-      const r = await withOrgContext(id, (tx) => runRetention(tx, id));
+      const r = await withOrgContext(id, (tx) => runRetention(tx, id), { timeout: 50_000 });
       total.siteEventsDeleted += r.siteEventsDeleted;
       total.emailRecipientsScrubbed += r.emailRecipientsScrubbed;
       total.draftsDeleted += r.draftsDeleted;

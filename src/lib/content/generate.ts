@@ -38,7 +38,11 @@ export async function generateContent(
   if (!parsed.success) return { status: "invalid", message: parsed.error.issues[0]?.message ?? "Pedido inválido." };
   const request: ContentRequest = parsed.data;
 
+  const generationId = randomUUID();
   const pre = await withOrgContext(organizationId, async (tx) => {
+    // Um pedido por vez por organização na hora de conferir o teto: sem isso, 20 cliques simultâneos
+    // passam todos pela conferência antes de qualquer rascunho existir, e cada um custa uma chamada à IA.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${organizationId}))`;
     const org = await tx.organization.findUnique({ where: { id: organizationId } });
     if (!org) return { status: "error" as const, message: "Organização não encontrada." };
     const { max, isTrialing } = effectiveContentLimit(org);
@@ -50,13 +54,14 @@ export async function generateContent(
     if (used >= max) {
       // Mesmo critério da busca: Enterprise pago não compra crédito avulso acima do teto (é conversa comercial).
       const creditAllowed = isTrialing || org.plan !== "ENTERPRISE";
-      if (creditAllowed && org.creditBalance > 0) {
-        await tx.organization.update({ where: { id: organizationId }, data: { creditBalance: { decrement: 1 } } });
-        usedCredit = true;
-      } else {
-        return { status: "limit" as const, limit: max, trialing: isTrialing };
-      }
+      // O desconto só vale se ainda havia saldo NO MOMENTO da escrita: o saldo nunca fica negativo.
+      const debited = creditAllowed ? await tx.organization.updateMany({ where: { id: organizationId, creditBalance: { gt: 0 } }, data: { creditBalance: { decrement: 1 } } }) : { count: 0 };
+      if (debited.count === 0) return { status: "limit" as const, limit: max, trialing: isTrialing };
+      usedCredit = true;
     }
+    // Reserva o uso JÁ, na mesma transação: o pedido seguinte enxerga este e conta. A linha vira o
+    // rascunho de verdade quando a IA responde, ou some se a IA falhar.
+    await tx.contentDraft.create({ data: { organizationId, generationId, kind: request.kind, status: "DISCARDED", topic: request.topic, title: "(gerando)", body: "", usedCredit, createdByUserId: userId } });
     const installed = await tx.organizationPack.findUnique({ where: { organizationId }, select: { packKey: true } });
     return { status: "go" as const, org, usedCredit, packKey: installed?.packKey ?? null };
   });
@@ -64,8 +69,12 @@ export async function generateContent(
   if (pre.status === "limit") return pre;
 
   const pack = packForKey(pre.packKey);
+  // Falhou: libera o uso reservado e devolve o crédito, se havia um.
   const refund = () =>
-    pre.usedCredit ? withOrgContext(organizationId, (tx) => tx.organization.update({ where: { id: organizationId }, data: { creditBalance: { increment: 1 } } })).catch((e) => logError("content: falha ao devolver crédito", e, { organizationId })) : Promise.resolve();
+    withOrgContext(organizationId, async (tx) => {
+      await tx.contentDraft.deleteMany({ where: { organizationId, generationId, body: "" } });
+      if (pre.usedCredit) await tx.organization.update({ where: { id: organizationId }, data: { creditBalance: { increment: 1 } } });
+    }).catch((e) => logError("content: falha ao liberar a reserva", e, { organizationId }));
 
   let result;
   try {
@@ -79,7 +88,6 @@ export async function generateContent(
     return { status: "error", message: "Não foi possível gerar agora. Tente de novo em instantes." };
   }
 
-  const generationId = randomUUID();
   const base = { organizationId, generationId, topic: request.topic, channel: request.channel ?? null, packKey: pack?.key ?? null, packVersion: pack?.version ?? null, usedCredit: pre.usedCredit, createdByUserId: userId };
   const rows: Prisma.ContentDraftCreateManyInput[] = [];
 
@@ -112,6 +120,10 @@ export async function generateContent(
     await refund();
     return { status: "error", message: "A IA não devolveu um texto válido. Tente reformular o assunto." };
   }
-  await withOrgContext(organizationId, (tx) => tx.contentDraft.createMany({ data: rows }));
+  await withOrgContext(organizationId, async (tx) => {
+    // Troca a reserva pelos rascunhos reais, na mesma transação.
+    await tx.contentDraft.deleteMany({ where: { organizationId, generationId, body: "" } });
+    await tx.contentDraft.createMany({ data: rows });
+  });
   return { status: "ok", generationId, count: rows.length };
 }

@@ -6,6 +6,8 @@ export type OutgoingEmail = {
   html: string;
   text: string;
   headers?: Record<string, string>;
+  /** Repetir o mesmo envio com a mesma chave não manda duas vezes (o provedor guarda a chave por 24 h). */
+  idempotencyKey?: string;
 };
 
 export type EmailProvider = {
@@ -24,7 +26,7 @@ export const resendProvider: EmailProvider = {
     if (!apiKey) throw new Error("RESEND_API_KEY ausente");
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", ...(email.idempotencyKey ? { "Idempotency-Key": email.idempotencyKey } : {}) },
       body: JSON.stringify({ from: email.from, to: email.to, reply_to: email.replyTo ?? undefined, subject: email.subject, html: email.html, text: email.text, headers: email.headers }),
     });
     if (!res.ok) throw new Error(`Resend ${res.status}`);

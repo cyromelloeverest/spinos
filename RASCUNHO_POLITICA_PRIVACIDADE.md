@@ -66,4 +66,4 @@ Escrito em 2026-11-16, depois de o Spinos ganhar site, páginas de captação, c
 - Exportação completa dos dados da conta e solicitação de exclusão da organização (com confirmação manual).
 - Retenção automática diária (prazos da seção 3).
 - Isolamento entre clientes por organização no banco (RLS).
-- Site novo nasce fora do Google; formulário registra a base legal (consentimento do envio).
+- Site novo nasce fora do Google. O formulário de contato registra a base **interesse legítimo** (responder a quem escreveu); só a inscrição com caixa de consentimento marcada registra **consentimento**, e só consentimento ou contrato permite campanha.

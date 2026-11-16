@@ -16,12 +16,18 @@ import { prisma } from "@/lib/prisma";
 //
 // set_config($1) é parametrizado de verdade (tagged template do Prisma),
 // não interpolação de string — nem um organizationId malicioso quebra isso.
+// `timeout` (ms) só para rotinas em lote (retenção, importações): o padrão do Prisma é 5 s, e uma
+// transação que estoura desfaz TUDO. Nunca use isto para segurar a transação durante chamadas de rede.
 export async function withOrgContext<T>(
   organizationId: string,
   fn: (tx: Prisma.TransactionClient) => Promise<T>,
+  options?: { timeout?: number },
 ): Promise<T> {
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT set_config('app.current_org_id', ${organizationId}, true)`;
-    return fn(tx);
-  });
+  return prisma.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_org_id', ${organizationId}, true)`;
+      return fn(tx);
+    },
+    options?.timeout ? { timeout: options.timeout, maxWait: 10_000 } : undefined,
+  );
 }

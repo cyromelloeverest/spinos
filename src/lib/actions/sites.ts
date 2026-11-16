@@ -35,11 +35,12 @@ async function packFor(organizationId: string): Promise<NichePack> {
   return getPack(DEFAULT_PACK_KEY)!;
 }
 
-const RESERVED = new Set(["www", "app", "api", "admin", "mail", "sites", "spinos", "suporte", "ajuda"]);
+const RESERVED = new Set(["www", "app", "api", "admin", "mail", "sites", "spinos", "suporte", "ajuda", "login", "entrar", "cadastro", "painel", "pagamento", "segura", "seguranca"]);
 
 // Endereço livre entre TODAS as organizações (por isso o papel administrativo).
 async function pickHostname(label: string): Promise<string> {
-  const base = RESERVED.has(label) ? `${label}-site` : label;
+  // Nada que se passe pela própria plataforma: o endereço é a primeira coisa que o visitante vê.
+  const base = RESERVED.has(label) || label.includes("spinos") ? `${label.replace(/spinos/g, "") || "negocio"}-site`.replace(/^-+/, "") : label;
   for (let n = 1; n < 100; n++) {
     const host = `${n === 1 ? base : `${base}-${n}`}.${platformDomain()}`;
     if (!(await prismaAdmin.siteDomain.findUnique({ where: { hostname: host }, select: { id: true } }))) return host;

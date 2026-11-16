@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
-import { AUDIENCES, resolveAudience } from "@/lib/email/campaign";
+import { AUDIENCES, deliverabilityStatus, resolveAudience } from "@/lib/email/campaign";
 import { previewCampaign } from "@/lib/email/campaign";
 import { getPlan } from "@/lib/plans";
 import { cancelCampaignAction, saveCampaignAction, sendTestAction, startCampaignAction } from "@/lib/actions/emails";
@@ -32,12 +32,13 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
       const monthStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
       const usedThisMonth = await tx.emailMessage.count({ where: { organizationId, createdAt: { gte: monthStart }, status: { not: "FAILED" } } });
       const suppressed = await tx.emailSuppression.count({ where: { organizationId } });
+      const health = await deliverabilityStatus(tx, organizationId);
       const audiences = await Promise.all(AUDIENCES.map(async (a) => ({ ...a, count: (await resolveAudience(tx, organizationId, a.key)).recipients.length })));
       const selected = p.id ? await tx.emailCampaign.findFirst({ where: { id: p.id, organizationId } }) : null;
       const preview = selected && selected.status === "DRAFT" ? await previewCampaign(tx, organizationId, selected.id) : null;
       const fromDraft = p.de ? await tx.contentDraft.findFirst({ where: { id: p.de, organizationId, kind: "EMAIL", status: "APPROVED" } }) : null;
       const approvedEmails = await tx.contentDraft.findMany({ where: { organizationId, kind: "EMAIL", status: "APPROVED" }, orderBy: { createdAt: "desc" }, take: 10, select: { id: true, title: true } });
-      return { org, campaigns, counts, usedThisMonth, suppressed, audiences, selected, preview, fromDraft, approvedEmails };
+      return { org, campaigns, counts, usedThisMonth, suppressed, health, audiences, selected, preview, fromDraft, approvedEmails };
     });
   } catch (err) {
     logError("emails: falha ao carregar", err, { organizationId });
@@ -59,12 +60,13 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
     <div className="pt-6 px-4 md:px-10 pb-16 max-w-[880px]">
       <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>E-mails</h1>
       <p className="m-0 mb-1 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
-        Campanhas para quem já é seu cliente ou autorizou o contato. O Spinos só envia para contatos com <strong>consentimento ou contrato</strong> registrado no CRM, e todo e-mail leva o link para sair da lista.
+        Campanhas para quem já é seu cliente ou autorizou o contato. O Spinos só envia para contatos com <strong>consentimento ou contrato</strong> registrado no CRM, e todo e-mail leva o link para sair da lista. Quem preencheu o formulário do site entra como <em>interesse legítimo</em> (sem e-mail de campanha) até você registrar o consentimento em <Link href="/contatos" style={{ color: "var(--primary)" }}>Contatos</Link>.
       </p>
       <p className="m-0 mb-5 text-[12.5px]" style={{ color: "var(--fg-faint)" }}>
         {trialing ? "No período de teste você pode enviar e-mails de teste para você mesmo; campanhas para contatos reais começam com a assinatura." : `Neste mês: ${data.usedThisMonth} de ${cap} e-mails.`} {data.suppressed > 0 ? `${data.suppressed} endereço(s) não recebem mais (descadastro, erro de entrega ou reclamação).` : ""}
       </p>
 
+      {data.health.paused && <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }} role="alert">O envio da sua conta está pausado por {data.health.reason}. Nenhum e-mail sai até a equipe do Spinos liberar: fale com o suporte.</div>}
       {p.erro && <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }} role="alert">{p.erro}</div>}
       {(p.salvo || p.teste || p.enviando || p.cancelado) && (
         <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }} role="status">

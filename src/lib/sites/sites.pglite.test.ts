@@ -142,7 +142,7 @@ describe("lead vindo do site entra no CRM da organização dona", () => {
     const site = await prisma.site.findFirstOrThrow({ where: { organizationId: "A" } });
     const result = await saveLead({
       organizationId: "A", siteId: site.id, host: "escritorio-exemplo.sites.spinos.com.br", name: "João Cliente", company: "Padaria do João", phone: "11999998888", email: "joao@padaria.com.br",
-      message: "Quero abrir uma empresa", pagePath: "/abertura-de-empresa", source: "site", utmSource: "google", utmMedium: "cpc", utmCampaign: "abertura", ipHash: "hash1", attribution: { gclid: "abc123" }, consentText: "Enviou o formulário",
+      message: "Quero abrir uma empresa", pagePath: "/abertura-de-empresa", source: "site", utmSource: "google", utmMedium: "cpc", utmCampaign: "abertura", ipHash: "hash1", attribution: { gclid: "abc123" },
     });
     expect(result).toBe("saved");
     const deals = await prisma.opportunity.findMany({ where: { organizationId: "A" }, include: { account: true } });
@@ -151,7 +151,8 @@ describe("lead vindo do site entra no CRM da organização dona", () => {
     const origin = await prisma.origin.findFirstOrThrow({ where: { organizationId: "A", accountId: deals[0].accountId } });
     expect(origin).toMatchObject({ isFirstTouch: true, channel: "google_ads", utmSource: "google", gclid: "abc123", landingPageId: site.id });
     const contact = await prisma.contact.findFirstOrThrow({ where: { organizationId: "A", accountId: deals[0].accountId } });
-    expect(contact.legalBasis).toBe("CONSENT");
+    // Formulário de contato comum: responder à pessoa é interesse legítimo; CONSENT só com a caixa de consentimento.
+    expect(contact.legalBasis).toBe("LEGITIMATE_INTEREST");
     expect(await prisma.activity.count({ where: { organizationId: "A", opportunityId: deals[0].id } })).toBeGreaterThan(0);
     // Nada vazou para outra organização.
     expect(await prisma.opportunity.count({ where: { organizationId: "B" } })).toBe(0);
@@ -174,5 +175,33 @@ describe("lead vindo do site entra no CRM da organização dona", () => {
     const result = await saveLead({ organizationId: "A", siteId: site.id, host: "x", name: "Robô", phone: "11911112222", pagePath: "/", source: "spam", utmSource: null, utmMedium: null, utmCampaign: null, ipHash: "hash3", attribution: null });
     expect(result).toBe("spam");
     expect(await prisma.opportunity.count({ where: { organizationId: "A" } })).toBe(before);
+  });
+});
+
+describe("leads do site: base legal e limites", () => {
+  it("só inscrição com caixa de consentimento vira CONSENT (e passa a poder receber campanha)", async () => {
+    const site = await prisma.site.findFirstOrThrow({ where: { organizationId: "A" } });
+    await saveLead({ organizationId: "A", siteId: site.id, host: "x", name: "Inscrita", email: "inscrita@exemplo.com.br", pagePath: "/", source: "newsletter", utmSource: null, utmMedium: null, utmCampaign: null, ipHash: "hash-news", attribution: null, consentText: "Quero receber novidades por e-mail" });
+    const contact = await prisma.contact.findFirstOrThrow({ where: { organizationId: "A", email: "inscrita@exemplo.com.br" } });
+    expect(contact.legalBasis).toBe("CONSENT");
+    expect(contact.legalBasisNote).toContain("Quero receber novidades");
+  });
+
+  it("rajada simultânea de um visitante nunca passa de 5 leads; o excesso é marcado como limitado", async () => {
+    const site = await prisma.site.findFirstOrThrow({ where: { organizationId: "A" } });
+    const results = await Promise.all(Array.from({ length: 12 }, (_, i) => saveLead({ organizationId: "A", siteId: site.id, host: "x", name: `Rajada ${i}`, phone: `1190000${String(1000 + i)}`, pagePath: "/", source: "site", utmSource: null, utmMedium: null, utmCampaign: null, ipHash: "hash-rajada", attribution: null })));
+    // Gravar primeiro e contar depois nunca deixa passar do limite; numa rajada exatamente simultânea
+    // pode recusar até os primeiros (falha para o lado seguro), o que é aceitável para quem manda 12 de uma vez.
+    const saved = results.filter((r) => r === "saved").length;
+    expect(saved).toBeLessThanOrEqual(5);
+    expect(await prisma.contact.count({ where: { organizationId: "A", name: { startsWith: "Rajada" } } })).toBe(saved);
+    expect(await prisma.siteEvent.count({ where: { siteId: site.id, visitorHash: "hash-rajada", label: "limited" } })).toBeGreaterThanOrEqual(7);
+  }, 30_000);
+
+  it("spam não conta no teto do site: lixo de vários IPs não derruba os formulários legítimos", async () => {
+    const { leadOverLimit } = await import("./events");
+    const site = await prisma.site.findFirstOrThrow({ where: { organizationId: "A" } });
+    await prisma.siteEvent.createMany({ data: Array.from({ length: 300 }, (_, i) => ({ organizationId: "A", siteId: site.id, type: "FORM" as const, visitorHash: `lixo-${i}`, label: "spam" })) });
+    expect(await leadOverLimit(site.id, "visitante-novo")).toBe(false);
   });
 });

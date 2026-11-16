@@ -1,5 +1,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { getPlan } from "@/lib/plans";
+import { withOrgContext } from "@/lib/db/with-org-context";
+import { logError } from "@/lib/log-error";
 import { runChecks, buildSignature } from "@/lib/content/checks";
 import { packForKey } from "@/lib/content/generate";
 import { AUDIENCES, isAudienceKey, resolveAudience } from "./audience";
@@ -68,12 +70,16 @@ export async function previewCampaign(tx: Tx, organizationId: string, campaignId
 export async function startCampaign(tx: Tx, ctx: { organizationId: string; userId: string | null }, campaignId: string, now: Date = new Date()) {
   if (process.env.EMAIL_SENDING_DISABLED === "1") throw new CampaignError("O envio de campanhas está pausado pela equipe do Spinos. Tente mais tarde.");
   const { organizationId } = ctx;
+  // Uma liberação por vez por organização: sem isso, duas campanhas liberadas juntas leem o mesmo uso do mês e furam o teto.
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${organizationId}))`;
   const campaign = await tx.emailCampaign.findFirst({ where: { id: campaignId, organizationId } });
   if (!campaign) throw new CampaignError("Campanha não encontrada.");
   if (campaign.status !== "DRAFT") throw new CampaignError("Esta campanha já foi enviada.");
   const input = clean({ name: campaign.name, subject: campaign.subject, preheader: campaign.preheader, body: campaign.body, audience: campaign.audience });
 
   const org = await tx.organization.findUniqueOrThrow({ where: { id: organizationId } });
+  const health = await deliverabilityStatus(tx, organizationId, now);
+  if (health.paused) throw new CampaignError(`O envio da sua conta está pausado por ${health.reason}. Fale com o suporte do Spinos para liberar.`);
   if (org.trialEndsAt !== null) throw new CampaignError("Campanhas para contatos reais ficam disponíveis depois da assinatura. No teste, use o envio de teste para você.");
   const cap = getPlan(org.plan).maxEmailsPerMonth;
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
@@ -99,51 +105,106 @@ export async function cancelCampaign(tx: Tx, organizationId: string, campaignId:
   await tx.emailCampaign.update({ where: { id: campaignId }, data: { status: "CANCELED", finishedAt: new Date() } });
 }
 
-/** Envia um lote da fila de uma organização. Idempotente: o que já saiu não volta para a fila. */
-export async function processOrganizationQueue(tx: Tx, organizationId: string, provider: EmailProvider) {
+/**
+ * Freio de reputação: o domínio de envio é compartilhado entre clientes, então uma organização com
+ * muitos endereços inexistentes ou muitas reclamações de spam pausa o envio de TODAS as suas campanhas
+ * até a equipe do Spinos olhar. Limites na linha do que Gmail e Yahoo toleram.
+ */
+export async function deliverabilityStatus(tx: Tx, organizationId: string, now: Date = new Date()): Promise<{ paused: boolean; reason: string | null }> {
+  const since = new Date(now.getTime() - 30 * 86400000);
+  const rows = await tx.emailMessage.groupBy({ by: ["status"], where: { organizationId, sentAt: { gte: since }, status: { in: ["SENT", "BOUNCED", "COMPLAINED"] } }, _count: { _all: true } });
+  const n = (s: string) => rows.find((r) => r.status === s)?._count._all ?? 0;
+  const bounced = n("BOUNCED");
+  const complained = n("COMPLAINED");
+  const total = n("SENT") + bounced + complained;
+  if (complained >= 3 && complained / total >= 0.003) return { paused: true, reason: "reclamações de spam acima do tolerado" };
+  if (total >= 50 && bounced >= 5 && bounced / total >= 0.05) return { paused: true, reason: "muitos endereços que não existem" };
+  return { paused: false, reason: null };
+}
+
+/** Quanto tempo uma mensagem reservada pode ficar "em envio" antes de voltar para a fila (rodada que caiu no meio). */
+const CLAIM_TTL_MS = 10 * 60_000;
+
+type Runner = <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;
+
+/**
+ * Envia um lote da fila de uma organização, SEM segurar transação durante as chamadas de rede:
+ *   1. transação curta: confere o freio, devolve à fila reservas velhas e RESERVA o lote (SKIP LOCKED,
+ *      então rodadas sobrepostas nunca pegam a mesma mensagem);
+ *   2. fora de transação: envia cada mensagem (a chave de idempotência do provedor torna uma repetição segura);
+ *   3. uma transação curta por mensagem registra o resultado; no fim, fecha as campanhas sem pendências.
+ * `run` abre o contexto da organização (nos testes, o do papel restrito).
+ */
+export async function processOrganizationQueue(organizationId: string, provider: EmailProvider, run: Runner = (fn) => withOrgContext(organizationId, fn), now: Date = new Date()) {
   if (process.env.EMAIL_SENDING_DISABLED === "1") return { sent: 0, failed: 0, paused: true };
-  const campaigns = await tx.emailCampaign.findMany({ where: { organizationId, status: "SENDING" }, orderBy: { startedAt: "asc" } });
+
+  const plan = await run(async (tx) => {
+    if ((await deliverabilityStatus(tx, organizationId, now)).paused) return null;
+    await tx.emailMessage.updateMany({ where: { organizationId, status: "SENDING", claimedAt: { lt: new Date(now.getTime() - CLAIM_TTL_MS) } }, data: { status: "QUEUED", claimedAt: null } });
+    const campaigns = await tx.emailCampaign.findMany({ where: { organizationId, status: "SENDING" }, orderBy: { startedAt: "asc" } });
+    const org = await tx.organization.findUniqueOrThrow({ where: { id: organizationId } });
+    const { lines } = await senderInfo(tx, organizationId);
+    let budget = BATCH_SIZE;
+    const claimed: { campaign: (typeof campaigns)[number]; id: string; email: string; firstName: string | null; replyTo: string | null }[] = [];
+    for (const campaign of campaigns) {
+      if (budget <= 0) break;
+      // As respostas vão para quem liberou o envio.
+      const replyTo = campaign.startedByUserId ? (await tx.membership.findFirst({ where: { organizationId, userId: campaign.startedByUserId }, select: { user: { select: { email: true } } } }))?.user.email ?? null : null;
+      const ids = (await tx.emailMessage.findMany({ where: { campaignId: campaign.id, organizationId, status: "QUEUED" }, orderBy: { createdAt: "asc" }, take: budget, select: { id: true } })).map((r) => r.id);
+      // O UPDATE só pega quem AINDA está na fila: se outra rodada reservou no meio, essas linhas voltam vazias.
+      const rows = ids.length === 0 ? [] : await tx.$queryRaw<{ id: string; email: string; firstName: string | null }[]>`
+        UPDATE email_messages SET status = 'SENDING', "claimedAt" = ${now}
+        WHERE id = ANY(${ids}) AND "organizationId" = ${organizationId} AND status = 'QUEUED'
+        RETURNING id, email, "firstName"`;
+      budget -= rows.length;
+      for (const r of rows) claimed.push({ campaign, ...r, replyTo });
+    }
+    return { org, lines, claimed, campaignIds: campaigns.map((c) => c.id) };
+  });
+  if (!plan) return { sent: 0, failed: 0, paused: true };
+
+  const from = `${safeDisplayName(plan.org.name)} <envio@spinos.com.br>`;
   let sent = 0;
   let failed = 0;
-  let budget = BATCH_SIZE;
-  const org = await tx.organization.findUniqueOrThrow({ where: { id: organizationId } });
-  const { lines } = await senderInfo(tx, organizationId);
-  const from = `${safeDisplayName(org.name)} <envio@spinos.com.br>`;
-  for (const campaign of campaigns) {
-    if (budget <= 0) break;
-    // As respostas vão para quem liberou o envio.
-    const replyTo = campaign.startedByUserId ? (await tx.membership.findFirst({ where: { organizationId, userId: campaign.startedByUserId }, select: { user: { select: { email: true } } } }))?.user.email ?? null : null;
-    const batch = await tx.emailMessage.findMany({ where: { campaignId: campaign.id, organizationId, status: "QUEUED" }, take: budget, orderBy: { createdAt: "asc" } });
-    for (const m of batch) {
-      budget -= 1;
-      // Reconfere a supressão na hora de enviar: alguém pode ter se descadastrado depois de a campanha ser liberada.
-      if (await tx.emailSuppression.findUnique({ where: { organizationId_email: { organizationId, email: m.email } } })) {
-        await tx.emailMessage.update({ where: { id: m.id }, data: { status: "FAILED", error: "Descadastrado" } });
-        failed += 1;
-        continue;
-      }
-      try {
-        const unsub = unsubscribeUrl(organizationId, m.email);
-        const render = { subject: campaign.subject, preheader: campaign.preheader, body: campaign.body, firstName: m.firstName, senderName: org.name, senderLines: lines, unsubscribeUrl: unsub };
-        const res = await provider.send({
-          from,
-          to: m.email,
-          replyTo,
-          subject: campaign.subject,
-          html: renderCampaignHtml(render),
-          text: renderCampaignText(render),
-          headers: { "List-Unsubscribe": `<${oneClickUnsubscribeUrl(organizationId, m.email)}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
-        });
-        await tx.emailMessage.update({ where: { id: m.id }, data: { status: "SENT", providerId: res.id, sentAt: new Date() } });
-        sent += 1;
-      } catch (err) {
-        await tx.emailMessage.update({ where: { id: m.id }, data: { status: "FAILED", error: String((err as Error).message).slice(0, 200) } });
-        failed += 1;
-      }
+  for (const m of plan.claimed) {
+    // Reconfere a supressão na hora de enviar: alguém pode ter se descadastrado depois de a campanha ser liberada.
+    const suppressed = await run((tx) => tx.emailSuppression.findUnique({ where: { organizationId_email: { organizationId, email: m.email } } }));
+    if (suppressed) {
+      await run((tx) => tx.emailMessage.update({ where: { id: m.id }, data: { status: "FAILED", error: "Descadastrado" } }));
+      failed += 1;
+      continue;
     }
-    const left = await tx.emailMessage.count({ where: { campaignId: campaign.id, organizationId, status: "QUEUED" } });
-    if (left === 0) await tx.emailCampaign.update({ where: { id: campaign.id }, data: { status: "SENT", finishedAt: new Date() } });
+    let providerId: string;
+    try {
+      const render = { subject: m.campaign.subject, preheader: m.campaign.preheader, body: m.campaign.body, firstName: m.firstName, senderName: plan.org.name, senderLines: plan.lines, unsubscribeUrl: unsubscribeUrl(organizationId, m.email) };
+      const res = await provider.send({
+        from,
+        to: m.email,
+        replyTo: m.replyTo,
+        subject: m.campaign.subject,
+        html: renderCampaignHtml(render),
+        text: renderCampaignText(render),
+        headers: { "List-Unsubscribe": `<${oneClickUnsubscribeUrl(organizationId, m.email)}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+        idempotencyKey: m.id,
+      });
+      providerId = res.id;
+    } catch (err) {
+      await run((tx) => tx.emailMessage.update({ where: { id: m.id }, data: { status: "FAILED", error: String((err as Error).message).slice(0, 200), claimedAt: null } }));
+      failed += 1;
+      continue;
+    }
+    // O e-mail JÁ SAIU. Se só o registro falhar, a mensagem fica reservada (nunca "falhou"): passado o prazo
+    // ela volta à fila e o reenvio, com a mesma chave de idempotência, é descartado pelo provedor.
+    sent += 1;
+    await run((tx) => tx.emailMessage.update({ where: { id: m.id }, data: { status: "SENT", providerId, sentAt: new Date(), claimedAt: null } })).catch((e) => logError("email: envio feito, registro falhou", e, { organizationId, messageId: m.id }));
   }
+
+  await run(async (tx) => {
+    for (const id of plan.campaignIds) {
+      const left = await tx.emailMessage.count({ where: { campaignId: id, organizationId, status: { in: ["QUEUED", "SENDING"] } } });
+      if (left === 0) await tx.emailCampaign.updateMany({ where: { id, organizationId, status: "SENDING" }, data: { status: "SENT", finishedAt: new Date() } });
+    }
+  });
   return { sent, failed, paused: false };
 }
 

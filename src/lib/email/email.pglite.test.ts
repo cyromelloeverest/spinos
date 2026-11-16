@@ -13,7 +13,7 @@ import type { PrismaClient } from "@/generated/prisma/client";
 import { createLead } from "@/lib/crm/leads";
 import { moveToKind } from "@/lib/crm/opportunities";
 import { resolveAudience, suppressEmail } from "./audience";
-import { CampaignError, cancelCampaign, previewCampaign, processOrganizationQueue, saveCampaign, startCampaign } from "./campaign";
+import { CampaignError, cancelCampaign, deliverabilityStatus, previewCampaign, processOrganizationQueue, saveCampaign, startCampaign } from "./campaign";
 import { fillName, renderCampaignHtml, renderCampaignText } from "./render";
 import { unsubscribeUrl, verifyUnsubscribe } from "./tokens";
 import { safeDisplayName, type EmailProvider, type OutgoingEmail } from "./provider";
@@ -167,7 +167,7 @@ describe("liberar e enviar a campanha", () => {
     await expect(inOrg("A", (tx) => startCampaign(tx, { organizationId: "A", userId: "u1" }, c.id))).rejects.toThrow("já foi enviada");
 
     const { sent, provider } = okProvider();
-    const r = await inOrg("A", (tx) => processOrganizationQueue(tx, "A", provider));
+    const r = await processOrganizationQueue("A", provider, (fn) => inOrg("A", fn));
     expect(r).toEqual({ sent: 3, failed: 0, paused: false });
     expect(sent).toHaveLength(3);
     expect(sent[0].from).toBe("Escritório Teste A <envio@spinos.com.br>");
@@ -177,7 +177,7 @@ describe("liberar e enviar a campanha", () => {
     expect(sent[0].html).toContain("Olá, Pessoa!");
     expect((await prisma.emailCampaign.findUniqueOrThrow({ where: { id: c.id } })).status).toBe("SENT");
     // Rodar de novo não reenvia nada.
-    const again = await inOrg("A", (tx) => processOrganizationQueue(tx, "A", provider));
+    const again = await processOrganizationQueue("A", provider, (fn) => inOrg("A", fn));
     expect(again.sent).toBe(0);
     expect(sent).toHaveLength(3);
   });
@@ -191,7 +191,7 @@ describe("liberar e enviar a campanha", () => {
     await inOrg("A", (tx) => suppressEmail(tx, "A", "novo2@exemplo.com.br", "UNSUBSCRIBE"));
     const sent: string[] = [];
     const flaky: EmailProvider = { send: async (e) => { if (e.to === "novo1@exemplo.com.br") throw new Error("Resend 422"); sent.push(e.to); return { id: "x" }; } };
-    const r = await inOrg("A", (tx) => processOrganizationQueue(tx, "A", flaky));
+    const r = await processOrganizationQueue("A", flaky, (fn) => inOrg("A", fn));
     expect(r.failed).toBe(1); // novo1 falhou no provedor; novo2 já saiu da fila ao se descadastrar
     expect(sent).not.toContain("novo2@exemplo.com.br");
     const failed = await prisma.emailMessage.findMany({ where: { campaignId: c.id, status: "FAILED" } });
@@ -205,10 +205,10 @@ describe("liberar e enviar a campanha", () => {
     const c = await inOrg("L", (tx) => saveCampaign(tx, "L", "u1", null, draft));
     await inOrg("L", (tx) => startCampaign(tx, { organizationId: "L", userId: "u1" }, c.id));
     const { provider } = okProvider();
-    const first = await inOrg("L", (tx) => processOrganizationQueue(tx, "L", provider));
+    const first = await processOrganizationQueue("L", provider, (fn) => inOrg("L", fn));
     expect(first.sent).toBe(40);
     expect((await prisma.emailCampaign.findUniqueOrThrow({ where: { id: c.id } })).status).toBe("SENDING");
-    const second = await inOrg("L", (tx) => processOrganizationQueue(tx, "L", provider));
+    const second = await processOrganizationQueue("L", provider, (fn) => inOrg("L", fn));
     expect(second.sent).toBe(5);
     expect((await prisma.emailCampaign.findUniqueOrThrow({ where: { id: c.id } })).status).toBe("SENT");
   }, 60_000);
@@ -233,7 +233,7 @@ describe("liberar e enviar a campanha", () => {
     await inOrg("A", (tx) => startCampaign(tx, { organizationId: "A", userId: "u1" }, c.id));
     process.env.EMAIL_SENDING_DISABLED = "1";
     const { provider, sent } = okProvider();
-    expect(await inOrg("A", (tx) => processOrganizationQueue(tx, "A", provider))).toMatchObject({ paused: true, sent: 0 });
+    expect(await processOrganizationQueue("A", provider, (fn) => inOrg("A", fn))).toMatchObject({ paused: true, sent: 0 });
     delete process.env.EMAIL_SENDING_DISABLED;
     await inOrg("A", (tx) => cancelCampaign(tx, "A", c.id));
     expect(sent).toHaveLength(0);
@@ -241,4 +241,81 @@ describe("liberar e enviar a campanha", () => {
     expect(await prisma.emailMessage.count({ where: { campaignId: c.id, status: "QUEUED" } })).toBe(0);
     await expect(inOrg("A", (tx) => cancelCampaign(tx, "A", c.id))).rejects.toThrow("sendo enviada");
   });
+});
+
+describe("freio de reputação", () => {
+  it("muitos endereços inexistentes pausam o envio e a liberação de novas campanhas", async () => {
+    await prisma.organization.create({ data: { id: "R", name: "Reputação", plan: "ENTERPRISE", trialEndsAt: null } });
+    await contact("R", { basis: "CONSENT", email: "ok@exemplo.com.br" });
+    const camp = await prisma.emailCampaign.create({ data: { organizationId: "R", name: "x", subject: "x", body: "x".repeat(30), audience: "todos", status: "SENT" } });
+    const mk = (status: "SENT" | "BOUNCED" | "COMPLAINED", i: number) => ({ organizationId: "R", campaignId: camp.id, email: `h${status}${i}@x.com`, status, sentAt: new Date() });
+    await prisma.emailMessage.createMany({ data: [...Array.from({ length: 50 }, (_, i) => mk("SENT", i)), ...Array.from({ length: 4 }, (_, i) => mk("BOUNCED", i))] });
+    expect((await inOrg("R", (tx) => deliverabilityStatus(tx, "R"))).paused).toBe(false); // 4 de 54 (7%) mas menos de 5 devolvidos
+    await prisma.emailMessage.create({ data: mk("BOUNCED", 99) });
+    const status = await inOrg("R", (tx) => deliverabilityStatus(tx, "R"));
+    expect(status).toEqual({ paused: true, reason: "muitos endereços que não existem" });
+    const c = await inOrg("R", (tx) => saveCampaign(tx, "R", "u1", null, draft));
+    await expect(inOrg("R", (tx) => startCampaign(tx, { organizationId: "R", userId: "u1" }, c.id))).rejects.toThrow("pausado");
+    const { provider, sent } = okProvider();
+    expect(await processOrganizationQueue("R", provider, (fn) => inOrg("R", fn))).toMatchObject({ paused: true, sent: 0 });
+    expect(sent).toHaveLength(0);
+  }, 30_000);
+
+  it("reclamações de spam acima de 0,3% pausam mesmo com poucos envios", async () => {
+    await prisma.organization.create({ data: { id: "R2", name: "Reclamações", plan: "ENTERPRISE", trialEndsAt: null } });
+    const camp = await prisma.emailCampaign.create({ data: { organizationId: "R2", name: "x", subject: "x", body: "x".repeat(30), audience: "todos", status: "SENT" } });
+    await prisma.emailMessage.createMany({ data: [...Array.from({ length: 200 }, (_, i) => ({ organizationId: "R2", campaignId: camp.id, email: `s${i}@x.com`, status: "SENT" as const, sentAt: new Date() })), ...Array.from({ length: 3 }, (_, i) => ({ organizationId: "R2", campaignId: camp.id, email: `c${i}@x.com`, status: "COMPLAINED" as const, sentAt: new Date() }))] });
+    expect(await inOrg("R2", (tx) => deliverabilityStatus(tx, "R2"))).toEqual({ paused: true, reason: "reclamações de spam acima do tolerado" });
+  });
+
+  it("mensagens antigas (mais de 30 dias) não contam", async () => {
+    await prisma.organization.create({ data: { id: "R3", name: "Antigo", plan: "ENTERPRISE", trialEndsAt: null } });
+    const camp = await prisma.emailCampaign.create({ data: { organizationId: "R3", name: "x", subject: "x", body: "x".repeat(30), audience: "todos", status: "SENT" } });
+    const old = new Date(Date.now() - 40 * 86400000);
+    await prisma.emailMessage.createMany({ data: Array.from({ length: 10 }, (_, i) => ({ organizationId: "R3", campaignId: camp.id, email: `o${i}@x.com`, status: "COMPLAINED" as const, sentAt: old })) });
+    expect((await inOrg("R3", (tx) => deliverabilityStatus(tx, "R3"))).paused).toBe(false);
+  });
+});
+
+describe("fila: sem transação durante o envio", () => {
+  it("rodadas simultâneas nunca mandam a mesma mensagem duas vezes, e cada envio leva chave de idempotência", async () => {
+    await prisma.organization.create({ data: { id: "Q", name: "Fila", plan: "ENTERPRISE", trialEndsAt: null } });
+    for (let i = 0; i < 6; i++) await contact("Q", { basis: "CONSENT", email: `q${i}@exemplo.com.br` });
+    const c = await inOrg("Q", (tx) => saveCampaign(tx, "Q", "u1", null, draft));
+    await inOrg("Q", (tx) => startCampaign(tx, { organizationId: "Q", userId: "u1" }, c.id));
+    const { provider, sent } = okProvider();
+    await Promise.all([processOrganizationQueue("Q", provider, (fn) => inOrg("Q", fn)), processOrganizationQueue("Q", provider, (fn) => inOrg("Q", fn))]);
+    expect(sent.map((e) => e.to).sort()).toEqual(Array.from({ length: 6 }, (_, i) => `q${i}@exemplo.com.br`));
+    expect(new Set(sent.map((e) => e.idempotencyKey)).size).toBe(6);
+    expect(sent.every((e) => Boolean(e.idempotencyKey))).toBe(true);
+    expect((await prisma.emailCampaign.findUniqueOrThrow({ where: { id: c.id } })).status).toBe("SENT");
+  }, 30_000);
+
+  it("se o registro do resultado falha (transação estourou), a mensagem não é reenviada logo em seguida; passado o prazo volta para a fila com a mesma chave", async () => {
+    await prisma.organization.create({ data: { id: "Q2", name: "Fila 2", plan: "ENTERPRISE", trialEndsAt: null } });
+    await contact("Q2", { basis: "CONSENT", email: "unico@exemplo.com.br" });
+    const c = await inOrg("Q2", (tx) => saveCampaign(tx, "Q2", "u1", null, draft));
+    await inOrg("Q2", (tx) => startCampaign(tx, { organizationId: "Q2", userId: "u1" }, c.id));
+    const { provider, sent } = okProvider();
+    // Primeira rodada: o envio acontece, mas a gravação do resultado "estoura".
+    let calls = 0;
+    const flakyRun = (async (fn: (tx: never) => Promise<unknown>) => {
+      calls += 1;
+      // chamadas: 1 reserva, 2 supressão, 3 registro do resultado (falha), 4+ fechamento
+      if (calls === 3) throw new Error("Transaction expired");
+      return inOrg("Q2", fn as never);
+    }) as never;
+    const t0 = new Date();
+    await processOrganizationQueue("Q2", provider, flakyRun, t0).catch(() => {});
+    expect(sent).toHaveLength(1);
+    expect((await prisma.emailMessage.findFirstOrThrow({ where: { campaignId: c.id } })).status).toBe("SENDING");
+    // Logo depois: continua reservada, ninguém reenvia.
+    await processOrganizationQueue("Q2", provider, (fn) => inOrg("Q2", fn), new Date(t0.getTime() + 60_000));
+    expect(sent).toHaveLength(1);
+    // Passado o prazo da reserva: volta à fila e sai de novo com a MESMA chave (o provedor descarta a repetição).
+    await processOrganizationQueue("Q2", provider, (fn) => inOrg("Q2", fn), new Date(t0.getTime() + 11 * 60_000));
+    expect(sent).toHaveLength(2);
+    expect(sent[1].idempotencyKey).toBe(sent[0].idempotencyKey);
+    expect((await prisma.emailCampaign.findUniqueOrThrow({ where: { id: c.id } })).status).toBe("SENT");
+  }, 30_000);
 });

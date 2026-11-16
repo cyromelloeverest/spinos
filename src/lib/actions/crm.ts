@@ -210,11 +210,13 @@ async function requireManager() {
 }
 
 export async function setContactLegalBasis(contactId: string, formData: FormData) {
-  const c = await requireCtx();
+  // Quem registra a base legal decide quem pode receber campanha: só dono e administrador, e fica no registro.
+  const c = await requireManager();
   const basis = String(formData.get("legalBasis") ?? "");
   const value = (LEGAL_BASES as readonly string[]).includes(basis) ? (basis as (typeof LEGAL_BASES)[number]) : null;
   const note = String(formData.get("legalBasisNote") ?? "").trim().slice(0, 300) || null;
   await withOrgContext(c.organizationId, (tx) => tx.contact.updateMany({ where: { id: contactId, organizationId: c.organizationId, anonymizedAt: null }, data: { legalBasis: value, legalBasisNote: note } }));
+  await logSecurityEvent({ type: "privacy.legal_basis_changed", actorUserId: c.userId, organizationId: c.organizationId, targetId: contactId, metadata: { legalBasis: value } });
   revalidatePath("/contatos");
   redirect("/contatos?salvo=1");
 }

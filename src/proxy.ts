@@ -22,7 +22,15 @@ export async function proxy(request: NextRequest) {
   // para o renderizador (sem login, sem a CSP do app), com o domínio como segmento da rota.
   // Domínio desconhecido cai no 404 do site: nunca mostra nada da plataforma.
   const hostname = host?.split(":")[0];
+  // O renderizador de sites só se alcança pelo domínio do próprio site. No domínio da plataforma o
+  // caminho interno /sites/... não existe: senão qualquer site publicado abriria dentro da origem do
+  // app (mesmos cookies de sessão), e um erro no conteúdo de um cliente viraria erro no app.
+  if (hostname && isPlatformHost(hostname) && (request.nextUrl.pathname === "/sites" || request.nextUrl.pathname.startsWith("/sites/"))) {
+    return new NextResponse("Not found", { status: 404 });
+  }
   if (hostname && !isPlatformHost(hostname)) {
+    // Um domínio só tem letras, números, pontos e hífens: qualquer outra coisa não vira caminho interno.
+    if (!/^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/.test(hostname)) return new NextResponse("Not found", { status: 404 });
     const url = request.nextUrl.clone();
     url.pathname = `/sites/${hostname}${request.nextUrl.pathname === "/" ? "" : request.nextUrl.pathname}`;
     return NextResponse.rewrite(url);

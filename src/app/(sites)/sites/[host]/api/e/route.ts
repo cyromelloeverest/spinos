@@ -54,7 +54,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ hos
   const { site } = result;
 
   const visitor = visitorId(request, site.siteId, ua);
-  if (!allowBeacon(visitor)) return done;
+  // Limite pelo IP, sem o navegador na chave: trocar o User-Agent não zera a contagem.
+  if (!allowBeacon(ipKey(request, site.siteId))) return done;
 
   await saveSiteEvent({
     organizationId: site.organizationId,
@@ -77,6 +78,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ hos
     fcp: e.v?.fcp ?? null,
   });
   return done;
+}
+
+function ipKey(request: Request, siteId: string): string {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
+  return createHmac("sha256", analyticsKey() ?? "dev").update(`beacon|${siteId}|${ip}`).digest("base64url").slice(0, 22);
 }
 
 /** Same visitor, same site, same day → same id; tomorrow it changes. The IP itself is never stored. */

@@ -1,5 +1,5 @@
 import { withOrgContext } from "@/lib/db/with-org-context";
-import { getCurrentUserId, getCurrentOrganizationId } from "@/lib/auth/current-org";
+import { getCurrentUserId, getCurrentOrganizationId, getCurrentMembership } from "@/lib/auth/current-org";
 import { logSecurityEvent } from "@/lib/audit/log";
 
 // Exportação de dados pessoais/da organização para atender ao direito de
@@ -11,6 +11,11 @@ export async function GET() {
   const organizationId = await getCurrentOrganizationId();
   if (!userId || !organizationId) {
     return new Response("Não autenticado.", { status: 401 });
+  }
+  // A exportação leva todos os contatos, a equipe e os investimentos: só dono e administrador.
+  const membership = await getCurrentMembership();
+  if (!membership || (membership.role !== "OWNER" && membership.role !== "ADMIN")) {
+    return new Response("Só donos e administradores podem exportar os dados da conta.", { status: 403 });
   }
 
   const [organization, icps, memberships, opportunityScores, extra] = await withOrgContext(organizationId, (tx) =>

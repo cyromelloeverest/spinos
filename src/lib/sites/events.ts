@@ -60,16 +60,26 @@ const LEAD_LIMITS = { perVisitor: { limit: 5, windowMs: 10 * 60_000 }, perSite: 
 /** Falso quando esse visitante (ou o site inteiro) está mandando formulários demais. Falha aberta. */
 export async function allowLead(siteId: string, ipHash: string | null): Promise<boolean> {
   try {
-    const now = Date.now();
-    if (ipHash) {
-      const n = await prismaAdmin.siteEvent.count({ where: { siteId, type: "FORM", visitorHash: ipHash, createdAt: { gte: new Date(now - LEAD_LIMITS.perVisitor.windowMs) } } });
-      if (n >= LEAD_LIMITS.perVisitor.limit) return false;
-    }
-    const total = await prismaAdmin.siteEvent.count({ where: { siteId, type: "FORM", createdAt: { gte: new Date(now - LEAD_LIMITS.perSite.windowMs) } } });
-    return total < LEAD_LIMITS.perSite.limit;
+    return !(await leadOverLimit(siteId, ipHash));
   } catch (error) {
     // Perder um lead de verdade custa mais que alguns de spam.
     console.error("[rate-limit] contador indisponível, lead liberado", error);
     return true;
   }
+}
+
+/**
+ * Passou do limite? Conta os eventos JÁ gravados (inclusive o do envio atual): quem grava primeiro e
+ * conta depois nunca deixa uma rajada simultânea passar, porque o k-ésimo envio sempre enxerga ao menos k.
+ * Por visitante vale tudo que ele mandou (spam incluso); por site só contam leads de verdade, para
+ * que lixo de poucos IPs não esgote o teto e derrube os formulários legítimos.
+ */
+export async function leadOverLimit(siteId: string, ipHash: string | null): Promise<boolean> {
+  const now = Date.now();
+  if (ipHash) {
+    const n = await prismaAdmin.siteEvent.count({ where: { siteId, type: "FORM", visitorHash: ipHash, label: { in: ["lead", "spam", "limited"] }, createdAt: { gte: new Date(now - LEAD_LIMITS.perVisitor.windowMs) } } });
+    if (n > LEAD_LIMITS.perVisitor.limit) return true;
+  }
+  const total = await prismaAdmin.siteEvent.count({ where: { siteId, type: "FORM", label: "lead", createdAt: { gte: new Date(now - LEAD_LIMITS.perSite.windowMs) } } });
+  return total > LEAD_LIMITS.perSite.limit;
 }
