@@ -1,4 +1,5 @@
 import { getPlan } from "@/lib/plans";
+import { SEARCH_COOLDOWN_MS } from "@/lib/opportunity-engine/constants";
 
 export const TRIAL_DAYS = 7;
 
@@ -43,13 +44,25 @@ export function trialDaysLeft(trialEndsAt: Date | null): number | null {
 export function effectiveLimits(organization: { plan: string; trialEndsAt: Date | null }): {
   maxActiveOpportunities: number;
   maxSearches: number;
+  /** Contas-alvo novas por mês; null no trial (lá o teto é o de oportunidades ativas e de buscas do teste). */
+  maxTargetAccounts: number | null;
   isTrialing: boolean;
 } {
   if (organization.trialEndsAt !== null) {
-    return { maxActiveOpportunities: TRIAL_MAX_ACTIVE_OPPORTUNITIES, maxSearches: TRIAL_MAX_SEARCHES, isTrialing: true };
+    return { maxActiveOpportunities: TRIAL_MAX_ACTIVE_OPPORTUNITIES, maxSearches: TRIAL_MAX_SEARCHES, maxTargetAccounts: null, isTrialing: true };
   }
   const plan = getPlan(organization.plan);
-  return { maxActiveOpportunities: plan.maxActiveOpportunities, maxSearches: plan.maxSearchesPerMonth, isTrialing: false };
+  return {
+    maxActiveOpportunities: plan.maxActiveOpportunities,
+    maxSearches: plan.maxSearchesPerMonth,
+    maxTargetAccounts: plan.maxTargetAccountsPerMonth,
+    isTrialing: false,
+  };
+}
+
+// Intervalo entre buscas: o trial mantém o intervalo longo (a busca é a amostra grátis); quem paga tem o do plano.
+export function effectiveSearchCooldownMs(organization: { plan: string; trialEndsAt: Date | null }): number {
+  return organization.trialEndsAt !== null ? SEARCH_COOLDOWN_MS : getPlan(organization.plan).searchCooldownMs;
 }
 
 // Teto de pedidos de conteúdo: no trial vale o total do trial (nunca o plano escolhido para testar);

@@ -7,7 +7,7 @@ import { requestEmailChange } from "@/lib/actions/auth";
 import { createCheckoutSession, createPortalSession } from "@/lib/actions/billing";
 import { requestAccountDeletion } from "@/lib/actions/privacy";
 import { listVerifiedMfaFactors } from "@/lib/actions/mfa";
-import { PLANS } from "@/lib/plans";
+import { PLANS, PLANS_FOOTNOTE } from "@/lib/plans";
 import { FormField } from "@/components/FormField";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { MfaSettings } from "@/components/MfaSettings";
@@ -135,16 +135,34 @@ export default async function EmpresaSettingsPage({
                 }}
               >
                 <div>
-                  <div className="text-[13.5px] font-semibold">{plan.name}</div>
-                  <div className="mt-1" style={{ fontFamily: "var(--font-mono)" }}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[13.5px] font-semibold">{plan.name}</div>
+                    {plan.recommended && (
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-[6px]" style={{ background: "var(--primary-soft, #EFF6FF)", color: "var(--primary)" }}>
+                        Recomendado
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[12px] mt-0.5" style={{ color: "var(--fg-muted)" }}>
+                    {plan.tagline}
+                  </div>
+                  <div className="mt-2" style={{ fontFamily: "var(--font-mono)" }}>
                     <span className="text-[20px] font-bold" style={{ letterSpacing: "-0.02em" }}>
-                      R${plan.priceMonthlyBRL}
+                      R$ {plan.priceMonthlyBRL.toLocaleString("pt-BR")}
                     </span>
                     <span className="text-[12px]" style={{ color: "var(--fg-faint)" }}>
-                      /mês
+                      /mês{plan.mediaBudgetExtra ? " + verba de mídia" : ""}
                     </span>
                   </div>
                 </div>
+                <ul className="m-0 p-0 list-none flex flex-col gap-1.5 flex-1">
+                  {plan.highlights.map((item) => (
+                    <li key={item} className="flex items-start gap-1.5 text-[12.5px]" style={{ color: "var(--fg-muted)" }}>
+                      <Check size={13} strokeWidth={2} className="mt-[2px] flex-shrink-0" style={{ color: "var(--primary)" }} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
                 {isCurrent ? (
                   <div className="text-[12px] font-medium flex items-center gap-1.5" style={{ color: "var(--primary)" }}>
                     <Check size={14} strokeWidth={2} />
@@ -165,6 +183,9 @@ export default async function EmpresaSettingsPage({
             );
           })}
         </div>
+        <p className="m-0 mt-3 text-[11.5px]" style={{ color: "var(--fg-faint)" }}>
+          {PLANS_FOOTNOTE}
+        </p>
       </Section>
 
       <Section title="Empresa">

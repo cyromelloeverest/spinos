@@ -34,7 +34,7 @@ describe("PLANS", () => {
     for (let i = 1; i < tiers.length; i++) {
       const prev = tiers[i - 1];
       const curr = tiers[i];
-      for (const key of ["maxActiveOpportunities", "maxUsers", "maxSearchesPerMonth", "maxIcps"] as const) {
+      for (const key of ["maxActiveOpportunities", "maxUsers", "maxSearchesPerMonth", "maxIcps", "maxTargetAccountsPerMonth"] as const) {
         expect(curr[key]).toBeGreaterThanOrEqual(prev[key]);
       }
     }
@@ -68,7 +68,39 @@ describe("PLANS", () => {
   });
 });
 
+describe("oferta comercial", () => {
+  it("preços, nomes e contas-alvo da página de planos", () => {
+    expect(Object.values(PLANS).map((p) => [p.name, p.priceMonthlyBRL, p.maxTargetAccountsPerMonth])).toEqual([
+      ["Essencial", 997, 100],
+      ["Crescimento", 1997, 300],
+      ["Aceleração", 3497, 1000],
+    ]);
+    expect(PLANS.PROFISSIONAL.recommended).toBe(true);
+    expect(PLANS.ENTERPRISE.mediaBudgetExtra).toBe(true);
+    expect(PLANS.STARTER.maxUsers).toBe(2);
+    expect(PLANS.PROFISSIONAL.maxUsers).toBe(5);
+  });
+
+  it("o teto de buscas por mês não é o que limita: cobre as contas-alvo do plano (3 por busca, no mínimo)", () => {
+    for (const plan of Object.values(PLANS)) {
+      expect(plan.maxSearchesPerMonth * 3).toBeGreaterThanOrEqual(plan.maxTargetAccountsPerMonth);
+    }
+  });
+
+  it("o intervalo entre buscas permite chegar ao teto de contas-alvo no mês (média de 4,5 por busca)", () => {
+    for (const plan of Object.values(PLANS)) {
+      const searchesNeeded = Math.ceil(plan.maxTargetAccountsPerMonth / 4.5);
+      const possible = Math.floor((28 * 24 * 60 * 60 * 1000) / plan.searchCooldownMs);
+      expect(possible).toBeGreaterThanOrEqual(searchesNeeded);
+    }
+  });
+});
+
 describe("getPlanByStripePriceId", () => {
+  it("assinaturas feitas nos preços antigos continuam apontando para o plano", () => {
+    expect(getPlanByStripePriceId("price_1U3mzAEqWpT7TrUVKTqZGbiO")).toBe(PLANS.PROFISSIONAL);
+  });
+
   it("encontra o plano certo pelo Price ID do Stripe", () => {
     expect(getPlanByStripePriceId(PLANS.PROFISSIONAL.stripePriceId)).toBe(PLANS.PROFISSIONAL);
   });

@@ -9,9 +9,9 @@ import { ensureAccountForCompany, ensureDecisionMakerContact, untouchedScoresWhe
 import { getInstalledPack } from "@/lib/crm/pack-install";
 import { OpportunitySearchResultSchema } from "./schema";
 import { findBestMatch } from "./company-matching";
-import { SEARCH_COOLDOWN_MS, EMPTY_RESULT_RETRY_MS, startOfCurrentMonth } from "./constants";
+import { EMPTY_RESULT_RETRY_MS, startOfCurrentMonth } from "./constants";
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
-import { effectiveLimits } from "@/lib/trial";
+import { effectiveLimits, effectiveSearchCooldownMs } from "@/lib/trial";
 import { fetchOgImage } from "@/lib/og-image";
 import { logError } from "@/lib/log-error";
 
@@ -21,6 +21,7 @@ export type SearchOutcome =
   | { status: "rate_limited"; nextAvailableAt: string }
   | { status: "plan_limit"; limit: number }
   | { status: "search_limit"; limit: number }
+  | { status: "accounts_limit"; limit: number }
   | { status: "empty" }
   | { status: "ok"; count: number };
 
@@ -233,7 +234,7 @@ async function executeSearch(
     if (!organization) return { outcome: { status: "error", message: "Organização não encontrada." } };
 
     if (organization.lastSearchAt) {
-      const nextAvailableAt = new Date(organization.lastSearchAt.getTime() + SEARCH_COOLDOWN_MS);
+      const nextAvailableAt = new Date(organization.lastSearchAt.getTime() + effectiveSearchCooldownMs(organization));
       if (nextAvailableAt.getTime() > Date.now()) {
         return { outcome: { status: "rate_limited", nextAvailableAt: nextAvailableAt.toISOString() } };
       }
@@ -249,7 +250,7 @@ async function executeSearch(
     // "testando" o Enterprise, o teto do trial vale. Nenhum plano (incl.
     // Enterprise) tem dimensão ilimitada, então os tetos abaixo sempre
     // existem — não tem mais branch de "plano sem limite".
-    const { maxActiveOpportunities, maxSearches, isTrialing } = effectiveLimits(organization);
+    const { maxActiveOpportunities, maxSearches, maxTargetAccounts, isTrialing } = effectiveLimits(organization);
     const activeCount = await tx.opportunityScore.count({
       where: untouchedScoresWhere(organizationId),
     });
@@ -263,7 +264,11 @@ async function executeSearch(
     const searchesUsed = await tx.searchRun.count({
       where: isTrialing ? { organizationId } : { organizationId, createdAt: { gte: startOfCurrentMonth() } },
     });
-    if (searchesUsed >= maxSearches) {
+    // Contas-alvo novas do mês (o que o plano promete): conta as oportunidades criadas desde o dia 1.
+    const accountsOver =
+      maxTargetAccounts !== null &&
+      (await tx.opportunityScore.count({ where: { organizationId, computedAt: { gte: startOfCurrentMonth() } } })) >= maxTargetAccounts;
+    if (searchesUsed >= maxSearches || accountsOver) {
       // Enterprise pago (fora de trial) nunca usa saldo pré-pago — acima do
       // teto incluso é conversa comercial, não compra automática (ver
       // brief 2026-08-11). Trial "testando" Enterprise continua podendo
@@ -278,7 +283,7 @@ async function executeSearch(
         });
         usedCredit = true;
       } else {
-        return { outcome: { status: "search_limit", limit: maxSearches } };
+        return { outcome: accountsOver ? { status: "accounts_limit", limit: maxTargetAccounts! } : { status: "search_limit", limit: maxSearches } };
       }
     }
 
@@ -391,7 +396,7 @@ async function executeSearch(
       await tx.organization.update({
         where: { id: organizationId },
         data: {
-          lastSearchAt: new Date(runTimestamp.getTime() - SEARCH_COOLDOWN_MS + EMPTY_RESULT_RETRY_MS),
+          lastSearchAt: new Date(runTimestamp.getTime() - effectiveSearchCooldownMs(organization) + EMPTY_RESULT_RETRY_MS),
           creditBalance: usedCredit ? { increment: 1 } : undefined,
         },
       });

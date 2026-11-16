@@ -37,7 +37,7 @@ export default async function InteligenciaCompetitivaPage() {
               className="text-[10px] font-semibold uppercase rounded-full px-2 py-[2px]"
               style={{ background: "var(--primary-soft)", color: "var(--primary)", letterSpacing: "0.04em" }}
             >
-              Exclusivo Enterprise
+              Exclusivo do plano Aceleração
             </span>
           </div>
         </div>

@@ -61,7 +61,7 @@ export async function inviteMember(formData: FormData) {
       // do teto de buscas/oportunidades (ver plans.ts).
       const message =
         plan.id === "ENTERPRISE"
-          ? `Seu plano Enterprise inclui até ${plan.maxUsers} usuário(s). Pra adicionar mais, fale com nosso time comercial.`
+          ? `Seu plano ${plan.name} inclui até ${plan.maxUsers} usuário(s). Pra adicionar mais, fale com nosso time comercial.`
           : `Seu plano (${plan.name}) permite até ${plan.maxUsers} usuário(s). Evolua de plano para convidar mais gente.`;
       redirect(`/settings/equipe?error=${encodeURIComponent(message)}`);
     }

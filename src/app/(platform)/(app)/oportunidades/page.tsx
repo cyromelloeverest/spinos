@@ -6,7 +6,7 @@ import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId, getCurrentMembership } from "@/lib/auth/current-org";
 import { runSearchAction, runTargetedSearchAction } from "@/lib/actions/search";
 import { TargetedSearchForm } from "@/components/TargetedSearchForm";
-import { SEARCH_COOLDOWN_MS, startOfCurrentMonth } from "@/lib/opportunity-engine/constants";
+import { startOfCurrentMonth } from "@/lib/opportunity-engine/constants";
 import { moveToPipeline, dismissOpportunity } from "@/lib/actions/pipeline";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { RadarAnimation } from "@/components/RadarAnimation";
@@ -15,7 +15,7 @@ import { SpinosScore } from "@/components/SpinosScore";
 import { ArrowRight, X, Check, Flame, TrendingUp, Minus, Target, Download, Zap } from "lucide-react";
 import { SIGNAL_CATEGORY_LABEL } from "@/lib/signal-categories";
 import { getPlan } from "@/lib/plans";
-import { effectiveLimits } from "@/lib/trial";
+import { effectiveLimits, effectiveSearchCooldownMs } from "@/lib/trial";
 import { purchaseCredits } from "@/lib/actions/credits";
 import { CREDIT_PACK } from "@/lib/credit-pack";
 import { formatLocation } from "@/lib/format-location";
@@ -67,12 +67,13 @@ export default async function OpportunitiesPage({
   let opportunities: Awaited<ReturnType<typeof fetchOpportunities>> = [];
   let organization: Prisma.OrganizationModel | null = null;
   let searchesThisMonth = 0;
+  let accountsThisMonth = 0;
   let searchesAllTime = 0;
   let latestMission: Prisma.MissionModel | null = null;
   let icp: Prisma.ICPModel | null = null;
   let dbError = false;
   try {
-    [opportunities, organization, searchesThisMonth, searchesAllTime, latestMission, icp] = await withOrgContext(
+    [opportunities, organization, searchesThisMonth, searchesAllTime, latestMission, icp, accountsThisMonth] = await withOrgContext(
       organizationId,
       (tx) =>
         Promise.all([
@@ -85,6 +86,7 @@ export default async function OpportunitiesPage({
           tx.searchRun.count({ where: { organizationId } }),
           tx.mission.findFirst({ where: { organizationId }, orderBy: { createdAt: "desc" } }),
           tx.iCP.findFirst({ where: { organizationId, isActive: true }, orderBy: { createdAt: "desc" } }),
+          tx.opportunityScore.count({ where: { organizationId, computedAt: { gte: startOfCurrentMonth() } } }),
         ]),
     );
   } catch (err) {
@@ -97,10 +99,10 @@ export default async function OpportunitiesPage({
   const membership = await getCurrentMembership();
   const anthropicConfigured = Boolean(process.env.ANTHROPIC_API_KEY);
   const lastSearchAt = organization?.lastSearchAt ?? null;
-  const nextAvailableAt = lastSearchAt ? new Date(lastSearchAt.getTime() + SEARCH_COOLDOWN_MS) : null;
+  const nextAvailableAt = lastSearchAt ? new Date(lastSearchAt.getTime() + effectiveSearchCooldownMs(organization ?? { plan: "STARTER", trialEndsAt: null })) : null;
   const onCooldown = Boolean(nextAvailableAt && isInFuture(nextAvailableAt));
   const plan = getPlan(organization?.plan ?? "STARTER");
-  const { maxActiveOpportunities, maxSearches, isTrialing } = effectiveLimits(
+  const { maxActiveOpportunities, maxSearches, maxTargetAccounts, isTrialing } = effectiveLimits(
     organization ?? { plan: "STARTER", trialEndsAt: null },
   );
   const searchesUsed = isTrialing ? searchesAllTime : searchesThisMonth;
@@ -113,7 +115,8 @@ export default async function OpportunitiesPage({
   // é sempre o do trial, nunca o do plano selecionado (ver trial.ts).
   const isPaidEnterprise = !isTrialing && plan.id === "ENTERPRISE";
   const showCreditPurchase = !isPaidEnterprise;
-  const rawAtSearchLimit = searchesUsed >= maxSearches;
+  const accountsOver = maxTargetAccounts !== null && accountsThisMonth >= maxTargetAccounts;
+  const rawAtSearchLimit = searchesUsed >= maxSearches || accountsOver;
   const atSearchLimit = rawAtSearchLimit && (isPaidEnterprise || creditBalance <= 0);
   const remainingSearches = Math.max(maxSearches - searchesUsed - 1, 0);
   const userBlocked = Boolean(membership?.searchBlocked);
@@ -130,13 +133,15 @@ export default async function OpportunitiesPage({
         ? isTrialing
           ? `Limite de ${maxActiveOpportunities} oportunidades ativas do teste grátis atingido`
           : isPaidEnterprise
-            ? `Limite de ${maxActiveOpportunities} oportunidades ativas do plano Enterprise atingido — fale com o time comercial`
+            ? `Limite de ${maxActiveOpportunities} oportunidades ativas do plano ${plan.name} atingido — fale com o time comercial`
             : `Limite de ${maxActiveOpportunities} oportunidades ativas do plano ${plan.name} atingido`
+        : atSearchLimit && accountsOver
+          ? `Limite de ${maxTargetAccounts} contas-alvo/mês do plano ${plan.name} atingido${isPaidEnterprise ? " — fale com o time comercial" : ""}`
         : atSearchLimit
           ? isTrialing
             ? `Limite de ${maxSearches} buscas do teste grátis atingido`
             : isPaidEnterprise
-              ? `Limite de ${maxSearches} buscas/mês do plano Enterprise atingido — fale com o time comercial`
+              ? `Limite de ${maxSearches} buscas/mês do plano ${plan.name} atingido — fale com o time comercial`
               : `Limite de ${maxSearches} buscas/mês do plano ${plan.name} atingido`
           : onCooldown && nextAvailableAt
             ? `Próxima busca disponível em ${formatDateTime(nextAvailableAt)}`
@@ -174,7 +179,9 @@ export default async function OpportunitiesPage({
               </span>
               <span style={{ color: atSearchLimit ? "var(--warn)" : "var(--fg-faint)" }}>
                 {" "}
-                · {searchesUsed}/{maxSearches} {isTrialing ? "buscas do teste grátis" : "buscas este mês"}
+                {isTrialing
+                  ? `· ${searchesUsed}/${maxSearches} buscas do teste grátis`
+                  : `· ${accountsThisMonth}/${maxTargetAccounts} contas-alvo este mês (${searchesUsed} buscas)`}
               </span>
               {creditBalance > 0 && (
                 <span style={{ color: creditBalance === 1 ? "var(--warn)" : "var(--fg-faint)" }}>
@@ -228,7 +235,7 @@ export default async function OpportunitiesPage({
           </a>
         ) : (
           <span
-            title="Disponível a partir do plano Profissional"
+            title="Disponível a partir do plano Crescimento"
             className="flex items-center gap-1.5 text-[12px] font-medium cursor-not-allowed"
             style={{ color: "var(--fg-faint)", opacity: 0.5 }}
           >
@@ -245,7 +252,7 @@ export default async function OpportunitiesPage({
       )}
       {params.search === "rate_limited" && (
         <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
-          Já rodamos uma busca recentemente (limite de 1 a cada 2 dias, pra não gastar à toa). Próxima disponível em{" "}
+          Já rodamos uma busca recentemente (há um intervalo mínimo entre buscas, pra não gastar à toa). Próxima disponível em{" "}
           {params.nextAt ? formatDateTime(new Date(params.nextAt)) : "breve"}.
         </div>
       )}
@@ -254,7 +261,7 @@ export default async function OpportunitiesPage({
           {isTrialing
             ? `Seu teste grátis permite até ${params.limit ?? maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no pipeline para liberar espaço, ou assine um plano pago pra continuar sem esse teto.`
             : isPaidEnterprise
-              ? `Seu plano Enterprise permite até ${params.limit ?? maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no pipeline para liberar espaço, ou fale com nosso time comercial pra ajustar seu limite.`
+              ? `Seu plano ${plan.name} permite até ${params.limit ?? maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no pipeline para liberar espaço, ou fale com nosso time comercial pra ajustar seu limite.`
               : `Seu plano permite até ${params.limit ?? maxActiveOpportunities} oportunidades ativas simultâneas. Mova ou descarte oportunidades no pipeline para liberar espaço, ou compre buscas extras/evolua de plano abaixo.`}
         </div>
       )}
@@ -263,8 +270,14 @@ export default async function OpportunitiesPage({
           {isTrialing
             ? `Seu teste grátis permite até ${params.limit ?? maxSearches} buscas nos 7 dias, e o limite já foi atingido. Assine um plano pago ou compre buscas extras abaixo pra continuar buscando.`
             : isPaidEnterprise
-              ? `Seu plano Enterprise permite até ${params.limit ?? maxSearches} buscas por mês, e o limite já foi atingido. O contador reseta no início do próximo mês, ou fale com nosso time comercial pra ajustar seu limite.`
+              ? `Seu plano ${plan.name} permite até ${params.limit ?? maxSearches} buscas por mês, e o limite já foi atingido. O contador reseta no início do próximo mês, ou fale com nosso time comercial pra ajustar seu limite.`
               : `Seu plano permite até ${params.limit ?? maxSearches} buscas por mês, e o limite já foi atingido. O contador reseta no início do próximo mês, ou compre buscas extras abaixo pra continuar agora.`}
+        </div>
+      )}
+      {params.search === "accounts_limit" && (
+        <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
+          {`Seu plano ${plan.name} inclui ${params.limit ?? maxTargetAccounts} contas-alvo por mês, e o limite já foi atingido. O contador reseta no início do próximo mês`}
+          {isPaidEnterprise ? ", ou fale com nosso time comercial pra ajustar seu limite." : ", ou compre buscas extras abaixo / evolua de plano pra continuar agora."}
         </div>
       )}
       {params.search === "user_blocked" && (

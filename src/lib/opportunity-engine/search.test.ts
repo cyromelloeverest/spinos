@@ -166,13 +166,13 @@ describe("searchOpportunities — gating", () => {
     expect(result).toEqual({ status: "error", message: "Organização não encontrada." });
   });
 
-  it("retorna rate_limited dentro do cooldown de 2 dias", async () => {
-    const lastSearchAt = new Date(Date.now() - DAY_MS); // 1 dia atrás, faltam ~1 dia
+  it("retorna rate_limited dentro do intervalo entre buscas do plano", async () => {
+    const lastSearchAt = new Date(Date.now() - 60 * 60 * 1000); // 1 hora atrás; o intervalo do Essencial é maior
     organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, lastSearchAt });
     const result = await searchOpportunities("org-1");
     expect(result.status).toBe("rate_limited");
     if (result.status === "rate_limited") {
-      expect(new Date(result.nextAvailableAt).getTime()).toBe(lastSearchAt.getTime() + SEARCH_COOLDOWN_MS);
+      expect(new Date(result.nextAvailableAt).getTime()).toBe(lastSearchAt.getTime() + PLANS.STARTER.searchCooldownMs);
     }
     expect(icpFindFirst).not.toHaveBeenCalled();
   });
@@ -221,6 +221,25 @@ describe("searchOpportunities — gating", () => {
     const result = await searchOpportunities("org-1");
     expect(result).toEqual({ status: "search_limit", limit: PLANS.STARTER.maxSearchesPerMonth });
     expect(organizationUpdate).not.toHaveBeenCalled(); // não deve gastar cooldown numa busca bloqueada
+  });
+
+  it("retorna accounts_limit quando as contas-alvo do mês atingem o que o plano inclui", async () => {
+    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "STARTER" });
+    opportunityScoreCount.mockResolvedValueOnce(0).mockResolvedValueOnce(PLANS.STARTER.maxTargetAccountsPerMonth);
+    searchRunCount.mockResolvedValueOnce(1);
+    const result = await searchOpportunities("org-1");
+    expect(result).toEqual({ status: "accounts_limit", limit: PLANS.STARTER.maxTargetAccountsPerMonth });
+    expect(organizationUpdate).not.toHaveBeenCalled();
+  });
+
+  it("no teto de contas-alvo, 1 busca extra comprada libera a busca (plano que pode comprar)", async () => {
+    organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, plan: "STARTER", creditBalance: 2 });
+    opportunityScoreCount.mockResolvedValueOnce(0).mockResolvedValueOnce(PLANS.STARTER.maxTargetAccountsPerMonth);
+    searchRunCount.mockResolvedValueOnce(1);
+    parseMock.mockResolvedValueOnce({ parsed_output: { opportunities: [] } });
+    const result = await searchOpportunities("org-1");
+    expect(result).toEqual({ status: "empty" });
+    expect(organizationUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: { creditBalance: { decrement: 1 } } }));
   });
 
   it("plano ENTERPRISE também bloqueia no teto — não é mais ilimitado", async () => {
@@ -451,7 +470,7 @@ describe("searchOpportunities — resultado vazio não consome cota nem cooldown
     await searchOpportunities("org-1");
 
     const secondUpdateCall = organizationUpdate.mock.calls[1][0] as { data: { lastSearchAt: Date } };
-    const nextAvailableAt = secondUpdateCall.data.lastSearchAt.getTime() + SEARCH_COOLDOWN_MS;
+    const nextAvailableAt = secondUpdateCall.data.lastSearchAt.getTime() + PLANS.ENTERPRISE.searchCooldownMs;
 
     expect(nextAvailableAt).toBeLessThanOrEqual(Date.now() + EMPTY_RESULT_RETRY_MS + 1000);
     expect(nextAvailableAt).toBeGreaterThan(Date.now() + EMPTY_RESULT_RETRY_MS - 60_000);
@@ -715,7 +734,7 @@ describe("searchSpecificCompany — busca dirigida", () => {
   });
 
   it("compartilha o mesmo cooldown/cota da busca aberta — bloqueia em rate_limited", async () => {
-    const lastSearchAt = new Date(Date.now() - DAY_MS);
+    const lastSearchAt = new Date(Date.now() - 60 * 60 * 1000);
     organizationFindUnique.mockResolvedValueOnce({ ...baseOrg, lastSearchAt, plan: "ENTERPRISE" });
 
     const result = await searchSpecificCompany("org-1", "Vetnil Nutrição Animal", null);

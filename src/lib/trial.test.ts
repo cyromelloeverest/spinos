@@ -77,6 +77,7 @@ describe("effectiveLimits", () => {
     expect(result).toEqual({
       maxActiveOpportunities: TRIAL_MAX_ACTIVE_OPPORTUNITIES,
       maxSearches: TRIAL_MAX_SEARCHES,
+      maxTargetAccounts: null,
       isTrialing: true,
     });
   });
@@ -92,6 +93,7 @@ describe("effectiveLimits", () => {
     expect(result).toEqual({
       maxActiveOpportunities: PLANS.STARTER.maxActiveOpportunities,
       maxSearches: PLANS.STARTER.maxSearchesPerMonth,
+      maxTargetAccounts: PLANS.STARTER.maxTargetAccountsPerMonth,
       isTrialing: false,
     });
   });
@@ -101,6 +103,7 @@ describe("effectiveLimits", () => {
     expect(result).toEqual({
       maxActiveOpportunities: PLANS.ENTERPRISE.maxActiveOpportunities,
       maxSearches: PLANS.ENTERPRISE.maxSearchesPerMonth,
+      maxTargetAccounts: PLANS.ENTERPRISE.maxTargetAccountsPerMonth,
       isTrialing: false,
     });
   });

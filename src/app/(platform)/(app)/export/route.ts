@@ -33,7 +33,7 @@ export async function GET() {
 
   if (!result.allowed) {
     return new Response(
-      `Exportação disponível a partir do plano Profissional. Seu plano atual é ${result.plan.name}.`,
+      `Exportação disponível a partir do plano Crescimento. Seu plano atual é ${result.plan.name}.`,
       { status: 403 },
     );
   }

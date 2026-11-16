@@ -21,6 +21,9 @@ function redirectForCommonOutcome(result: Exclude<SearchOutcome, { status: "ok" 
   if (result.status === "search_limit") {
     redirect(`/oportunidades?search=search_limit&limit=${result.limit}`);
   }
+  if (result.status === "accounts_limit") {
+    redirect(`/oportunidades?search=accounts_limit&limit=${result.limit}`);
+  }
   redirect(`/oportunidades?search=error&message=${encodeURIComponent(result.message)}`);
 }
 
