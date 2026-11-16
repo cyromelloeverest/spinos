@@ -75,6 +75,15 @@ function briefingFrom(f: FormData) {
   };
 }
 
+// Responsável e registro profissional valem para a organização toda (também assinam o conteúdo
+// gerado): ficam no perfil da empresa, e o site só os lê e atualiza.
+async function rememberProfessional(organizationId: string, b: ReturnType<typeof briefingFrom>) {
+  if (!b.responsibleName && !b.registration) return;
+  await withOrgContext(organizationId, (tx) =>
+    tx.organization.update({ where: { id: organizationId }, data: { ...(b.responsibleName ? { responsibleName: b.responsibleName } : {}), ...(b.registration ? { professionalRegistration: b.registration } : {}) } }),
+  );
+}
+
 function explain(err: unknown): never {
   if (err instanceof BriefingError) return fail(err.issues.map((i) => i.message).join(" · "));
   if (err instanceof SiteExistsError) return fail("Você já tem um site.");
@@ -97,6 +106,7 @@ export async function createMySite(formData: FormData) {
     buildSiteContent(pack, briefing);
     const hostname = await pickHostname(subdomainLabel(briefing.name));
     await withOrgContext(organizationId, (tx) => createSite(tx, { organizationId, pack, briefing, hostname }));
+    await rememberProfessional(organizationId, briefing);
   } catch (err) {
     explain(err);
   }
@@ -108,7 +118,9 @@ export async function saveMySiteDetails(siteId: string, formData: FormData) {
   const { organizationId } = await requireManager();
   try {
     const pack = await packFor(organizationId);
-    await withOrgContext(organizationId, (tx) => updateDetails(tx, organizationId, siteId, pack, briefingFrom(formData)));
+    const briefing = briefingFrom(formData);
+    await withOrgContext(organizationId, (tx) => updateDetails(tx, organizationId, siteId, pack, briefing));
+    await rememberProfessional(organizationId, briefing);
   } catch (err) {
     explain(err);
   }

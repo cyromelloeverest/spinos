@@ -15,6 +15,7 @@ vi.mock("@/lib/auth/current-org", () => ({
   getCurrentMembership: async () => ({ organizationId: "org-A", userId: "user-1", role: "OWNER" }),
   isCurrentUserSuperAdmin: async () => false,
 }));
+vi.mock("@/lib/log-error", () => ({ logError: vi.fn() }));
 vi.mock("@/lib/prisma-admin", () => ({ get prismaAdmin() { return h.prisma; } }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock("next/navigation", () => ({
@@ -161,6 +162,33 @@ describe("as telas montam com dados reais em todos os estados", () => {
     const html = renderToStaticMarkup((await Page({ searchParams: Promise.resolve({ periodo: "ano" }) })) as never);
     expect(html).toContain("Google Ads de teste");
     expect(html).toContain("R$");
+  }, 30_000);
+  it("conteúdo: gera rascunho (IA simulada), mostra avisos e permite editar, aprovar e descartar", async () => {
+    const { generateContent } = await import("@/lib/content/generate");
+    const fake = async () => ({ ideas: null, usage: { input: 1, output: 1 }, text: { title: "Rascunho de Fumaça", body: "Planos a partir de R$ 99 para a sua empresa.", sources: [], toVerify: ["Conferir o prazo"] } });
+    expect(await generateContent("org-A", "user-1", { kind: "SOCIAL_POST", topic: "Teste de fumaça", channel: "LINKEDIN" }, fake)).toMatchObject({ status: "ok" });
+    const Page = (await import("@/app/(platform)/(app)/conteudo/page")).default;
+    const html = renderToStaticMarkup((await Page({ searchParams: Promise.resolve({}) })) as never);
+    expect(html).toContain("Rascunho de Fumaça");
+    expect(html).toContain("Gerar rascunho");
+    expect(html).toContain("Conferir o prazo");
+    const draft = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_org_id', ${"org-A"}, true)`;
+      return tx.contentDraft.findFirstOrThrow({ where: { organizationId: "org-A" } });
+    });
+    const { saveDraft, setDraftStatus } = await import("@/lib/actions/content");
+    const form = new FormData();
+    form.set("title", "Título editado");
+    form.set("body", "Texto editado pela pessoa");
+    await expect(saveDraft(draft.id, form)).rejects.toThrow("REDIRECT:/conteudo?salvo=1");
+    await expect(setDraftStatus(draft.id, "APPROVED")).rejects.toThrow("REDIRECT:/conteudo?aprovado=1");
+    // Aprovado não é mais editável.
+    await expect(saveDraft(draft.id, form)).rejects.toThrow(/REDIRECT:\/conteudo\?erro=/);
+    expect(renderToStaticMarkup((await Page({ searchParams: Promise.resolve({}) })) as never)).toContain("Título editado");
+    await expect(setDraftStatus(draft.id, "DISCARDED")).rejects.toThrow("REDIRECT:/conteudo?salvo=1");
+    const gone = renderToStaticMarkup((await Page({ searchParams: Promise.resolve({}) })) as never);
+    expect(gone).not.toContain("Título editado");
+    expect(renderToStaticMarkup((await Page({ searchParams: Promise.resolve({ ver: "descartados" }) })) as never)).toContain("Título editado");
   }, 30_000);
   it("oportunidades", async () => {
     const Page = (await import("@/app/(platform)/(app)/oportunidades/page")).default;

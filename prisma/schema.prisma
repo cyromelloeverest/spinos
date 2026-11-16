@@ -34,20 +34,24 @@ enum Plan {
 }
 
 model Organization {
-  id            String    @id @default(cuid())
-  name          String
-  site          String?
-  city          String?
-  state         String?
-  country       String    @default("BR")
-  segment       String?
-  employeeRange String?
-  revenueRange  String?
-  cnpj          String?
-  phone         String?
-  plan          Plan      @default(STARTER)
-  trialEndsAt   DateTime? // null = sem limite de teste (conta já paga / uso interno)
-  lastSearchAt  DateTime?
+  id                       String    @id @default(cuid())
+  name                     String
+  site                     String?
+  city                     String?
+  state                    String?
+  country                  String    @default("BR")
+  segment                  String?
+  employeeRange            String?
+  revenueRange             String?
+  cnpj                     String?
+  phone                    String?
+  // Responsável técnico e registro profissional (CRC, OAB...): assinam o material de divulgação
+  // nos nichos regulados. Opcionais; só exigidos quando o pacote do nicho pede.
+  responsibleName          String?
+  professionalRegistration String?
+  plan                     Plan      @default(STARTER)
+  trialEndsAt              DateTime? // null = sem limite de teste (conta já paga / uso interno)
+  lastSearchAt             DateTime?
 
   // Assinatura via Stripe. Null = nunca assinou (ainda em trial manual, ou
   // conta cortesia/uso interno gerenciada só pelo admin). subscriptionStatus
@@ -110,6 +114,7 @@ model Organization {
   siteVersions      SiteVersion[]
   siteDomains       SiteDomain[]
   siteEvents        SiteEvent[]
+  contentDrafts     ContentDraft[]
 
   @@map("organizations")
 }
@@ -1058,4 +1063,50 @@ model SiteEvent {
   @@index([siteId, createdAt])
   @@index([siteId, type, visitorHash, createdAt])
   @@map("site_events")
+}
+
+// Conteúdo gerado pela IA do Spinos: sempre RASCUNHO. Nada é publicado sozinho; a pessoa lê, edita e
+// aprova. Cada geração (um pedido) pode gerar várias linhas (ex.: 5 ideias) e conta como um uso.
+enum ContentKind {
+  IDEA
+  SOCIAL_POST
+  ARTICLE
+  EMAIL
+}
+
+enum ContentStatus {
+  DRAFT
+  APPROVED
+  DISCARDED
+}
+
+model ContentDraft {
+  id              String        @id @default(cuid())
+  organizationId  String
+  generationId    String
+  kind            ContentKind
+  status          ContentStatus @default(DRAFT)
+  channel         String?
+  topic           String
+  title           String
+  body            String
+  // Fontes citadas pela IA ([{label, url}]) e pontos que a pessoa deve conferir antes de usar.
+  sources         Json          @default("[]")
+  toVerify        Json          @default("[]")
+  // Avisos automáticos das regras do nicho (preço, promessa, comparação...).
+  warnings        Json          @default("[]")
+  packKey         String?
+  packVersion     String?
+  usedCredit      Boolean       @default(false)
+  inputTokens     Int?
+  outputTokens    Int?
+  createdByUserId String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, generationId])
+  @@map("content_drafts")
 }

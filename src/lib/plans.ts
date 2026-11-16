@@ -14,6 +14,9 @@ export type PlanDefinition = {
   maxActiveOpportunities: number;
   maxUsers: number;
   maxSearchesPerMonth: number;
+  // Pedidos de conteúdo por mês (ideias, posts, artigos, e-mails): cada pedido é um uso, mesmo que
+  // gere várias linhas (ex.: 5 ideias). Passou do teto, consome o saldo pré-pago (1 crédito por pedido).
+  maxContentPerMonth: number;
   // Ainda não tem UI pra criar mais de 1 ICP por org — isso é a fonte da
   // verdade do limite comercial, mas nada no código impede hoje um usuário
   // de passar dele (não há como criar um segundo ICP de jeito nenhum ainda).
@@ -42,6 +45,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxActiveOpportunities: 80,
     maxUsers: 1,
     maxSearchesPerMonth: 15,
+    maxContentPerMonth: 10,
     maxIcps: 1,
     alertsFrequency: "weekly",
     supportTier: "Padrão",
@@ -55,6 +59,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxActiveOpportunities: 150,
     maxUsers: 5,
     maxSearchesPerMonth: 25,
+    maxContentPerMonth: 30,
     // Igual em todos os planos de propósito: ainda não existe UI pra criar
     // mais de 1 ICP por org (decisão 2026-08-14) — diferenciar por plano
     // venderia algo que nenhum cliente consegue usar hoje.
@@ -71,6 +76,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxActiveOpportunities: 400,
     maxUsers: 20,
     maxSearchesPerMonth: 60,
+    maxContentPerMonth: 80,
     maxIcps: 1,
     alertsFrequency: "realtime",
     supportTier: "Onboarding + CS dedicado + SLA",

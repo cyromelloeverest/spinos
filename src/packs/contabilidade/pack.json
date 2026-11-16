@@ -161,6 +161,39 @@
     { "title": "O que é BPO financeiro e quando faz sentido terceirizar", "angle": "Explicação do serviço e de suas etapas, sem promessas." },
     { "title": "Como organizar os documentos da empresa para o fechamento mensal", "angle": "Passo a passo prático com exemplos." }
   ],
+  "contentChecks": [
+    {
+      "id": "preco",
+      "pattern": "R\\$\\s?\\d|\\b(a partir de|desconto|promoção|promocional|oferta especial|mensalidade|valor dos honorários|honorários de)\\b",
+      "message": "Cita preço, desconto ou promoção. A NBC PG 01 pede divulgação informativa e discreta, sem valores."
+    },
+    {
+      "id": "gratis",
+      "pattern": "\\b(grátis|gratuit[oa]s?)\\b",
+      "message": "Oferece algo gratuito. Revise com cuidado e confirme com o CRC se pode usar nesta divulgação."
+    },
+    {
+      "id": "superlativo",
+      "pattern": "\\b(o melhor|a melhor|os melhores|as melhores|número 1|número um|líder|imbatível|incomparável|referência (no|em|na))\\b",
+      "message": "Usa superlativo ou afirmação de superioridade. Evite afirmações desproporcionais sobre os serviços (item 15)."
+    },
+    {
+      "id": "promessa",
+      "pattern": "\\b(garantimos|garantido|garantia de|100%|sem risco|economi[az]\\w*|reduz\\w* (seus |os )?impostos|pague menos|zere seus impostos)\\b",
+      "message": "Promete resultado ou economia. Não prometa resultado nem economia certa."
+    },
+    {
+      "id": "comparacao",
+      "pattern": "\\b(melhor que|diferente dos outros|ao contrário d[eo]s|outros escritórios|concorrentes?)\\b",
+      "message": "Compara com outros escritórios ou profissionais. A comparação não é permitida."
+    },
+    {
+      "id": "sonegacao",
+      "pattern": "\\b(sonegar|sonegação|burlar|driblar o fisco|fugir d[eo] imposto)\\b",
+      "message": "Sugere fugir de obrigação ou imposto. Reescreva falando em planejamento tributário dentro da lei."
+    }
+  ],
+  "contentSignature": "{{negocio}}. {{responsavel}}, Contador(a), {{registro}}.",
   "site": {
     "colors": {
       "primary": "#1d4ed8"

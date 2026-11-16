@@ -81,6 +81,8 @@ const organizationProfileSchema = z.object({
   revenueRange: optionalTextSchema("Faixa de faturamento", 50),
   cnpj: optionalTextSchema("CNPJ", 30),
   phone: optionalTextSchema("Telefone", 30),
+  responsibleName: optionalTextSchema("Responsável técnico", 120),
+  professionalRegistration: optionalTextSchema("Registro profissional", 60),
 });
 
 export async function updateOrganizationProfile(formData: FormData) {
@@ -97,6 +99,8 @@ export async function updateOrganizationProfile(formData: FormData) {
     revenueRange: String(formData.get("revenueRange") ?? ""),
     cnpj: String(formData.get("cnpj") ?? ""),
     phone: String(formData.get("phone") ?? ""),
+    responsibleName: String(formData.get("responsibleName") ?? ""),
+    professionalRegistration: String(formData.get("professionalRegistration") ?? ""),
   });
   if (!result.success) {
     redirect(`/settings/empresa?error=${encodeURIComponent(firstIssueMessage(result.error))}`);

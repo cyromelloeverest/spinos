@@ -137,10 +137,23 @@ export const NichePackSchema = z
     // Regras do que o conteúdo gerado pode e não pode dizer neste nicho.
     contentRules: z.array(z.string()).max(20),
     contentTopics: z.array(z.object({ title: z.string(), angle: z.string() })).max(40),
+    // Verificações automáticas do texto gerado (expressões que o nicho não pode usar, ex.: preço,
+    // promessa de resultado, comparação). Viram avisos no rascunho; a decisão é sempre da pessoa.
+    contentChecks: z.array(z.object({ id: z.string().regex(/^[a-z0-9_]+$/), pattern: z.string().min(1).max(500), message: z.string().min(1).max(300) })).max(30).default([]),
+    // Assinatura obrigatória no material de divulgação (ex.: responsável e registro profissional).
+    // Variáveis: {{negocio}}, {{responsavel}}, {{registro}}.
+    contentSignature: z.string().max(300).optional(),
     // Modelo de site e de páginas de captação (opcional: nicho sem modelo usa o do pacote geral).
     site: siteTemplate.optional(),
   })
   .superRefine((p, ctx) => {
+    for (const c of p.contentChecks) {
+      try {
+        new RegExp(c.pattern, "i");
+      } catch {
+        ctx.addIssue({ code: "custom", message: `Expressão inválida na verificação ${c.id}` });
+      }
+    }
     const keys = p.pipeline.stages.map((s) => s.key);
     if (new Set(keys).size !== keys.length) ctx.addIssue({ code: "custom", message: "Etapas com chave repetida" });
     if (!p.pipeline.stages.some((s) => s.kind === "OPEN")) ctx.addIssue({ code: "custom", message: "O funil precisa de uma etapa aberta" });

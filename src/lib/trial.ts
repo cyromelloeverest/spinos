@@ -16,6 +16,8 @@ export const TRIAL_DAYS = 7;
 // libera buscas sob demanda extras dentro do trial.
 export const TRIAL_MAX_SEARCHES = 1;
 export const TRIAL_MAX_ACTIVE_OPPORTUNITIES = 20;
+// Pedidos de conteúdo no trial inteiro (7 dias): o suficiente para sentir o produto sem gastar IA à toa.
+export const TRIAL_MAX_CONTENT = 3;
 
 export function newTrialEndsAt(daysFromNow: number = TRIAL_DAYS): Date {
   return new Date(Date.now() + daysFromNow * 24 * 60 * 60 * 1000);
@@ -48,4 +50,11 @@ export function effectiveLimits(organization: { plan: string; trialEndsAt: Date 
   }
   const plan = getPlan(organization.plan);
   return { maxActiveOpportunities: plan.maxActiveOpportunities, maxSearches: plan.maxSearchesPerMonth, isTrialing: false };
+}
+
+// Teto de pedidos de conteúdo: no trial vale o total do trial (nunca o plano escolhido para testar);
+// fora dele, o do plano por mês.
+export function effectiveContentLimit(organization: { plan: string; trialEndsAt: Date | null }): { max: number; isTrialing: boolean } {
+  if (organization.trialEndsAt !== null) return { max: TRIAL_MAX_CONTENT, isTrialing: true };
+  return { max: getPlan(organization.plan).maxContentPerMonth, isTrialing: false };
 }

@@ -184,6 +184,13 @@ export default async function EmpresaSettingsPage({
             <FormField label="CNPJ" name="cnpj" placeholder="Ex: 12.345.678/0001-90" defaultValue={organization.cnpj ?? ""} />
             <FormField label="Telefone comercial" name="phone" placeholder="Ex: (11) 4000-0000" defaultValue={organization.phone ?? ""} />
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label="Responsável técnico" name="responsibleName" placeholder="Ex: Maria Souza" defaultValue={organization.responsibleName ?? ""} />
+            <FormField label="Registro profissional" name="professionalRegistration" placeholder="Ex: CRC 1SP123456/O-0" defaultValue={organization.professionalRegistration ?? ""} />
+          </div>
+          <p className="m-0 -mt-2 text-[11.5px]" style={{ color: "var(--fg-faint)" }}>
+            Para profissões com conselho de classe: assinam o rodapé do site e os textos gerados.
+          </p>
           <button
             type="submit"
             className="mt-2 self-start text-[13px] font-semibold px-5 py-2.5 rounded-[12px] border cursor-pointer"

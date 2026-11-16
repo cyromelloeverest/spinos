@@ -72,7 +72,7 @@ export default async function MeuSitePage({ searchParams }: { searchParams: Prom
   try {
     data = await withOrgContext(organizationId, async (tx) => ({
       site: await getOrgSite(tx, organizationId),
-      org: await tx.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { name: true, city: true, state: true, phone: true } }),
+      org: await tx.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { name: true, city: true, state: true, phone: true, responsibleName: true, professionalRegistration: true } }),
       packKey: (await tx.organizationPack.findUnique({ where: { organizationId }, select: { packKey: true } }))?.packKey ?? null,
       latest: await tx.siteVersion.findFirst({ where: { organizationId }, orderBy: { version: "desc" }, select: { version: true, createdAt: true } }),
     }));
@@ -116,7 +116,7 @@ export default async function MeuSitePage({ searchParams }: { searchParams: Prom
         </p>
         {alerts}
         <form action={createMySite} className="rounded-[16px] border p-5 grid gap-4" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-          <BriefingFields values={{ name: data.org.name, city: data.org.city ?? "", state: data.org.state ?? "", phone: data.org.phone ?? "" }} requireRegistration={requireRegistration} withServices />
+          <BriefingFields values={{ name: data.org.name, city: data.org.city ?? "", state: data.org.state ?? "", phone: data.org.phone ?? "", responsibleName: data.org.responsibleName ?? "", registration: data.org.professionalRegistration ?? "" }} requireRegistration={requireRegistration} withServices />
           <div><button type="submit" className="text-[13px] font-semibold px-4 py-2.5 rounded-[10px] border cursor-pointer" style={btn}>Criar meu site</button></div>
         </form>
       </div>
@@ -134,6 +134,8 @@ export default async function MeuSitePage({ searchParams }: { searchParams: Prom
     street: business?.address?.street,
     instagram: business?.socials.instagram,
     primaryColor: draft?.content.theme.colors.primary,
+    responsibleName: data.org.responsibleName ?? "",
+    registration: data.org.professionalRegistration ?? "",
   };
 
   return (
