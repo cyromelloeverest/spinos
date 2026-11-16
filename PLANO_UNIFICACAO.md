@@ -120,6 +120,26 @@ Como ler as estimativas: são "dias úteis de trabalho assistido por Claude, uma
 
 ---
 
+## Atualização 5 de 2026-11-16 (Site e Informação definidos)
+
+**Respostas do Cyro**
+
+1. **Site:** o **site do cliente mais as landing pages**, usando o motor que já existe no Everest Sites (`@everest/content` e `@everest/sections`: 29 seções, tema, SEO e GEO, rascunho e publicação, anti-spam, captura de origem). Não é só landing.
+2. **Informação:** (a) **relatórios** do site, das redes sociais e do resto do marketing; e (b) **conteúdo pronto**: textos, ideias de postagem e mais. A parte de conteúdo (antes na camada 3) entra na v1 em versão enxuta, gerada pela IA do Spinos a partir do pacote de nicho.
+
+**O que isso muda**
+
+| Pacote | Escopo na v1 | Dias úteis |
+|---|---|---|
+| WP5 (Site e landing pages) | Motor do Sites incorporado (pacotes de conteúdo e seções) + site pequeno em modelo (início, serviços, contato) preenchido por briefing + 3 landing pages do pacote + domínio próprio ou subdomínio, tudo no banco do Spinos | 12 a 16 (era 8 a 12) |
+| WP10 (Relatórios) | Origem até contrato, **tráfego do site com a análise própria do motor** (visitas, cliques de WhatsApp e telefone, desempenho), números das redes digitados à mão ou por CSV, investimento em anúncios digitado. **Conectores de Meta, Instagram, LinkedIn e Google Ads ficam para a v1.1**, porque exigem aprovação de cada plataforma | 9 a 11 |
+| WP12 (novo, Conteúdo enxuto) | Ideias de postagem por tema do pacote, textos gerados pela IA (post, legenda, e-mail), um calendário simples e o histórico. Cada geração usa créditos do plano, com custo registrado. Os textos do nicho de contabilidade seguem a NBC PG 01 (informativos, sem preço, sem comparação). Rascunho para o cliente aprovar: **nada é publicado ou enviado sozinho** | 8 a 10 |
+| **v1 com 4 módulos enxutos + conteúdo** | WP0 a WP12 | **99 a 128 (20 a 26 semanas)** |
+
+**Cuidados do conteúdo gerado por IA:** (1) o texto sai como rascunho, nunca publica sozinho; (2) o modelo recebe só dados do perfil do cliente e do pacote, não dados de terceiros; (3) cada geração registra custo e desconta créditos; (4) o prompt segue as regras de honestidade do Spinos (campos "não confirmado" em vez de inventar fatos sobre o escritório).
+
+---
+
 ## 0. Resumo executivo
 
 **1. A unificação é viável, mas não do jeito "juntar os quatro códigos".** Os quatro sistemas têm bancos, logins e premissas de tenant diferentes (seção 1). O caminho que sobrevive é: o Spinos vira o núcleo (banco, login, tenant), e CRM, Pulse e Sites entram como módulos **portando o modelo e a lógica**, não copiando o código inteiro.
