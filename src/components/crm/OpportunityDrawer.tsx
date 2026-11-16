@@ -38,7 +38,7 @@ function TypeSelect({ name, defaultValue = "CALL" }: { name: string; defaultValu
   );
 }
 
-export function OpportunityDrawer({ data, scoreId, ownerParam, erro, salvo, now }: { data: DrawerData; scoreId: string; ownerParam: "me" | "all"; erro?: string; salvo?: boolean; now: Date }) {
+export function OpportunityDrawer({ data, messages, scoreId, ownerParam, erro, salvo, now }: { data: DrawerData; messages: { key: string; title: string; channel: string; text: string; url: string | null }[]; scoreId: string; ownerParam: "me" | "all"; erro?: string; salvo?: boolean; now: Date }) {
   const { company, deal, contacts, stages, members, owner } = data;
   const primary = contacts.find((c) => c.isPrimary) ?? contacts[0] ?? null;
   const whatsapp = toWhatsAppUrl(primary?.phone);
@@ -88,6 +88,26 @@ export function OpportunityDrawer({ data, scoreId, ownerParam, erro, salvo, now 
 
         {erro && <div className="mx-6 mb-3 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }} role="alert">{erro}</div>}
         {salvo && !erro && <div className="mx-6 mb-3 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }} role="status">Salvo.</div>}
+
+        {messages.length > 0 && (
+          <Section title="Mensagens prontas">
+            <div className="grid gap-2">
+              {messages.map((m) => (
+                <details key={m.key} className="rounded-[12px] border px-3 py-2" style={{ borderColor: "var(--border)" }}>
+                  <summary className="text-[12.5px] font-semibold cursor-pointer">{m.title}</summary>
+                  <textarea readOnly rows={5} defaultValue={m.text} className="w-full mt-2 rounded-[10px] border px-3 py-2 text-[12.5px]" style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)" }} />
+                  <div className="flex items-center gap-3 mt-2 text-[12px]">
+                    {m.url ? (
+                      <a href={m.url} target="_blank" rel="noreferrer" className="no-underline font-semibold" style={{ color: "var(--good)" }}>Abrir no WhatsApp com esta mensagem</a>
+                    ) : (
+                      <span style={{ color: "var(--fg-faint)" }}>{m.channel === "WHATSAPP" ? "Sem telefone no contato." : "Copie o texto acima."}</span>
+                    )}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </Section>
+        )}
 
         {!deal ? (
           <Section title="Negociação">

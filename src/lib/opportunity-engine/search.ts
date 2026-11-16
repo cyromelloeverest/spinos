@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import type { Organization, ICP } from "@/generated/prisma/client";
 import { withOrgContext } from "@/lib/db/with-org-context";
 import { ensureAccountForCompany, ensureDecisionMakerContact, untouchedScoresWhere } from "@/lib/crm/accounts";
+import { getInstalledPack } from "@/lib/crm/pack-install";
 import { OpportunitySearchResultSchema } from "./schema";
 import { findBestMatch } from "./company-matching";
 import { SEARCH_COOLDOWN_MS, EMPTY_RESULT_RETRY_MS, startOfCurrentMonth } from "./constants";
@@ -302,6 +303,15 @@ async function executeSearch(
     return tx.searchRun.create({ data: { organizationId } });
   });
 
+  // Orientação do pacote de nicho (opcional): se faltar ou der erro, a busca segue sem ela.
+  let guidanceBlock = "";
+  try {
+    const pack = await withOrgContext(organizationId, (tx) => getInstalledPack(tx, organizationId));
+    if (pack?.searchGuidance) guidanceBlock = `\n\nORIENTAÇÃO ESPECÍFICA DO SEGMENTO DO CONTRATANTE:\n${pack.searchGuidance}`;
+  } catch (err) {
+    logError("search: falha ao ler o pacote de nicho (segue sem orientação)", err, { organizationId });
+  }
+
   const client = new Anthropic({ apiKey });
 
   let response;
@@ -315,7 +325,7 @@ async function executeSearch(
         output_config: {
           format: zodOutputFormat(OpportunitySearchResultSchema),
         },
-        messages: [{ role: "user", content: buildSearchPrompt(organization, icp) }],
+        messages: [{ role: "user", content: buildSearchPrompt(organization, icp) + guidanceBlock }],
       });
       if (!skippedSearch(response)) break;
       // A tentativa vazia custou (pouco) mesmo assim — fica registrada, o

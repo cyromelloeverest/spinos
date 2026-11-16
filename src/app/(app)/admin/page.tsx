@@ -5,9 +5,10 @@ import { prismaAdmin } from "@/lib/prisma-admin";
 import { isCurrentUserSuperAdmin } from "@/lib/auth/current-org";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { isTrialExpired, trialDaysLeft } from "@/lib/trial";
-import { extendTrial, removeTrialLimit, adminInviteUser, adminRemoveUser, adminCancelInvite, adminToggleSearchBlock } from "@/lib/actions/admin";
+import { extendTrial, removeTrialLimit, adminInviteUser, adminRemoveUser, adminCancelInvite, adminToggleSearchBlock, installPackForOrganization } from "@/lib/actions/admin";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { PlanSelect } from "@/components/PlanSelect";
+import { listPacks } from "@/packs/registry";
 import { ConfirmDeleteOrgButton } from "@/components/ConfirmDeleteOrgButton";
 import { logError } from "@/lib/log-error";
 import { ShieldCheck, X, Ban, Play, UserX, ShieldAlert } from "lucide-react";
@@ -284,6 +285,15 @@ export default async function AdminPage({
                       </Td>
                       <Td>
                         <PlanSelect organizationId={org.id} currentPlan={org.plan} />
+                        <details className="mt-1.5">
+                          <summary className="text-[11px] cursor-pointer" style={{ color: "var(--fg-faint)" }}>Pacote de nicho</summary>
+                          <form action={installPackForOrganization.bind(null, org.id)} className="flex gap-1.5 mt-1.5">
+                            <select name="packKey" defaultValue={listPacks().find((p) => p.key !== "geral")?.key} className="rounded-[8px] border px-2 py-1 text-[11.5px]" style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)" }}>
+                              {listPacks().map((p) => <option key={p.key} value={p.key}>{p.name}</option>)}
+                            </select>
+                            <button type="submit" className="text-[11px] font-medium px-2 py-1 rounded-[8px] border cursor-pointer" style={{ background: "var(--card)", borderColor: "var(--border-strong)", color: "var(--fg)" }}>Instalar</button>
+                          </form>
+                        </details>
                       </Td>
                       <Td>
                         <div className="flex flex-col gap-1.5 min-w-[160px]">

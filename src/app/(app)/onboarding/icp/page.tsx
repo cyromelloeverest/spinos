@@ -2,6 +2,9 @@ import { createICP } from "@/lib/actions/onboarding";
 import { FormField } from "@/components/FormField";
 import { TextAreaField } from "@/components/TextAreaField";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
+import { withOrgContext } from "@/lib/db/with-org-context";
+import { getCurrentOrganizationId } from "@/lib/auth/current-org";
+import { getInstalledPack } from "@/lib/crm/pack-install";
 import { ArrowRight } from "lucide-react";
 
 export default async function OnboardingICPPage({
@@ -11,6 +14,12 @@ export default async function OnboardingICPPage({
 }) {
   const params = await searchParams;
   if (params.dbError) return <DbSetupNotice />;
+
+  // Se o pacote de nicho está instalado, o formulário já vem preenchido com o perfil de
+  // cliente ideal recomendado. Qualquer falha aqui só deixa o formulário em branco.
+  const organizationId = await getCurrentOrganizationId();
+  const pack = organizationId ? await withOrgContext(organizationId, (tx) => getInstalledPack(tx, organizationId)).catch(() => null) : null;
+  const preset = pack?.icp;
 
   return (
     <div className="pt-10 px-4 md:px-10 pb-16 max-w-[560px]">
@@ -44,12 +53,14 @@ export default async function OnboardingICPPage({
           placeholder="Ex: Empresas industriais em expansão física, que provavelmente vão precisar de estruturas metálicas customizadas nos próximos meses — não olhamos bem pra quem já tem fornecedor fixo há mais de 5 anos."
           hint="O campo que mais ajuda a IA — texto livre capta nuances que os campos abaixo não pegam. Quanto mais específico, melhor o resultado da sua busca."
           rows={4}
+          defaultValue={preset?.idealCustomerDescription}
         />
         <FormField
           label="Segmentos-alvo"
           name="segments"
           placeholder="Ex: indústria metalúrgica, clínicas veterinárias, distribuidoras de material de construção"
           hint="separados por vírgula — evite algo genérico como só 'empresas B2B', isso deixa a busca fraca"
+          defaultValue={preset?.segments.join(", ")}
         />
 
         <details className="group rounded-[10px] border px-4 py-3" style={{ borderColor: "var(--border)" }}>
@@ -73,12 +84,14 @@ export default async function OnboardingICPPage({
               name="servicesSold"
               placeholder="Ex: consultoria, instalação, manutenção"
               hint="separados por vírgula"
+              defaultValue={preset?.servicesSold.join(", ")}
             />
             <FormField
               label="Palavras-chave"
               name="keywords"
               placeholder="Ex: expansão, nova unidade, contratação"
               hint="separadas por vírgula, opcional"
+              defaultValue={preset?.keywords.join(", ")}
             />
           </div>
         </details>

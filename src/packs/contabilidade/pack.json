@@ -1,0 +1,164 @@
+{
+  "key": "contabilidade",
+  "version": "1.0.0",
+  "name": "Escritório de contabilidade",
+  "description": "Funil, perfil de cliente ideal, automações e mensagens para escritórios de contabilidade que querem encontrar e conquistar novos clientes. Os textos seguem a NBC PG 01 (Código de Ética do Contador): informativos, discretos, sem preço e sem comparação com colegas.",
+  "vocabulary": { "account": "Empresa", "accountPlural": "Empresas", "lead": "Lead" },
+  "pipeline": {
+    "name": "Escritório de contabilidade",
+    "stages": [
+      { "key": "PRIMEIRO_CONTATO", "name": "Primeiro contato", "kind": "OPEN" },
+      { "key": "DIAGNOSTICO", "name": "Diagnóstico", "kind": "OPEN" },
+      { "key": "PROPOSTA", "name": "Proposta enviada", "kind": "OPEN" },
+      { "key": "NEGOCIACAO", "name": "Em negociação", "kind": "OPEN" },
+      { "key": "CLIENTE", "name": "Virou cliente", "kind": "WON" },
+      { "key": "PERDIDO", "name": "Perdido", "kind": "LOST" }
+    ]
+  },
+  "icp": {
+    "segments": [
+      "comércio varejista",
+      "serviços profissionais",
+      "indústria de pequeno e médio porte",
+      "saúde e clínicas",
+      "construção civil e engenharia",
+      "transporte e logística",
+      "tecnologia e agências"
+    ],
+    "servicesSold": [
+      "contabilidade para empresas",
+      "abertura e legalização de empresas",
+      "BPO financeiro",
+      "folha de pagamento e departamento pessoal",
+      "planejamento e consultoria tributária"
+    ],
+    "productsSold": [],
+    "keywords": [
+      "abertura de empresa",
+      "novo CNPJ",
+      "nova filial",
+      "expansão",
+      "reforma tributária",
+      "troca de contador",
+      "contratação de equipe administrativa"
+    ],
+    "decisionMakerTitles": ["sócio", "sócio-administrador", "proprietário", "diretor financeiro", "gerente administrativo"],
+    "employeeMin": 2,
+    "employeeMax": 200,
+    "saleModel": "RECORRENTE",
+    "preferredSignalCategories": ["EXPANSION", "HIRING", "REGULATORY", "FUNDING", "PARTNERSHIP"],
+    "idealCustomerDescription": "Empresas de pequeno e médio porte da nossa região que acabaram de abrir, estão crescendo ou mudando de regime tributário, e que provavelmente ainda não têm uma contabilidade organizada. Não olhamos para grandes grupos que já têm departamento contábil próprio."
+  },
+  "searchGuidance": "Você trabalha para um escritório de contabilidade que atende empresas. As oportunidades são empresas que provavelmente precisam de contabilidade, abertura de empresa, folha de pagamento ou consultoria tributária. Priorize sinais públicos de: empresa recém-aberta (CNPJ novo), abertura de nova filial ou unidade, expansão, mudança de porte ou de regime tributário, captação de investimento, entrada de novos sócios, contratação de equipe administrativa ou financeira e impacto da reforma tributária no segmento. Prefira empresas de pequeno e médio porte na região indicada no perfil. Evite grandes grupos que claramente já têm departamento contábil próprio. Nunca afirme que a empresa não tem contador: isso só dá para saber falando com ela. Descreva a abordagem de forma informativa e discreta, sem prometer resultado, sem citar preço e sem comparar com outros escritórios.",
+  "signals": [
+    { "key": "empresa_recem_aberta", "label": "Empresa recém-aberta", "description": "CNPJ novo ou abertura anunciada: a empresa acabou de nascer e precisa de contabilidade e legalização." },
+    { "key": "nova_filial", "label": "Nova filial ou unidade", "description": "Abertura de filial exige novo CNPJ, registros e rotina contábil." },
+    { "key": "mudanca_regime_porte", "label": "Mudança de regime ou de porte", "description": "Saída do Simples Nacional ou crescimento de porte muda obrigações e impostos." },
+    { "key": "reforma_tributaria", "label": "Impacto da reforma tributária", "description": "Empresas de segmentos afetados pela reforma precisam de orientação e planejamento." },
+    { "key": "equipe_administrativa", "label": "Contratação administrativa ou financeira", "description": "Vagas na área administrativa ou financeira indicam estrutura em crescimento." },
+    { "key": "investimento_socios", "label": "Investimento ou novos sócios", "description": "Entrada de sócios ou capital pede revisão societária e contábil." }
+  ],
+  "automations": {
+    "lead_response": { "enabled": true, "config": { "slaMinutes": 30, "escalateAfterMinutes": 30 } },
+    "lead_distribution": { "enabled": false, "config": { "userIds": [], "cursor": 0 } },
+    "stage_tasks": {
+      "enabled": true,
+      "config": {
+        "rules": [
+          { "stageKey": "DIAGNOSTICO", "task": { "type": "MEETING", "title": "Preparar o diagnóstico: regime tributário, obrigações e situação atual da empresa", "days": 1 } }
+        ]
+      }
+    },
+    "proposal_followup": { "enabled": true, "config": { "stageKeys": ["PROPOSTA"], "days": [2, 5, 10] } },
+    "no_next_step": { "enabled": true, "config": { "afterDays": 3 } },
+    "won_onboarding": {
+      "enabled": true,
+      "config": {
+        "tasks": [
+          { "type": "MEETING", "title": "Reunião de boas-vindas e lista de documentos para a migração da contabilidade", "days": 1 },
+          { "type": "TASK", "title": "Conferir o primeiro fechamento contábil com o cliente (30 dias)", "days": 30 },
+          { "type": "TASK", "title": "Perguntar se o cliente conhece outra empresa que precise de contabilidade (90 dias)", "days": 90 }
+        ]
+      }
+    },
+    "lost_reactivation": { "enabled": true, "config": { "afterDays": 120 } }
+  },
+  "messages": [
+    {
+      "key": "primeiro_contato_empresa_nova",
+      "title": "Primeiro contato: empresa recém-aberta",
+      "channel": "WHATSAPP",
+      "stageKeys": ["PRIMEIRO_CONTATO"],
+      "body": "Olá, {{nome}}, tudo bem? Aqui é {{seu_nome}}, do {{escritorio}}. Vi que a {{empresa}} está começando e quis me apresentar: nosso escritório atua com contabilidade e legalização de empresas na região. Se fizer sentido, posso explicar em poucos minutos como funciona a parte contábil e fiscal de uma empresa nova. Posso te ligar em um horário melhor? Se preferir não receber contato, é só me avisar."
+    },
+    {
+      "key": "primeiro_contato_crescimento",
+      "title": "Primeiro contato: empresa em crescimento",
+      "channel": "WHATSAPP",
+      "stageKeys": ["PRIMEIRO_CONTATO"],
+      "body": "Olá, {{nome}}, tudo bem? Sou {{seu_nome}}, do {{escritorio}}. Acompanhei o crescimento da {{empresa}} e achei que valia uma conversa rápida sobre organização contábil e tributária nessa fase. Posso explicar, sem compromisso, o que costuma mudar para empresas que estão expandindo? Se não for o momento, sem problema, e me diga que eu não volto a escrever."
+    },
+    {
+      "key": "contato_indicacao",
+      "title": "Contato por indicação",
+      "channel": "WHATSAPP",
+      "stageKeys": ["PRIMEIRO_CONTATO"],
+      "body": "Olá, {{nome}}! Aqui é {{seu_nome}}, do {{escritorio}}. Fui indicado(a) para conversar com você sobre a contabilidade da {{empresa}}. Posso te ligar hoje ou amanhã para entender como está a situação hoje e ver se faz sentido eu ajudar?"
+    },
+    {
+      "key": "convite_diagnostico",
+      "title": "Convite para o diagnóstico",
+      "channel": "WHATSAPP",
+      "stageKeys": ["PRIMEIRO_CONTATO", "DIAGNOSTICO"],
+      "body": "Olá, {{nome}}! Que bom conversar com você. Como combinamos, vou fazer um diagnóstico gratuito da situação contábil e fiscal da {{empresa}}: regime tributário, obrigações em dia e pontos de atenção. Leva cerca de 20 minutos. Qual o melhor dia e horário para você?"
+    },
+    {
+      "key": "follow_up_sem_resposta",
+      "title": "Follow-up: sem resposta",
+      "channel": "WHATSAPP",
+      "stageKeys": ["PRIMEIRO_CONTATO", "DIAGNOSTICO"],
+      "body": "Olá, {{nome}}, {{seu_nome}} do {{escritorio}} de novo. Passando só para saber se você viu minha mensagem sobre a {{empresa}}. Se este não for o momento, tudo bem: me avise e eu deixo você em paz. Se quiser conversar, é só responder por aqui."
+    },
+    {
+      "key": "proposta_enviada",
+      "title": "Proposta enviada",
+      "channel": "WHATSAPP",
+      "stageKeys": ["PROPOSTA", "NEGOCIACAO"],
+      "body": "Olá, {{nome}}! Enviei a proposta para a {{empresa}} com o escopo dos serviços que conversamos. Ficou alguma dúvida sobre o que está incluso? Posso explicar ponto a ponto por telefone ou reunião."
+    },
+    {
+      "key": "retomada_perdido",
+      "title": "Retomada de quem não fechou",
+      "channel": "WHATSAPP",
+      "stageKeys": ["PERDIDO"],
+      "body": "Olá, {{nome}}, tudo bem? {{seu_nome}}, do {{escritorio}}. Conversamos há algum tempo sobre a contabilidade da {{empresa}}. Gostaria de saber se a necessidade mudou ou se posso ajudar em algo agora. Se preferir não receber contato, é só dizer."
+    },
+    {
+      "key": "nota_linkedin",
+      "title": "Convite de conexão no LinkedIn",
+      "channel": "LINKEDIN",
+      "stageKeys": ["PRIMEIRO_CONTATO"],
+      "body": "Olá, {{nome}}! Sou {{seu_nome}}, do {{escritorio}}. Atuo com contabilidade para empresas da região e gostaria de me conectar para trocarmos experiências sobre a gestão contábil e tributária da {{empresa}}."
+    }
+  ],
+  "contentRules": [
+    "O conteúdo deve ter natureza técnica e informativa, de forma moderada e discreta (NBC PG 01, itens 11 e 12).",
+    "Nunca citar preço, desconto, promoção ou valor de honorários em material de divulgação.",
+    "Nunca prometer resultado, economia certa ou 'o melhor escritório'; nada de afirmações desproporcionais sobre os serviços (item 15).",
+    "Nunca comparar o escritório com outros nem criticar colegas de profissão.",
+    "Todo anúncio ou material de divulgação deve trazer o nome do responsável, a categoria profissional e o número de registro no CRC (item 4, alínea r).",
+    "Guardar a fonte técnica de qualquer dado, prazo ou regra citada (item 13).",
+    "Respeitar o Código de Defesa do Consumidor: informação clara e adequada sobre o serviço (item 14).",
+    "Toda mensagem de abordagem deve permitir que a pessoa peça para não receber mais contato."
+  ],
+  "contentTopics": [
+    { "title": "Como abrir uma empresa: o passo a passo", "angle": "Educativo: registro, CNPJ, alvará, escolha do regime e obrigações do primeiro mês." },
+    { "title": "MEI, Simples, Lucro Presumido: o que muda em cada regime", "angle": "Explicação objetiva das diferenças, sem recomendar sem conhecer a empresa." },
+    { "title": "Reforma tributária: o que a sua empresa precisa acompanhar", "angle": "Prazos e mudanças já publicados, com a fonte oficial." },
+    { "title": "Calendário fiscal do mês", "angle": "Obrigações principais e datas, sempre conferidas na fonte oficial." },
+    { "title": "Imposto de Renda: quem precisa declarar e quais documentos separar", "angle": "Lista de verificação para pessoa física e para sócios." },
+    { "title": "Sinais de que está na hora de revisar a contabilidade da empresa", "angle": "Crescimento, nova filial, mudança de sócios, atraso de obrigações." },
+    { "title": "O que é BPO financeiro e quando faz sentido terceirizar", "angle": "Explicação do serviço e de suas etapas, sem promessas." },
+    { "title": "Como organizar os documentos da empresa para o fechamento mensal", "angle": "Passo a passo prático com exemplos." }
+  ]
+}

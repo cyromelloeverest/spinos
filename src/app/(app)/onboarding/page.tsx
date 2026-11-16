@@ -1,6 +1,7 @@
 import { createOrganization } from "@/lib/actions/onboarding";
 import { FormField } from "@/components/FormField";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
+import { listPacks } from "@/packs/registry";
 import { ArrowRight } from "lucide-react";
 
 export default async function OnboardingCompanyPage({
@@ -37,6 +38,23 @@ export default async function OnboardingCompanyPage({
 
       <form action={createOrganization} className="flex flex-col gap-4">
         <FormField label="Nome da empresa" name="name" placeholder="Ex: Minha Empresa Ltda" required />
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[12.5px] font-medium" style={{ color: "var(--fg)" }}>Tipo de negócio</span>
+          <select
+            name="nichePack"
+            defaultValue=""
+            className="rounded-[10px] border px-3.5 text-[13.5px] outline-none"
+            style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)", height: "44px" }}
+          >
+            <option value="">Outro (funil genérico)</option>
+            {listPacks().filter((p) => p.key !== "geral").map((p) => (
+              <option key={p.key} value={p.key}>{p.name}</option>
+            ))}
+          </select>
+          <span className="text-[11.5px]" style={{ color: "var(--fg-faint)" }}>
+            O tipo de negócio já prepara o funil, as mensagens e as automações recomendadas. Você ajusta tudo depois.
+          </span>
+        </label>
         <FormField label="Site" name="site" placeholder="https://" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField label="Cidade" name="city" placeholder="Ex: São Paulo" />

@@ -1,0 +1,35 @@
+{
+  "key": "geral",
+  "version": "1.0.0",
+  "name": "Geral (B2B)",
+  "description": "Funil genérico de vendas B2B, o mesmo que o Spinos sempre teve. Serve para qualquer nicho que ainda não tem pacote próprio.",
+  "vocabulary": { "account": "Empresa", "accountPlural": "Empresas", "lead": "Lead" },
+  "pipeline": {
+    "name": "Geral B2B",
+    "stages": [
+      { "key": "CONTATO_FEITO", "name": "Contato feito", "kind": "OPEN" },
+      { "key": "VISITA_AGENDADA", "name": "Visita agendada", "kind": "OPEN" },
+      { "key": "PROPOSTA_ENVIADA", "name": "Proposta enviada", "kind": "OPEN" },
+      { "key": "VENDIDO", "name": "Vendido", "kind": "WON" },
+      { "key": "PERDIDO", "name": "Perdido", "kind": "LOST" }
+    ]
+  },
+  "icp": {
+    "segments": [],
+    "servicesSold": [],
+    "productsSold": [],
+    "keywords": [],
+    "decisionMakerTitles": [],
+    "employeeMin": null,
+    "employeeMax": null,
+    "saleModel": null,
+    "preferredSignalCategories": [],
+    "idealCustomerDescription": ""
+  },
+  "searchGuidance": "",
+  "signals": [],
+  "automations": {},
+  "messages": [],
+  "contentRules": [],
+  "contentTopics": []
+}

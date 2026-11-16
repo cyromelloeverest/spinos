@@ -29,12 +29,14 @@ function fetchHistory(organizationId: string) {
     }),
   ).then((rows) =>
     rows
-      .map((r) => ({ ...r, stageKey: r.account?.opportunities[0]?.stage.key ?? null, sortKey: (r.account?.opportunities[0]?.stageChangedAt ?? r.computedAt).getTime() }))
+      .map((r) => ({ ...r, stageKey: r.account?.opportunities[0]?.stage.key ?? null, stageName: r.account?.opportunities[0]?.stage.name ?? null, stageKind: r.account?.opportunities[0]?.stage.kind ?? null, sortKey: (r.account?.opportunities[0]?.stageChangedAt ?? r.computedAt).getTime() }))
       .sort((a, b) => b.sortKey - a.sortKey),
   );
 }
 
-function statusKey(opp: { stageKey: string | null; status: string }): string {
+function statusKey(opp: { stageKey: string | null; stageKind?: string | null; status: string }): string {
+  if (opp.stageKind === "WON") return "VENDIDO";
+  if (opp.stageKind === "LOST") return "PERDIDO";
   if (opp.stageKey) return opp.stageKey;
   if (opp.status === "DISMISSED") return "DESCARTADA";
   return "ATIVA";
@@ -74,7 +76,9 @@ export default async function HistoricoPage() {
 
         {opportunities.map((opp) => {
           const key = statusKey(opp);
-          const badge = STATUS_LABEL[key] ?? STATUS_LABEL.ATIVA;
+          const base = STATUS_LABEL[key] ?? (opp.stageName ? STATUS_LABEL.CONTATO_FEITO : STATUS_LABEL.ATIVA);
+          // O nome da etapa vem do funil da organização (pode ser de um pacote de nicho).
+          const badge = opp.stageName && opp.stageKind === "OPEN" ? { ...base, label: opp.stageName } : opp.stageName && (opp.stageKind === "WON" || opp.stageKind === "LOST") ? { ...base, label: opp.stageName } : base;
           return (
             <Link
               key={opp.id}

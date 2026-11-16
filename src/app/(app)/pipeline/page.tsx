@@ -11,6 +11,8 @@ import { getDefaultPipeline } from "@/lib/crm/pipeline-config";
 import { getAttention } from "@/lib/crm/attention";
 import { getDrawerData } from "@/lib/crm/drawer-data";
 import { toWhatsAppUrl } from "@/lib/crm/whatsapp";
+import { getInstalledPack } from "@/lib/crm/pack-install";
+import { renderMessage } from "@/packs/registry";
 import { formatBRL } from "@/lib/crm/money";
 import { initials } from "@/lib/initials";
 import { logError } from "@/lib/log-error";
@@ -52,7 +54,30 @@ async function fetchPipelineData(organizationId: string, userId: string | null, 
     });
     const members = await tx.membership.findMany({ where: { organizationId }, include: { user: { select: { id: true, name: true, email: true } } } });
     const drawer = openId ? await getDrawerData(tx, organizationId, openId) : null;
-    return { pipeline, scores, leadDeals, members, attention, drawer, now };
+    // Mensagens prontas do pacote de nicho, com as variáveis já preenchidas.
+    let messages: { key: string; title: string; channel: string; text: string; url: string | null }[] = [];
+    if (drawer) {
+      const pack = await getInstalledPack(tx, organizationId);
+      if (pack) {
+        const org = await tx.organization.findUnique({ where: { id: organizationId }, select: { name: true } });
+        const me = members.find((m) => m.userId === userId)?.user;
+        const primary = drawer.contacts.find((c) => c.isPrimary) ?? drawer.contacts[0] ?? null;
+        const stageKey = drawer.deal?.stage.key ?? pipeline.stages.find((s) => s.kind === "OPEN")?.key;
+        const values = {
+          nome: primary?.name.split(" ")[0],
+          empresa: drawer.company.name,
+          escritorio: org?.name,
+          seu_nome: (me?.name || me?.email || "").split(" ")[0],
+        };
+        messages = pack.messages
+          .filter((m) => m.stageKeys.length === 0 || (stageKey !== undefined && m.stageKeys.includes(stageKey)))
+          .map((m) => {
+            const text = renderMessage(m.body, values);
+            return { key: m.key, title: m.title, channel: m.channel, text, url: m.channel === "WHATSAPP" ? toWhatsAppUrl(primary?.phone, text) : null };
+          });
+      }
+    }
+    return { pipeline, scores, leadDeals, members, attention, drawer, messages, now };
   });
 }
 
@@ -158,7 +183,7 @@ export default async function PipelinePage({ searchParams }: { searchParams: Pro
       <PipelineBoard initialCards={cards} stages={columns} ownerParam={owner} />
 
       {data.drawer && params.abrir && (
-        <OpportunityDrawer data={data.drawer} scoreId={params.abrir} ownerParam={owner} erro={params.erro} salvo={params.salvo === "1"} now={data.now} />
+        <OpportunityDrawer data={data.drawer} messages={data.messages} scoreId={params.abrir} ownerParam={owner} erro={params.erro} salvo={params.salvo === "1"} now={data.now} />
       )}
     </div>
   );

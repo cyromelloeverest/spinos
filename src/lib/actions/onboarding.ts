@@ -8,6 +8,8 @@ import { splitList } from "@/lib/form-utils";
 import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-org";
 import { newTrialEndsAt } from "@/lib/trial";
 import { logError } from "@/lib/log-error";
+import { installPack } from "@/lib/crm/pack-install";
+import { getPack } from "@/packs/registry";
 import { optionalIntSchema, optionalTextSchema, optionalUrlSchema, boundedListSchema, firstIssueMessage } from "@/lib/validation";
 
 const organizationSchema = z.object({
@@ -40,6 +42,9 @@ export async function createOrganization(formData: FormData) {
     redirect(`/onboarding?error=${encodeURIComponent(firstIssueMessage(result.error))}`);
   }
   const data = result.data;
+  // Tipo de negócio (pacote de nicho). Vazio ou "geral" = nenhum pacote: funil genérico.
+  const packKeyRaw = String(formData.get("nichePack") ?? "").trim();
+  const packKey = packKeyRaw && packKeyRaw !== "geral" && getPack(packKeyRaw) ? packKeyRaw : null;
 
   try {
     await prismaAdmin.$transaction(async (tx) => {
@@ -49,6 +54,7 @@ export async function createOrganization(formData: FormData) {
       await tx.membership.create({
         data: { userId, organizationId: organization.id, role: "OWNER" },
       });
+      if (packKey) await installPack(tx, organization.id, packKey);
     });
   } catch (err) {
     logError("onboarding: falha ao criar organização/membership", err, { userId });

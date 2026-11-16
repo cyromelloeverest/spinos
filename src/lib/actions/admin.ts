@@ -7,6 +7,8 @@ import { isCurrentUserSuperAdmin, getCurrentUserId } from "@/lib/auth/current-or
 import { newTrialEndsAt } from "@/lib/trial";
 import { sendInviteEmail, INVITE_TTL_MS } from "@/lib/invite-email";
 import { logSecurityEvent } from "@/lib/audit/log";
+import { installPack } from "@/lib/crm/pack-install";
+import { getPack } from "@/packs/registry";
 import { emailSchema, firstIssueMessage } from "@/lib/validation";
 import type { Plan } from "@/generated/prisma/enums";
 
@@ -73,6 +75,21 @@ export async function removeTrialLimit(organizationId: string) {
     targetId: organizationId,
   });
 
+  revalidatePath("/admin");
+}
+
+// Instala um pacote de nicho em uma organização que já existe (a organização não pode ter
+// negociações: o funil é trocado). Só super-admin.
+export async function installPackForOrganization(organizationId: string, formData: FormData) {
+  const actorUserId = await requireSuperAdmin();
+  const packKey = String(formData.get("packKey") ?? "");
+  if (!getPack(packKey)) redirect("/admin?error=" + encodeURIComponent("Pacote desconhecido."));
+  try {
+    await prismaAdmin.$transaction((tx) => installPack(tx, organizationId, packKey));
+  } catch (err) {
+    redirect("/admin?error=" + encodeURIComponent(err instanceof Error ? err.message : "Não foi possível instalar o pacote."));
+  }
+  await logSecurityEvent({ type: "admin.pack_installed", actorUserId, organizationId, targetId: organizationId, metadata: { packKey } });
   revalidatePath("/admin");
 }
 

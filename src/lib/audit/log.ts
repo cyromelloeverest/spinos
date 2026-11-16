@@ -23,6 +23,7 @@ export type SecurityEventType =
   | "admin.invite_canceled"
   | "admin.search_block_toggled"
   | "admin.agency_access_granted"
+  | "admin.pack_installed"
   | "privacy.data_exported"
   | "privacy.deletion_requested"
   | "privacy.deletion_completed"
