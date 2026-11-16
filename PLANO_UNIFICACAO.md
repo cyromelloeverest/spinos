@@ -140,6 +140,16 @@ Como ler as estimativas: são "dias úteis de trabalho assistido por Claude, uma
 
 ---
 
+## Atualização 6 de 2026-11-16 (WP1 concluído e no ar)
+
+- **Código trocado para o modelo unificado e publicado** (commit `5c8c7ad`, deploy de 16/11/2026): pipeline, painel, ficha, contatos, oportunidades, histórico, assistente de vendas, exportações, busca por IA, sinais gratuitos e fluxos de LGPD leem e gravam Conta, Contato, Oportunidade, Funil e Origem.
+- **Cópia dos dados rodada de novo depois do deploy:** nada novo a copiar (58 contas, 10 oportunidades, 9 contatos).
+- **Conferido ao vivo na Agência Everest Marketing:** pipeline com as 5 colunas e "Oportunidades"; painel com 9 oportunidades ativas, 6 no funil, 2 vendidas, funil 5, 1, 0, 2, 0. Bate com o esperado (17 notas, 8 no funil).
+- **Testes:** 210 testes, incluindo integração com schema e RLS reais em Postgres em memória (ações do pipeline, contas, contatos, LGPD, isolamento entre organizações e fumaça das telas).
+- **Falta do WP1:** a **fase de limpeza** (remover as colunas e enums antigos de `OpportunityScore`), só depois de 30 dias estáveis e com autorização. Fica para **16/12/2026**.
+
+---
+
 ## 0. Resumo executivo
 
 **1. A unificação é viável, mas não do jeito "juntar os quatro códigos".** Os quatro sistemas têm bancos, logins e premissas de tenant diferentes (seção 1). O caminho que sobrevive é: o Spinos vira o núcleo (banco, login, tenant), e CRM, Pulse e Sites entram como módulos **portando o modelo e a lógica**, não copiando o código inteiro.
