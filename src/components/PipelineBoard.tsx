@@ -23,6 +23,13 @@ export type PipelineCard = {
   stage: string;
   daysLabel: string;
   lastActionByName: string | null;
+  // Negociação (vazios para contas que ainda estão na coluna "Oportunidades").
+  hasDeal: boolean;
+  valueLabel: string | null;
+  ownerInitials: string | null;
+  whatsappUrl: string | null;
+  noNextStep: boolean;
+  overdue: boolean;
 };
 
 
@@ -32,7 +39,7 @@ const LOSS_REASONS: { value: LossReason; label: string }[] = [
   { value: "NO_RESPONSE", label: "Sem resposta" },
 ];
 
-export function PipelineBoard({ initialCards, stages }: { initialCards: PipelineCard[]; stages: PipelineColumn[] }) {
+export function PipelineBoard({ initialCards, stages, ownerParam }: { initialCards: PipelineCard[]; stages: PipelineColumn[]; ownerParam: "me" | "all" }) {
   // A primeira coluna é sempre "Oportunidades" (contas ainda sem negociação); as
   // demais vêm do funil da organização.
   const COLUMNS: { stage: string; label: string; kind: PipelineColumn["kind"] | "NOVA" }[] = [
@@ -119,19 +126,39 @@ export function PipelineBoard({ initialCards, stages }: { initialCards: Pipeline
                   className="rounded-[12px] border p-3.5 flex flex-col gap-2.5"
                   style={{ background: "var(--card)", borderColor: "var(--border)", cursor: "grab", boxShadow: "var(--shadow-card)" }}
                 >
-                  <Link href={`/company/${card.id}`} className="no-underline" style={{ color: "var(--fg)" }}>
+                  <Link href={`/pipeline?abrir=${card.id}&owner=${ownerParam}`} className="no-underline" style={{ color: "var(--fg)" }}>
                     <div className="flex items-center gap-1.5 mb-1">
                       <div className="text-[13.5px] font-semibold flex-1 min-w-0 truncate">{card.companyName}</div>
                       <SpinosScore value={card.score} variant="inline" />
                     </div>
                     <div className="text-[11px] mb-1" style={{ color: "var(--fg-faint)" }}>
-                      {card.daysLabel}
-                      {card.lastActionByName && ` · por ${card.lastActionByName}`}
-                    </div>
-                    <div className="text-[11px]" style={{ color: "var(--fg-faint)" }}>
                       {card.city}, {card.state}
+                      {card.daysLabel && ` · ${card.daysLabel}`}
                     </div>
                   </Link>
+                  {card.hasDeal && (
+                    <div className="flex items-center gap-2 text-[12px]">
+                      <span style={{ color: card.valueLabel ? "var(--fg)" : "var(--fg-faint)", fontWeight: card.valueLabel ? 600 : 400 }}>{card.valueLabel ?? "Sem valor"}</span>
+                      <span className="flex-1" />
+                      {card.whatsappUrl && (
+                        <a href={card.whatsappUrl} target="_blank" rel="noreferrer" aria-label={`WhatsApp de ${card.companyName}`} className="no-underline text-[11px] font-semibold rounded-full px-2 py-[2px]" style={{ background: "var(--good-soft)", color: "var(--good)" }}>
+                          WhatsApp
+                        </a>
+                      )}
+                      {card.ownerInitials && (
+                        <span title={card.lastActionByName ?? undefined} className="text-[10px] font-semibold rounded-full inline-flex items-center justify-center" style={{ width: 22, height: 22, background: "var(--sidebar, #0F172A)", color: "#ffffff" }}>
+                          {card.ownerInitials}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {card.hasDeal && (card.noNextStep || card.overdue) && (
+                    <div>
+                      <span className="text-[10.5px] font-semibold rounded-full px-2 py-[2px]" style={{ background: "var(--warn-soft, #FEF3C7)", color: card.overdue ? "var(--critical)" : "var(--warn)" }}>
+                        {card.overdue ? "Próximo passo atrasado" : "Definir próximo passo"}
+                      </span>
+                    </div>
+                  )}
                 </div>
               ))}
 
@@ -153,7 +180,7 @@ export function PipelineBoard({ initialCards, stages }: { initialCards: Pipeline
           companyName={pendingLoss.companyName}
           onCancel={() => setPendingLoss(null)}
           onConfirm={(reason, notes) => {
-            applyStage(pendingLoss.cardId, "PERDIDO", reason, notes);
+            applyStage(pendingLoss.cardId, stages.find((st) => st.kind === "LOST")?.key ?? "PERDIDO", reason, notes);
             setPendingLoss(null);
           }}
         />

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/auth/current-org";
 import { withOrgContext } from "@/lib/db/with-org-context";
 import { NOVA_STAGE_ID } from "@/lib/pipeline-stages";
+import { syncFeedback } from "@/lib/crm/feedback";
 import { startInPipeline, moveToStage, dismissAccountForScore, NOVA } from "@/lib/crm/opportunities";
 
 async function requireOrgId(): Promise<string> {
@@ -43,26 +44,9 @@ export async function setStage(
   const stageKey = stage === NOVA_STAGE_ID ? NOVA : stage;
 
   await withOrgContext(organizationId, async (tx) => {
-    const { companyId, kind } = await moveToStage(tx, { organizationId, userId }, opportunityScoreId, stageKey);
+    const { companyId, kind } = await moveToStage(tx, { organizationId, userId }, opportunityScoreId, stageKey, lossNotes?.trim() || null);
 
-    if (kind === "WON") {
-      await tx.feedback.upsert({
-        where: { opportunityScoreId },
-        update: { outcome: "CONVERTED", notes: null },
-        create: { organizationId, companyId, opportunityScoreId, outcome: "CONVERTED" },
-      });
-    } else if (kind === "LOST") {
-      const outcome = lossReason ?? "NOT_INTERESTED";
-      await tx.feedback.upsert({
-        where: { opportunityScoreId },
-        update: { outcome, notes: lossNotes?.trim() || null },
-        create: { organizationId, companyId, opportunityScoreId, outcome, notes: lossNotes?.trim() || null },
-      });
-    } else {
-      // Voltou de um estágio terminal pra um não-terminal — o Feedback antigo
-      // não reflete mais a realidade dessa oportunidade.
-      await tx.feedback.deleteMany({ where: { opportunityScoreId } });
-    }
+    await syncFeedback(tx, { organizationId, companyId, scoreId: opportunityScoreId, kind, lossReason, lossNotes });
   });
 
   revalidatePath("/");

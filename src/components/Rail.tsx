@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Users, Plug, LogOut, X, ShieldCheck, ScanSearch, ChevronsUpDown, Check } from "lucide-react";
+import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Users, Plug, LogOut, X, ShieldCheck, ScanSearch, ListChecks, ChevronsUpDown, Check } from "lucide-react";
 import { switchOrganization } from "@/lib/actions/organization";
 import { initials } from "@/lib/initials";
 
@@ -21,6 +21,7 @@ const navItems = [
   { href: "/oportunidades", label: "Oportunidades", icon: Target },
   { href: "/radar", label: "Radar", icon: Radar },
   { href: "/pipeline", label: "Pipeline", icon: Kanban },
+  { href: "/atividades", label: "Atividades", icon: ListChecks },
   { href: "/assistente-vendas", label: "Assistente de Vendas", icon: Bot },
   { href: "/inteligencia-competitiva", label: "Inteligência Competitiva", icon: ScanSearch, comingSoon: true },
   { href: "/historico", label: "Histórico", icon: History },

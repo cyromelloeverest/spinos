@@ -21,6 +21,8 @@ vi.mock("next/navigation", () => ({
   notFound: () => { throw new Error("NOT_FOUND"); },
 }));
 
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { createPrismaOnPglite, enterAppRole } from "@/lib/db/pglite-harness";
 import type { PrismaClient } from "@/generated/prisma/client";
 
@@ -73,7 +75,7 @@ describe("as telas montam com dados reais em todos os estados", () => {
   });
   it("pipeline: as 3 negociações e a coluna 'Oportunidades' (sem as descartadas)", async () => {
     const Page = (await import("@/app/(app)/pipeline/page")).default;
-    const el = (await Page()) as { props: { children: Array<{ props?: { initialCards?: { id: string; stage: string }[]; stages?: unknown[] } }> } };
+    const el = (await Page({ searchParams: Promise.resolve({ owner: "all" }) })) as { props: { children: Array<{ props?: { initialCards?: { id: string; stage: string }[]; stages?: unknown[] } }> } };
     const board = el.props.children.find((c) => c?.props?.initialCards);
     const cards = board!.props!.initialCards!;
     expect(cards.map((c) => c.id)).not.toContain(ids.dismissed);
@@ -82,6 +84,26 @@ describe("as telas montam com dados reais em todos os estados", () => {
     expect(cards.find((c) => c.id === ids.won)?.stage).toBe("VENDIDO");
     expect(cards.find((c) => c.id === ids.lost)?.stage).toBe("PERDIDO");
     expect(board!.props!.stages).toHaveLength(5);
+  });
+  it("pipeline com a gaveta aberta e o filtro 'Minhas' monta, e a gaveta renderiza em HTML", async () => {
+    const Page = (await import("@/app/(app)/pipeline/page")).default;
+    const el = (await Page({ searchParams: Promise.resolve({ owner: "me", abrir: ids.inPipeline!, erro: "Algo deu errado" }) })) as { props: { children: Array<{ props?: { data?: unknown } } | false | null> } };
+    const drawerEl = el.props.children.find((c) => c && typeof c === "object" && c.props?.data) as { type: unknown; props: Record<string, unknown> };
+    expect(drawerEl).toBeTruthy();
+    const html = renderToStaticMarkup(createElement(drawerEl.type as never, drawerEl.props as never));
+    expect(html).toContain("Empresa No Funil");
+    expect(html).toContain("Próximos passos");
+    expect(html).toContain("Algo deu errado");
+    expect(html).toContain("Agendar");
+    const fresh = (await Page({ searchParams: Promise.resolve({ owner: "me", abrir: ids.fresh! }) })) as { props: { children: Array<{ props?: { data?: unknown } } | false | null> } };
+    const freshDrawer = fresh.props.children.find((c) => c && typeof c === "object" && c.props?.data) as { type: unknown; props: Record<string, unknown> };
+    expect(renderToStaticMarkup(createElement(freshDrawer.type as never, freshDrawer.props as never))).toContain("Mover para o pipeline");
+  });
+  it("atividades, em cada aba", async () => {
+    const Page = (await import("@/app/(app)/atividades/page")).default;
+    for (const aba of ["atrasadas", "hoje", "proximas", "concluidas"]) {
+      expect(await Page({ searchParams: Promise.resolve({ aba, owner: "all" }) })).toBeTruthy();
+    }
   });
   it("oportunidades", async () => {
     const Page = (await import("@/app/(app)/oportunidades/page")).default;

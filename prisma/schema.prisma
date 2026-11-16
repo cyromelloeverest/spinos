@@ -631,6 +631,11 @@ enum CampaignKind {
   OTHER
 }
 
+enum BillingType {
+  ONE_TIME
+  RECURRING
+}
+
 enum LegalBasis {
   LEGITIMATE_INTEREST
   CONSENT
@@ -783,7 +788,7 @@ model Contact {
 }
 
 model Opportunity {
-  id                 String     @id @default(cuid())
+  id                 String      @id @default(cuid())
   organizationId     String
   accountId          String
   primaryContactId   String?
@@ -792,19 +797,20 @@ model Opportunity {
   title              String
   expectedValueBRL   Float?
   wonValueBRL        Float?
-  status             DealStatus @default(OPEN)
+  status             DealStatus  @default(OPEN)
   lossReasonId       String?
   lossNote           String?
+  billing            BillingType @default(ONE_TIME)
   closedAt           DateTime?
-  stageChangedAt     DateTime   @default(now())
+  stageChangedAt     DateTime    @default(now())
   nextActivityAt     DateTime?
   ownerUserId        String?
   campaignId         String?
   firstResponseAt    DateTime?
   lastActionByUserId String?
   lastActionAt       DateTime?
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   account        Account                 @relation(fields: [accountId, organizationId], references: [id, organizationId], onDelete: Cascade)
@@ -850,7 +856,9 @@ model Activity {
   doneAt          DateTime?
   status          ActivityStatus @default(OPEN)
   outcome         String?
+  title           String?
   notes           String?
+  automation      String?
   cadenceId       String?
   clientRequestId String?
   createdAt       DateTime       @default(now())

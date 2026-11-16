@@ -123,6 +123,13 @@ SELECT gen_random_uuid()::text, a."organizationId", 'PROSPECTING'::"OriginKind",
 FROM accounts a
 WHERE NOT EXISTS (SELECT 1 FROM origins og WHERE og."accountId" = a.id)`,
   },
+  {
+    name: "responsável da negociação = quem fez a última ação, quando ainda não há responsável",
+    sql: `
+UPDATE opportunities
+SET "ownerUserId" = "lastActionByUserId"
+WHERE "ownerUserId" IS NULL AND "lastActionByUserId" IS NOT NULL`,
+  },
 ];
 
 export async function runBackfill(exec: (sql: string) => Promise<unknown>): Promise<void> {
