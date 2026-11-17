@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
-import { AUDIENCES, deliverabilityStatus, resolveAudience } from "@/lib/email/campaign";
+import { AUDIENCES, deliverabilityStatus, EMAIL_WARMUP_DAILY, resolveAudience } from "@/lib/email/campaign";
 import { previewCampaign } from "@/lib/email/campaign";
 import { getPlan } from "@/lib/plans";
 import { cancelCampaignAction, saveCampaignAction, sendTestAction, startCampaignAction } from "@/lib/actions/emails";
@@ -47,6 +47,7 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
 
   const trialing = data.org.trialEndsAt !== null;
   const cap = getPlan(data.org.plan).maxEmailsPerMonth;
+  const dailyCap = getPlan(data.org.plan).maxEmailsPerDay;
   const progress = (id: string) => {
     const rows = data.counts.filter((c) => c.campaignId === id);
     const n = (s: string) => rows.find((r) => r.status === s)?._count._all ?? 0;
@@ -63,7 +64,7 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
         Campanhas para quem já é seu cliente ou autorizou o contato. O Spinos só envia para contatos com <strong>consentimento ou contrato</strong> registrado no CRM, e todo e-mail leva o link para sair da lista. Quem preencheu o formulário do site entra como <em>interesse legítimo</em> (sem e-mail de campanha) até você registrar o consentimento em <Link href="/contatos" style={{ color: "var(--primary)" }}>Contatos</Link>.
       </p>
       <p className="m-0 mb-5 text-[12.5px]" style={{ color: "var(--fg-faint)" }}>
-        {trialing ? "No período de teste você pode enviar e-mails de teste para você mesmo; campanhas para contatos reais começam com a assinatura." : `Neste mês: ${data.usedThisMonth} de ${cap} e-mails.`} {data.suppressed > 0 ? `${data.suppressed} endereço(s) não recebem mais (descadastro, erro de entrega ou reclamação).` : ""}
+        {trialing ? "No período de teste você pode enviar e-mails de teste para você mesmo; campanhas para contatos reais começam com a assinatura." : `Neste mês: ${data.usedThisMonth} de ${cap} e-mails. Para proteger a reputação do seu envio, saem no máximo ${dailyCap} por dia (nos primeiros 30 dias de uso, no máximo ${EMAIL_WARMUP_DAILY}): campanhas maiores continuam saindo nos dias seguintes.`} {data.suppressed > 0 ? `${data.suppressed} endereço(s) não recebem mais (descadastro, erro de entrega ou reclamação).` : ""}
       </p>
 
       {data.health.paused && <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }} role="alert">O envio da sua conta está pausado por {data.health.reason}. Nenhum e-mail sai até a equipe do Spinos liberar: fale com o suporte.</div>}

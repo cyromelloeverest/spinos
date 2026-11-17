@@ -13,6 +13,24 @@ type Tx = Prisma.TransactionClient;
 
 export const MAX_RECIPIENTS_PER_CAMPAIGN = 2000;
 export const BATCH_SIZE = 40;
+// Aquecimento do envio: nos primeiros 30 dias depois do primeiro e-mail da organização o teto diário é baixo
+// (domínio novo para o remetente: pico de volume logo no início é o que mais derruba reputação).
+export const EMAIL_WARMUP_DAYS = 30;
+export const EMAIL_WARMUP_DAILY = 100;
+
+/** Teto de e-mails por dia: o do plano, limitado ao do aquecimento enquanto a organização é nova no envio. */
+export function dailyEmailCap(plan: string, firstSentAt: Date | null, now: Date = new Date()): number {
+  const planCap = getPlan(plan as never).maxEmailsPerDay;
+  if (!firstSentAt) return Math.min(planCap, EMAIL_WARMUP_DAILY);
+  const days = (now.getTime() - firstSentAt.getTime()) / 86400000;
+  return days < EMAIL_WARMUP_DAYS ? Math.min(planCap, EMAIL_WARMUP_DAILY) : planCap;
+}
+
+/** Início do dia em Brasília (UTC-3, sem horário de verão), em UTC. */
+function dayStartBrt(now: Date): Date {
+  const shifted = new Date(now.getTime() - 3 * 3600_000);
+  return new Date(Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate(), 3));
+}
 
 export class CampaignError extends Error {
   constructor(message: string) {
@@ -144,7 +162,11 @@ export async function processOrganizationQueue(organizationId: string, provider:
     const campaigns = await tx.emailCampaign.findMany({ where: { organizationId, status: "SENDING" }, orderBy: { startedAt: "asc" } });
     const org = await tx.organization.findUniqueOrThrow({ where: { id: organizationId } });
     const { lines } = await senderInfo(tx, organizationId);
-    let budget = BATCH_SIZE;
+    // Teto do dia: o que passar dele continua na fila e sai nos dias seguintes (a campanha segue "enviando").
+    const dayStart = dayStartBrt(now);
+    const today = await tx.emailMessage.count({ where: { organizationId, status: { in: ["SENT", "SENDING", "BOUNCED", "COMPLAINED"] }, OR: [{ sentAt: { gte: dayStart } }, { claimedAt: { gte: dayStart } }] } });
+    const firstSentAt = (await tx.emailMessage.aggregate({ where: { organizationId, sentAt: { not: null } }, _min: { sentAt: true } }))._min.sentAt;
+    let budget = Math.min(BATCH_SIZE, dailyEmailCap(org.plan, firstSentAt, now) - today);
     const claimed: { campaign: (typeof campaigns)[number]; id: string; email: string; firstName: string | null; replyTo: string | null }[] = [];
     for (const campaign of campaigns) {
       if (budget <= 0) break;

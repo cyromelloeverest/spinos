@@ -13,7 +13,7 @@ import type { PrismaClient } from "@/generated/prisma/client";
 import { createLead } from "@/lib/crm/leads";
 import { moveToKind } from "@/lib/crm/opportunities";
 import { resolveAudience, suppressEmail } from "./audience";
-import { CampaignError, cancelCampaign, deliverabilityStatus, previewCampaign, processOrganizationQueue, saveCampaign, startCampaign } from "./campaign";
+import { CampaignError, cancelCampaign, dailyEmailCap, deliverabilityStatus, previewCampaign, processOrganizationQueue, saveCampaign, startCampaign } from "./campaign";
 import { fillName, renderCampaignHtml, renderCampaignText } from "./render";
 import { unsubscribeUrl, verifyUnsubscribe } from "./tokens";
 import { safeDisplayName, type EmailProvider, type OutgoingEmail } from "./provider";
@@ -212,6 +212,33 @@ describe("liberar e enviar a campanha", () => {
     expect(second.sent).toBe(5);
     expect((await prisma.emailCampaign.findUniqueOrThrow({ where: { id: c.id } })).status).toBe("SENT");
   }, 60_000);
+
+  it("teto do dia: nos primeiros 30 dias saem 100 por dia e o resto continua na fila para o dia seguinte", async () => {
+    await prisma.organization.create({ data: { id: "D", name: "Dia", plan: "ENTERPRISE", trialEndsAt: null } });
+    for (let i = 0; i < 105; i++) await contact("D", { basis: "CONSENT", email: `dia${i}@exemplo.com.br` });
+    const c = await inOrg("D", (tx) => saveCampaign(tx, "D", "u1", null, draft));
+    await inOrg("D", (tx) => startCampaign(tx, { organizationId: "D", userId: "u1" }, c.id));
+    const { provider } = okProvider();
+    const t0 = new Date();
+    let total = 0;
+    for (let i = 0; i < 5; i++) total += (await processOrganizationQueue("D", provider, (fn) => inOrg("D", fn), t0)).sent;
+    expect(total).toBe(100);
+    expect((await prisma.emailCampaign.findUniqueOrThrow({ where: { id: c.id } })).status).toBe("SENDING");
+    const next = await processOrganizationQueue("D", provider, (fn) => inOrg("D", fn), new Date(t0.getTime() + 26 * 3600_000));
+    expect(next.sent).toBe(5);
+    expect((await prisma.emailCampaign.findUniqueOrThrow({ where: { id: c.id } })).status).toBe("SENT");
+  }, 120_000);
+
+  it("teto diário por plano e aquecimento de 30 dias", () => {
+    const day = 86400000;
+    const now = new Date("2026-12-31T12:00:00Z");
+    expect(dailyEmailCap("STARTER", null, now)).toBe(100);
+    expect(dailyEmailCap("ENTERPRISE", null, now)).toBe(100);
+    expect(dailyEmailCap("ENTERPRISE", new Date(now.getTime() - 10 * day), now)).toBe(100);
+    expect(dailyEmailCap("PROFISSIONAL", new Date(now.getTime() - 31 * day), now)).toBe(300);
+    expect(dailyEmailCap("ENTERPRISE", new Date(now.getTime() - 31 * day), now)).toBe(800);
+    expect(dailyEmailCap("STARTER", new Date(now.getTime() - 31 * day), now)).toBe(100);
+  });
 
   it("teto do mês do plano é respeitado", async () => {
     await prisma.organization.create({ data: { id: "S", name: "Starter", plan: "STARTER", trialEndsAt: null } });

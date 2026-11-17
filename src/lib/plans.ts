@@ -19,6 +19,9 @@ export type PlanDefinition = {
   maxContentPerMonth: number;
   // E-mails de campanha por mês (destinatários enviados). No trial não há campanha: só teste para si.
   maxEmailsPerMonth: number;
+  // Teto diário de envio: o domínio de envio é compartilhado entre os clientes, então campanha grande sai
+  // em dias seguidos em vez de num estouro só (ver dailyEmailCap em email/campaign.ts).
+  maxEmailsPerDay: number;
   // Ainda não tem UI pra criar mais de 1 ICP por org — isso é a fonte da
   // verdade do limite comercial, mas nada no código impede hoje um usuário
   // de passar dele (não há como criar um segundo ICP de jeito nenhum ainda).
@@ -75,6 +78,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxSearchesPerMonth: 45,
     maxContentPerMonth: 10,
     maxEmailsPerMonth: 500,
+    maxEmailsPerDay: 100,
     maxIcps: 1,
     alertsFrequency: "weekly",
     supportTier: "Padrão",
@@ -97,6 +101,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxSearchesPerMonth: 120,
     maxContentPerMonth: 30,
     maxEmailsPerMonth: 2500,
+    maxEmailsPerDay: 300,
     // Igual em todos os planos de propósito: ainda não existe UI pra criar
     // mais de 1 ICP por org (decisão 2026-08-14) — diferenciar por plano
     // venderia algo que nenhum cliente consegue usar hoje.
@@ -128,7 +133,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxUsers: 10,
     maxSearchesPerMonth: 340,
     maxContentPerMonth: 80,
-    maxEmailsPerMonth: 10000,
+    maxEmailsPerMonth: 8000,
+    maxEmailsPerDay: 800,
     maxIcps: 1,
     alertsFrequency: "realtime",
     supportTier: "Onboarding + CS dedicado + SLA",
