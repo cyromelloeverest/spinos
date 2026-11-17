@@ -8,5 +8,5 @@
 export const CREDIT_PACK = {
   quantity: 5,
   priceBRL: 149,
-  stripePriceId: "price_1U3mzBEqWpT7TrUVvxQSFwA2",
+  stripePriceId: "price_1Uco9YEqWpT7TrUVDCkNd2Kc",
 };
