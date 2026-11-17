@@ -30,7 +30,7 @@ const groups: NavGroup[] = [
       { href: "/assistente-vendas", label: "Assistente de Vendas", icon: Bot },
       { href: "/playbooks", label: "Playbooks", icon: BookOpen },
       { href: "/historico", label: "Histórico", icon: History },
-      { href: "/inteligencia-competitiva", label: "Inteligência Competitiva", icon: ScanSearch, comingSoon: true },
+      { href: "/inteligencia-competitiva", label: "Concorrentes", icon: ScanSearch, comingSoon: true },
     ],
   },
   {
