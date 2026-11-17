@@ -89,7 +89,7 @@ export function Rail({
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 w-[248px] flex flex-col overflow-y-auto transform transition-transform duration-200 bg-[var(--dark)] md:bg-transparent md:static md:translate-x-0 md:h-dvh ${open ? "translate-x-0" : "-translate-x-full"}`}
+      className={`fixed inset-y-0 left-0 z-40 w-[248px] flex flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden transform transition-transform duration-200 bg-[var(--dark)] md:bg-transparent md:static md:translate-x-0 md:h-dvh ${open ? "translate-x-0" : "-translate-x-full"}`}
       style={{ color: "var(--dark-fg)" }}
     >
       <div className="flex items-center justify-between h-16 px-5 flex-shrink-0">
