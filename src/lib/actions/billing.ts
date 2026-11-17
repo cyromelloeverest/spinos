@@ -6,6 +6,7 @@ import { getCurrentMembership } from "@/lib/auth/current-org";
 import { getPlan, setupFeeApplies, SETUP_FEE_STRIPE_PRICE_ID } from "@/lib/plans";
 import { SITE_URL } from "@/lib/site-url";
 import { stripe } from "@/lib/stripe";
+import { getOrCreateStripeCustomer } from "@/lib/stripe-customer";
 import { logError } from "@/lib/log-error";
 
 async function requireOwnerOrAdmin() {
@@ -15,25 +16,6 @@ async function requireOwnerOrAdmin() {
     redirect("/settings/empresa?error=Apenas donos e administradores podem gerenciar a assinatura.");
   }
   return membership;
-}
-
-// Separado em duas transações curtas (não uma só) porque a chamada ao
-// Stripe fica NO MEIO — não dá pra segurar uma transação do Postgres aberta
-// esperando uma chamada de rede externa responder.
-async function getOrCreateStripeCustomer(organizationId: string): Promise<string> {
-  const org = await withOrgContext(organizationId, (tx) =>
-    tx.organization.findUniqueOrThrow({ where: { id: organizationId } }),
-  );
-  if (org.stripeCustomerId) return org.stripeCustomerId;
-
-  const customer = await stripe.customers.create({
-    name: org.name,
-    metadata: { organizationId },
-  });
-  await withOrgContext(organizationId, (tx) =>
-    tx.organization.update({ where: { id: organizationId }, data: { stripeCustomerId: customer.id } }),
-  );
-  return customer.id;
 }
 
 export async function createCheckoutSession(planId: string) {

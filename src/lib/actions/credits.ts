@@ -5,6 +5,7 @@ import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentMembership } from "@/lib/auth/current-org";
 import { SITE_URL } from "@/lib/site-url";
 import { stripe } from "@/lib/stripe";
+import { getOrCreateStripeCustomer } from "@/lib/stripe-customer";
 import { logError } from "@/lib/log-error";
 import { CREDIT_PACK } from "@/lib/credit-pack";
 
@@ -15,25 +16,6 @@ async function requireOwnerOrAdmin() {
     redirect("/oportunidades?error=Apenas donos e administradores podem comprar buscas extras.");
   }
   return membership;
-}
-
-// Duplicado de src/lib/actions/billing.ts de propósito — mesmo helper,
-// arquivo separado. Evita acoplar o fluxo de créditos avulsos ao de
-// assinatura recorrente, que muda por conta própria com frequência.
-async function getOrCreateStripeCustomer(organizationId: string): Promise<string> {
-  const org = await withOrgContext(organizationId, (tx) =>
-    tx.organization.findUniqueOrThrow({ where: { id: organizationId } }),
-  );
-  if (org.stripeCustomerId) return org.stripeCustomerId;
-
-  const customer = await stripe.customers.create({
-    name: org.name,
-    metadata: { organizationId },
-  });
-  await withOrgContext(organizationId, (tx) =>
-    tx.organization.update({ where: { id: organizationId }, data: { stripeCustomerId: customer.id } }),
-  );
-  return customer.id;
 }
 
 // Disponível a qualquer momento (não só quando o limite já bateu) — o brief
