@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getPlan, getPlanByStripePriceId, PLANS } from "./plans";
+import { getPlan, getPlanByStripePriceId, PLANS, setupFeeApplies } from "./plans";
 
 describe("getPlan", () => {
   it("retorna o plano correto para um id válido", () => {
@@ -107,5 +107,13 @@ describe("getPlanByStripePriceId", () => {
 
   it("retorna null pra um Price ID desconhecido", () => {
     expect(getPlanByStripePriceId("price_inexistente")).toBeNull();
+  });
+});
+
+describe("setupFeeApplies (implantação)", () => {
+  it("cobra só na primeira assinatura e nunca de cliente fundador", () => {
+    expect(setupFeeApplies({ founderSince: null }, false)).toBe(true);
+    expect(setupFeeApplies({ founderSince: null }, true)).toBe(false);
+    expect(setupFeeApplies({ founderSince: new Date() }, false)).toBe(false);
   });
 });

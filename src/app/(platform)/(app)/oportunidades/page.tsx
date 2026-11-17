@@ -175,7 +175,7 @@ export default async function OpportunitiesPage({
                 : `${opportunities.length} oportunidades calculadas a partir do seu ICP.`}
               <span style={{ color: atPlanLimit ? "var(--warn)" : "var(--fg-faint)" }}>
                 {" "}
-                ({opportunities.length}/{maxActiveOpportunities}{isTrialing ? " do teste grátis" : ` do plano ${plan.name}`})
+                ({opportunities.length} de {maxActiveOpportunities} vagas para guardar{isTrialing ? " no teste grátis" : ` no plano ${plan.name}`})
               </span>
               <span style={{ color: atSearchLimit ? "var(--warn)" : "var(--fg-faint)" }}>
                 {" "}

@@ -5,7 +5,7 @@ import { prismaAdmin } from "@/lib/prisma-admin";
 import { isCurrentUserSuperAdmin } from "@/lib/auth/current-org";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { isTrialExpired, trialDaysLeft } from "@/lib/trial";
-import { extendTrial, removeTrialLimit, adminInviteUser, adminRemoveUser, adminCancelInvite, adminToggleSearchBlock, installPackForOrganization } from "@/lib/actions/admin";
+import { extendTrial, removeTrialLimit, adminInviteUser, adminRemoveUser, adminCancelInvite, adminToggleSearchBlock, installPackForOrganization, toggleFounder } from "@/lib/actions/admin";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { PlanSelect } from "@/components/PlanSelect";
 import { listPacks } from "@/packs/registry";
@@ -285,6 +285,11 @@ export default async function AdminPage({
                       </Td>
                       <Td>
                         <PlanSelect organizationId={org.id} currentPlan={org.plan} />
+                        <form action={toggleFounder.bind(null, org.id)} className="mt-1.5 flex items-center gap-1.5">
+                          <button type="submit" className="text-[11px] font-medium px-2 py-1 rounded-[8px] border cursor-pointer" style={{ background: org.founderSince ? "var(--primary-soft)" : "var(--card)", borderColor: org.founderSince ? "var(--primary)" : "var(--border-strong)", color: org.founderSince ? "var(--primary)" : "var(--fg)" }}>
+                            {org.founderSince ? "Fundador (desde " + org.founderSince.toLocaleDateString("pt-BR") + ") · remover" : "Marcar como fundador"}
+                          </button>
+                        </form>
                         <details className="mt-1.5">
                           <summary className="text-[11px] cursor-pointer" style={{ color: "var(--fg-faint)" }}>Pacote de nicho</summary>
                           <form action={installPackForOrganization.bind(null, org.id)} className="flex gap-1.5 mt-1.5">

@@ -61,6 +61,14 @@ export type PlanDefinition = {
 
 /** Implantação: pagamento único na contratação. */
 export const SETUP_FEE_BRL = 1500;
+// Clientes fundadores: sem implantação e com o preço mensal travado por 12 meses (contratual). Limite de vagas.
+export const MAX_FOUNDERS = 10;
+export const FOUNDER_PRICE_LOCK_MONTHS = 12;
+
+/** A implantação é cobrada só na primeira assinatura e não para cliente fundador. */
+export function setupFeeApplies(org: { founderSince: Date | null }, hasPaidBefore: boolean): boolean {
+  return !hasPaidBefore && org.founderSince === null;
+}
 /** Price único da implantação no Stripe (modo teste; refazer no live com scripts/stripe-setup-plans.mts). */
 export const SETUP_FEE_STRIPE_PRICE_ID = "price_1UcRTVEqWpT7TrUVNaQr1pAR";
 /** Fidelidade mínima das assinaturas, em meses (cláusula contratual, não é imposta pelo Stripe). */

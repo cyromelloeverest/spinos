@@ -27,7 +27,7 @@ export function dailyEmailCap(plan: string, firstSentAt: Date | null, now: Date 
 }
 
 /** Início do dia em Brasília (UTC-3, sem horário de verão), em UTC. */
-function dayStartBrt(now: Date): Date {
+export function dayStartBrt(now: Date): Date {
   const shifted = new Date(now.getTime() - 3 * 3600_000);
   return new Date(Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate(), 3));
 }
@@ -153,8 +153,12 @@ type Runner = <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;
  *   3. uma transação curta por mensagem registra o resultado; no fim, fecha as campanhas sem pendências.
  * `run` abre o contexto da organização (nos testes, o do papel restrito).
  */
-export async function processOrganizationQueue(organizationId: string, provider: EmailProvider, run: Runner = (fn) => withOrgContext(organizationId, fn), now: Date = new Date()) {
+export async function processOrganizationQueue(organizationId: string, provider: EmailProvider, run: Runner = (fn) => withOrgContext(organizationId, fn), now: Date = new Date(), platformBudget?: (now: Date) => Promise<number>) {
   if (process.env.EMAIL_SENDING_DISABLED === "1") return { sent: 0, failed: 0, paused: true };
+
+  // Teto da conta de envio inteira (todas as organizações): o que não couber hoje fica na fila.
+  const platformLeft = platformBudget ? await platformBudget(now) : Number.POSITIVE_INFINITY;
+  if (platformLeft <= 0) return { sent: 0, failed: 0, paused: false };
 
   const plan = await run(async (tx) => {
     if ((await deliverabilityStatus(tx, organizationId, now)).paused) return null;
@@ -166,7 +170,7 @@ export async function processOrganizationQueue(organizationId: string, provider:
     const dayStart = dayStartBrt(now);
     const today = await tx.emailMessage.count({ where: { organizationId, status: { in: ["SENT", "SENDING", "BOUNCED", "COMPLAINED"] }, OR: [{ sentAt: { gte: dayStart } }, { claimedAt: { gte: dayStart } }] } });
     const firstSentAt = (await tx.emailMessage.aggregate({ where: { organizationId, sentAt: { not: null } }, _min: { sentAt: true } }))._min.sentAt;
-    let budget = Math.min(BATCH_SIZE, dailyEmailCap(org.plan, firstSentAt, now) - today);
+    let budget = Math.min(BATCH_SIZE, platformLeft, dailyEmailCap(org.plan, firstSentAt, now) - today);
     const claimed: { campaign: (typeof campaigns)[number]; id: string; email: string; firstName: string | null; replyTo: string | null }[] = [];
     for (const campaign of campaigns) {
       if (budget <= 0) break;

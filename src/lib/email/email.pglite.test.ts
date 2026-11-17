@@ -229,6 +229,19 @@ describe("liberar e enviar a campanha", () => {
     expect((await prisma.emailCampaign.findUniqueOrThrow({ where: { id: c.id } })).status).toBe("SENT");
   }, 120_000);
 
+  it("teto da conta de envio (provedor gratuito): o que não cabe hoje fica na fila", async () => {
+    await prisma.organization.create({ data: { id: "P", name: "Plataforma", plan: "ENTERPRISE", trialEndsAt: null } });
+    for (let i = 0; i < 10; i++) await contact("P", { basis: "CONSENT", email: `plat${i}@exemplo.com.br` });
+    const c = await inOrg("P", (tx) => saveCampaign(tx, "P", "u1", null, draft));
+    await inOrg("P", (tx) => startCampaign(tx, { organizationId: "P", userId: "u1" }, c.id));
+    const { provider } = okProvider();
+    const none = await processOrganizationQueue("P", provider, (fn) => inOrg("P", fn), new Date(), async () => 0);
+    expect(none.sent).toBe(0);
+    const some = await processOrganizationQueue("P", provider, (fn) => inOrg("P", fn), new Date(), async () => 4);
+    expect(some.sent).toBe(4);
+    expect((await prisma.emailCampaign.findUniqueOrThrow({ where: { id: c.id } })).status).toBe("SENDING");
+  }, 60_000);
+
   it("teto diário por plano e aquecimento de 30 dias", () => {
     const day = 86400000;
     const now = new Date("2026-12-31T12:00:00Z");

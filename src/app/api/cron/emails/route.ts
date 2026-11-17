@@ -1,6 +1,7 @@
 import { prismaAdmin } from "@/lib/prisma-admin";
 import { processOrganizationQueue } from "@/lib/email/campaign";
 import { resendProvider } from "@/lib/email/provider";
+import { platformEmailBudget } from "@/lib/email/platform-cap";
 import { logError } from "@/lib/log-error";
 
 // Fila de campanhas: a cada poucos minutos envia um lote por organização. Mesma autenticação dos outros crons.
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
   let errors = 0;
   for (const { organizationId } of orgs) {
     try {
-      const r = await processOrganizationQueue(organizationId, resendProvider);
+      const r = await processOrganizationQueue(organizationId, resendProvider, undefined, undefined, platformEmailBudget);
       sent += r.sent;
       failed += r.failed;
     } catch (err) {

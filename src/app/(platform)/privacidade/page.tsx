@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 
 export default function PrivacidadePage() {
   return (
-    <LegalPageLayout title="Política de Privacidade" updatedAt="5 de agosto de 2026">
+    <LegalPageLayout title="Política de Privacidade" updatedAt="17 de novembro de 2026">
       <section>
         <p>
           Esta Política de Privacidade descreve como a <strong>Everest Consultoria e Marketing Ltda.</strong> (CNPJ
@@ -22,8 +22,16 @@ export default function PrivacidadePage() {
           seção específica abaixo).
         </p>
         <p>
-          A Spinos é uma plataforma de inteligência comercial B2B. Não somos um CRM, não somos um data broker e não
-          comercializamos bases de dados pessoais para terceiros.
+          A Spinos é uma plataforma B2B que reúne inteligência comercial, CRM, sites e páginas de captação,
+          relatórios, conteúdo e e-mail para empresas. Não somos um data broker e não comercializamos bases de dados
+          pessoais para terceiros.
+        </p>
+        <p>
+          <strong>Papéis no tratamento:</strong> sobre os dados dos usuários da plataforma (cadastro, cobrança) a
+          Spinos é <strong>controladora</strong>. Sobre os dados dos contatos e leads dos nossos clientes (quem preenche
+          o formulário do site de um cliente, quem recebe uma campanha, contatos do CRM do cliente) o{" "}
+          <strong>cliente é o controlador</strong> e a Spinos atua como <strong>operadora</strong>, tratando esses
+          dados apenas conforme as instruções do cliente e para prestar o serviço contratado.
         </p>
       </section>
 
@@ -49,12 +57,21 @@ export default function PrivacidadePage() {
           necessidade de ser usuária da Spinos.
         </p>
         <p>
+          <strong>Dados de contatos e leads dos nossos clientes:</strong> quando o cliente usa o CRM, o site ou o
+          e-mail da Spinos, nome, e-mail, telefone, empresa, mensagens e a origem do contato (página, campanha,
+          anúncio) passam a ser guardados na conta do cliente. Nesse caso o cliente decide a finalidade e a base
+          legal, e a Spinos atua como operadora, tratando os dados apenas para prestar o serviço contratado.
+        </p>
+        <p>
           <strong>Dados de pagamento:</strong> processados diretamente pela Stripe, nosso processador de pagamentos.
           Não armazenamos número de cartão de crédito em nossos servidores.
         </p>
         <p>
-          <strong>Cookies:</strong> utilizamos apenas cookies estritamente necessários ao funcionamento (sessão de
-          login, autenticação). Não utilizamos cookies de analytics, publicidade ou rastreamento de terceiros.
+          <strong>Cookies e medição:</strong> no aplicativo usamos apenas cookies estritamente necessários
+          (sessão e autenticação). Os sites criados na Spinos medem visitas e cliques com um contador próprio, sem
+          cookies e sem guardar dados pessoais (o visitante é representado por um identificador diário anônimo).
+          Ferramentas de terceiros (por exemplo Google Analytics e Meta Pixel) só são carregadas no site de um
+          cliente se ele as ativar, e somente depois do consentimento do visitante.
         </p>
       </section>
 
@@ -70,6 +87,12 @@ export default function PrivacidadePage() {
           <li>
             Enviar comunicações transacionais (confirmação de cadastro, redefinição de senha, convites de equipe);
           </li>
+          <li>Hospedar o site e as páginas de captação do cliente e entregar os contatos recebidos ao CRM dele;</li>
+          <li>
+            Enviar campanhas de e-mail em nome do cliente, somente a contatos com consentimento ou relação
+            contratual registrados, sempre com link de descadastro;
+          </li>
+          <li>Gerar relatórios de origem, custo e desempenho;</li>
           <li>Suporte ao cliente;</li>
           <li>Cumprimento de obrigações legais e defesa em processos administrativos ou judiciais.</li>
         </ul>
@@ -82,9 +105,11 @@ export default function PrivacidadePage() {
       <section>
         <h2>3. Uso de Inteligência Artificial</h2>
         <p>
-          Parte do processamento (geração de scores, resumos de empresas, sugestões de abordagem e o assistente de
-          chat) é realizada com apoio de modelos de linguagem de terceiros. As saídas geradas por IA são sugestões,
-          sujeitas a imprecisão, e não substituem o julgamento humano do usuário.
+          Parte do processamento (scores, resumos de empresas, sugestões de abordagem, o assistente de chat e
+          rascunhos de textos de marketing) usa modelos de linguagem de terceiros. As saídas são{" "}
+          <strong>sugestões e rascunhos</strong>, sujeitos a imprecisão. Nenhum texto é publicado ou enviado sem que
+          o usuário o revise e aprove. O usuário é responsável pelo conteúdo que decidir usar, inclusive quanto às
+          normas do seu conselho profissional.
         </p>
       </section>
 
@@ -109,11 +134,11 @@ export default function PrivacidadePage() {
             </tr>
             <tr>
               <td>Vercel</td>
-              <td>Hospedagem da aplicação</td>
+              <td>Hospedagem da aplicação e dos sites dos clientes</td>
             </tr>
             <tr>
               <td>Resend</td>
-              <td>Envio de e-mails transacionais</td>
+              <td>Envio de e-mails do sistema e das campanhas dos clientes</td>
             </tr>
             <tr>
               <td>Stripe</td>
@@ -139,8 +164,38 @@ export default function PrivacidadePage() {
           Mantemos os dados enquanto a conta permanecer ativa e por até 180 (cento e oitenta) dias após o
           cancelamento, para fins de suporte, auditoria e cumprimento de obrigações legais, fiscais e regulatórias.
           Encerrado esse prazo, os dados pessoais são eliminados ou anonimizados, ressalvado o que a legislação
-          aplicável exigir manter por prazo diverso.
+          aplicável exigir manter por prazo diverso. Prazos por tipo de dado:
         </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Dado</th>
+              <th>Prazo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Conta e dados do cliente</td>
+              <td>Enquanto a conta estiver ativa e até 180 dias depois do cancelamento</td>
+            </tr>
+            <tr>
+              <td>Visitas e cliques dos sites (anônimos)</td>
+              <td>14 meses</td>
+            </tr>
+            <tr>
+              <td>Endereço de destinatário de campanhas</td>
+              <td>24 meses; depois, apenas números agregados</td>
+            </tr>
+            <tr>
+              <td>Rascunhos de conteúdo descartados</td>
+              <td>90 dias</td>
+            </tr>
+            <tr>
+              <td>Lista de descadastro</td>
+              <td>Enquanto a conta existir (é o que impede o reenvio)</td>
+            </tr>
+          </tbody>
+        </table>
       </section>
 
       <section>
@@ -160,6 +215,11 @@ export default function PrivacidadePage() {
           tratamento; acesso aos dados; correção de dados incompletos ou desatualizados; anonimização, bloqueio ou
           eliminação de dados desnecessários; portabilidade; informação sobre compartilhamento; e revogação de
           consentimento, quando aplicável.
+        </p>
+        <p>
+          Para dados de contatos e leads de um cliente da Spinos, o pedido deve ser feito ao próprio cliente, que usa
+          as ferramentas da Spinos para atender (exportar os dados da pessoa, anonimizá-la, descadastrá-la). Se
+          preferir, escreva para o canal da seção 9 e encaminharemos ao cliente responsável.
         </p>
       </section>
 

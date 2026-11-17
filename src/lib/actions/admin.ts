@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prismaAdmin } from "@/lib/prisma-admin";
 import { isCurrentUserSuperAdmin, getCurrentUserId } from "@/lib/auth/current-org";
 import { newTrialEndsAt } from "@/lib/trial";
+import { MAX_FOUNDERS } from "@/lib/plans";
 import { sendInviteEmail, INVITE_TTL_MS } from "@/lib/invite-email";
 import { logSecurityEvent } from "@/lib/audit/log";
 import { installPack } from "@/lib/crm/pack-install";
@@ -40,6 +41,20 @@ export async function updateOrganizationPlan(organizationId: string, formData: F
     metadata: { plan },
   });
 
+  revalidatePath("/admin");
+}
+
+// Cliente fundador: liga/desliga o marcador (sem implantação; preço travado por contrato). Limite de MAX_FOUNDERS vagas.
+export async function toggleFounder(organizationId: string) {
+  const actorUserId = await requireSuperAdmin();
+  const org = await prismaAdmin.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { founderSince: true } });
+  if (org.founderSince === null) {
+    const taken = await prismaAdmin.organization.count({ where: { founderSince: { not: null } } });
+    if (taken >= MAX_FOUNDERS) redirect("/admin?error=" + encodeURIComponent(`As ${MAX_FOUNDERS} vagas de cliente fundador já foram usadas.`));
+  }
+  const founder = org.founderSince === null;
+  await prismaAdmin.organization.update({ where: { id: organizationId }, data: { founderSince: founder ? new Date() : null } });
+  await logSecurityEvent({ type: "admin.founder_changed", actorUserId, organizationId, targetId: organizationId, metadata: { founder } });
   revalidatePath("/admin");
 }
 

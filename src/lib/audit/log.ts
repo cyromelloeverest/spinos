@@ -24,6 +24,7 @@ export type SecurityEventType =
   | "admin.search_block_toggled"
   | "admin.agency_access_granted"
   | "admin.pack_installed"
+  | "admin.founder_changed"
   | "privacy.data_exported"
   | "privacy.contact_exported"
   | "privacy.contact_anonymized"

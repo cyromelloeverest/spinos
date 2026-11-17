@@ -1,6 +1,6 @@
 # Rascunho de ajustes na Política de Privacidade e nos Termos do Spinos
 
-**Status: rascunho técnico, NÃO publicado. Precisa de revisão de advogado antes de entrar em `/privacidade` e `/termos`.**
+**Status: PUBLICADO em `/privacidade` e `/termos` em 2026-11-17 por decisão do Cyro, ainda SEM revisão de advogado. Este arquivo é a lista do que o advogado deve conferir (ver seção 4, itens 6 a 9, e a cláusula de fidelidade nos Termos).**
 Escrito em 2026-11-16, depois de o Spinos ganhar site, páginas de captação, conteúdo gerado por IA, relatórios e e-mail.
 
 ## 1. O que a política atual afirma e deixou de ser verdade

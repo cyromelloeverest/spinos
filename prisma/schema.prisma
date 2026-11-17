@@ -52,6 +52,9 @@ model Organization {
   plan                     Plan      @default(STARTER)
   trialEndsAt              DateTime? // null = sem limite de teste (conta já paga / uso interno)
   lastSearchAt             DateTime?
+  // Cliente fundador (até MAX_FOUNDERS): sem implantação e preço mensal travado por 12 meses (a trava é contratual: a assinatura
+  // no Stripe continua no Price em que entrou). Só o /admin liga e desliga.
+  founderSince             DateTime?
 
   // Assinatura via Stripe. Null = nunca assinou (ainda em trial manual, ou
   // conta cortesia/uso interno gerenciada só pelo admin). subscriptionStatus

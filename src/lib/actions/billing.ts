@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { withOrgContext } from "@/lib/db/with-org-context";
 import { getCurrentMembership } from "@/lib/auth/current-org";
-import { getPlan, SETUP_FEE_STRIPE_PRICE_ID } from "@/lib/plans";
+import { getPlan, setupFeeApplies, SETUP_FEE_STRIPE_PRICE_ID } from "@/lib/plans";
 import { SITE_URL } from "@/lib/site-url";
 import { stripe } from "@/lib/stripe";
 import { logError } from "@/lib/log-error";
@@ -48,13 +48,14 @@ export async function createCheckoutSession(planId: string) {
     const customerId = await getOrCreateStripeCustomer(membership.organizationId);
     const priorSubscriptions = await stripe.subscriptions.list({ customer: customerId, status: "all", limit: 1 });
     const hasPaidBefore = priorSubscriptions.data.length > 0;
+    const org = await withOrgContext(membership.organizationId, (tx) => tx.organization.findUniqueOrThrow({ where: { id: membership.organizationId }, select: { founderSince: true } }));
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
-      // Implantação (pagamento único) cobrada junto da primeira mensalidade; quem já tem assinatura não paga de novo.
+      // Implantação (pagamento único) cobrada junto da primeira mensalidade; quem já tem assinatura e o cliente fundador não pagam.
       line_items: [
         { price: plan.stripePriceId, quantity: 1 },
-        ...(hasPaidBefore ? [] : [{ price: SETUP_FEE_STRIPE_PRICE_ID, quantity: 1 }]),
+        ...(setupFeeApplies(org, hasPaidBefore) ? [{ price: SETUP_FEE_STRIPE_PRICE_ID, quantity: 1 }] : []),
       ],
       success_url: `${SITE_URL}/settings/empresa?assinatura=sucesso`,
       cancel_url: `${SITE_URL}/settings/empresa?assinatura=cancelado`,
