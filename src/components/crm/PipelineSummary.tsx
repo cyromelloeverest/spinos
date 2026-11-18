@@ -5,7 +5,7 @@ import { formatBRL } from "@/lib/crm/money";
 type SummaryStage = { key: string; name: string; kind: "OPEN" | "WON" | "LOST"; count: number };
 
 // Mesma escala das colunas do quadro, em tons mais claros para o fundo escuro.
-const OPEN_TONES_ON_DARK = ["#DBEAFE", "#BFDBFE", "#93C5FD", "#60A5FA", "#3B82F6", "#2563EB"];
+const OPEN_TONES_ON_DARK = ["#E1EAFF", "#C2D4FF", "#9DBBFF", "#6E9AFF", "#4A7FFF", "#2E6BFF"];
 
 function tonesOnDark(stages: SummaryStage[]): string[] {
   const openCount = stages.filter((s) => s.kind === "OPEN").length + 1; // + coluna "Oportunidades"

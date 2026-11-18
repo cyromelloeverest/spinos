@@ -28,7 +28,7 @@ export function AppShell({
   return (
     <div
       className="h-dvh overflow-hidden md:grid"
-      style={{ gridTemplateColumns: "248px 1fr", background: "linear-gradient(165deg, #0f172a 0%, #13244d 100%)" }}
+      style={{ gridTemplateColumns: "248px 1fr", background: "var(--dark)" }}
     >
       <Rail isSuperAdmin={isSuperAdmin} open={mobileNavOpen} onNavigate={() => setMobileNavOpen(false)} />
       {mobileNavOpen && (

@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-soft: rgba(37, 99, 235, 0.08);
-  --primary-line: rgba(37, 99, 235, 0.28);
+  --primary: #175cff;
+  --primary-hover: #1249d1;
+  --primary-soft: rgba(23, 92, 255, 0.08);
+  --primary-line: rgba(23, 92, 255, 0.28);
 
-  --dark: #0f172a;
-  --dark-hover: #1e293b;
+  --dark: #081426;
+  --dark-hover: #12233f;
   --dark-border: rgba(255, 255, 255, 0.08);
   --dark-fg: #f1f5f9;
   --dark-fg-muted: #94a3b8;
@@ -70,10 +70,10 @@ a:focus-visible,
 @keyframes glow-pulse {
   0%,
   100% {
-    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+    box-shadow: 0 8px 20px rgba(23, 92, 255, 0.35);
   }
   50% {
-    box-shadow: 0 10px 30px rgba(37, 99, 235, 0.55);
+    box-shadow: 0 10px 30px rgba(23, 92, 255, 0.55);
   }
 }
 

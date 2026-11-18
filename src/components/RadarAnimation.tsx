@@ -32,7 +32,7 @@ export function RadarAnimation({
     <div className="relative mx-auto" style={{ width: size, height: size }}>
       <div
         className="absolute inset-0 rounded-full animate-[spin_7s_linear_infinite]"
-        style={{ background: "conic-gradient(from 0deg, transparent 0deg, rgba(37,99,235,0.12) 70deg, transparent 140deg)" }}
+        style={{ background: "conic-gradient(from 0deg, transparent 0deg, rgba(23,92,255,0.12) 70deg, transparent 140deg)" }}
       />
       <svg viewBox="0 0 400 400" className="absolute inset-0 w-full h-full" aria-hidden="true">
         <circle cx="200" cy="200" r="188" fill="none" stroke="var(--border)" strokeWidth="1" />

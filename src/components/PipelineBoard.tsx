@@ -13,7 +13,7 @@ export type PipelineColumn = { key: string; label: string; kind: "OPEN" | "WON" 
 
 // Cor de cada etapa, no padrão do CRM da Everest: uma escala do azul claro (início do funil)
 // ao azul profundo (perto de fechar); ganho em verde e perdido em vermelho.
-const OPEN_TONES = ["#93C5FD", "#60A5FA", "#3B82F6", "#2563EB", "#1D4ED8", "#1E3A8A"];
+const OPEN_TONES = ["#9DBBFF", "#6E9AFF", "#4A7FFF", "#175CFF", "#1249D1", "#0C2F8A"];
 export const WON_TONE = "#059669";
 export const LOST_TONE = "#EF4444";
 
@@ -101,7 +101,7 @@ export function PipelineBoard({ initialCards, stages, ownerParam }: { initialCar
             className="flex flex-col flex-shrink-0 snap-start w-[86vw] max-w-[320px] md:w-[288px] rounded-[20px] transition-colors"
             style={{
               background: isDragOver ? "var(--primary-soft)" : "#EEF2F7",
-              boxShadow: isDragOver ? "inset 0 0 0 2px var(--primary-line)" : "inset 0 0 0 1px rgba(15,23,42,0.04)",
+              boxShadow: isDragOver ? "inset 0 0 0 2px var(--primary-line)" : "inset 0 0 0 1px rgba(8,20,38,0.04)",
             }}
             onDragOver={(e) => {
               e.preventDefault();
@@ -150,14 +150,14 @@ export function PipelineBoard({ initialCards, stages, ownerParam }: { initialCar
                   style={{
                     background: "var(--card)",
                     cursor: "grab",
-                    boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 2px 6px -2px rgba(16,24,40,.06), inset 0 0 0 1px rgba(15,23,42,0.05)",
+                    boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 2px 6px -2px rgba(16,24,40,.06), inset 0 0 0 1px rgba(8,20,38,0.05)",
                   }}
                 >
                   <Link href={`/pipeline?abrir=${card.id}&owner=${ownerParam}`} className="no-underline flex items-start gap-3" style={{ color: "var(--fg)" }}>
                     <span
                       aria-hidden
                       className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-[12px] font-bold"
-                      style={{ background: `${tone}26`, color: "#1E3A8A", boxShadow: `inset 0 0 0 1px ${tone}55` }}
+                      style={{ background: `${tone}26`, color: "#0C2F8A", boxShadow: `inset 0 0 0 1px ${tone}55` }}
                     >
                       {won ? <Trophy size={15} strokeWidth={2} style={{ color: tone }} /> : initials(card.companyName)}
                     </span>
