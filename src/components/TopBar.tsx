@@ -46,7 +46,7 @@ export function TopBar({
         </button>
         <Link href="/" className="flex items-center no-underline">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-branco.svg" alt="Spinos" style={{ height: "26px", width: "auto" }} />
+          <img src="/logo-branco.svg" alt="Spinos" style={{ height: "36px", width: "auto" }} />
         </Link>
       </div>
 
