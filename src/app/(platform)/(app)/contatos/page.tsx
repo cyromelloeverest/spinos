@@ -9,6 +9,7 @@ import { toWhatsAppUrl } from "@/lib/crm/whatsapp";
 import { logError } from "@/lib/log-error";
 import { PageHeader } from "@/components/PageHeader";
 import { Contact } from "lucide-react";
+import { ListCard } from "@/components/ListCard";
 
 const BASIS_LABEL = { LEGITIMATE_INTEREST: "Legítimo interesse", CONSENT: "Consentimento", CONTRACT: "Contrato" } as const;
 
@@ -52,29 +53,33 @@ export default async function ContatosPage({ searchParams }: { searchParams: Pro
       {contacts.length === 0 ? (
         <EmptyState icon={Contact} message={q ? "Nenhum contato encontrado para essa busca." : "Nenhum contato cadastrado ainda."} />
       ) : (
-        <div className="rounded-[12px] border overflow-hidden" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-          {contacts.map((c, i) => {
+        <div className="flex flex-col gap-2.5">
+          {contacts.map((c) => {
             const ref = c.account?.scores[0]?.id ?? c.account?.opportunities[0]?.id ?? null;
             const wa = toWhatsAppUrl(c.phone);
             return (
-              <div key={c.id} className="px-4 py-3" style={{ borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div className="min-w-0">
-                    <div className="text-[13.5px] font-medium">
-                      {c.name}
-                      {c.isPrimary && <span className="ml-2 text-[10px] font-semibold uppercase rounded-full px-1.5 py-[1px]" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>Principal</span>}
-                    </div>
-                    <div className="text-[12px]" style={{ color: "var(--fg-muted)" }}>
-                      {[c.jobTitle, c.account?.name, c.email, c.phone].filter(Boolean).join(" · ")}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 text-[12px]">
+              <ListCard
+                key={c.id}
+                avatar={c.name}
+                title={
+                  <>
+                    {c.name}
+                    {c.isPrimary && <span className="ml-2 align-middle text-[10px] font-semibold uppercase rounded-full px-1.5 py-[1px]" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>Principal</span>}
+                  </>
+                }
+                subtitle={[c.jobTitle, c.account?.name, c.email, c.phone].filter(Boolean).join(" · ")}
+                right={
+                  <>
                     {wa && <a href={wa} target="_blank" rel="noreferrer" className="no-underline font-semibold" style={{ color: "var(--good)" }}>WhatsApp</a>}
                     {ref && <Link href={`/pipeline?abrir=${ref}&owner=all`} className="no-underline font-semibold" style={{ color: "var(--primary)" }}>Abrir</Link>}
-                  </div>
-                </div>
-                <details className="mt-2">
-                  <summary className="text-[12px] cursor-pointer" style={{ color: c.legalBasis ? "var(--fg-muted)" : "var(--warn)" }}>
+                  </>
+                }
+              >
+                <details>
+                  <summary
+                    className="inline-flex items-center list-none cursor-pointer text-[12px] font-semibold rounded-full px-2.5 py-1 [&::-webkit-details-marker]:hidden"
+                    style={{ background: c.legalBasis ? "var(--card-hover)" : "var(--warn-soft)", color: c.legalBasis ? "var(--fg-muted)" : "#B45309" }}
+                  >
                     Base legal: {c.legalBasis ? BASIS_LABEL[c.legalBasis] : "a registrar"}
                   </summary>
                   <form action={setContactLegalBasis.bind(null, c.id)} className="grid gap-2 mt-2 md:grid-cols-[200px_1fr_auto]">
@@ -90,7 +95,7 @@ export default async function ContatosPage({ searchParams }: { searchParams: Pro
                     <button type="submit" className="cursor-pointer border-0 bg-transparent p-0 text-[12px]" style={{ color: "var(--critical)" }}>Anonimizar esta pessoa (LGPD)</button>
                   </form>
                 </details>
-              </div>
+              </ListCard>
             );
           })}
         </div>

@@ -9,6 +9,7 @@ import { PIPELINE_STAGE_LABEL } from "@/lib/pipeline-stages";
 import { logError } from "@/lib/log-error";
 import { PageHeader } from "@/components/PageHeader";
 import { History } from "lucide-react";
+import { ListCard } from "@/components/ListCard";
 
 const STATUS_LABEL: Record<string, { label: string; bg: string; color: string }> = {
   CONTATO_FEITO: { label: PIPELINE_STAGE_LABEL.CONTATO_FEITO, bg: "var(--primary-soft)", color: "var(--primary)" },
@@ -68,7 +69,7 @@ export default async function HistoricoPage() {
         Todas as oportunidades já encontradas para o seu ICP, em um único lugar — ativas, no pipeline, vendidas, perdidas ou descartadas.
       </PageHeader>
 
-      <div className="px-4 md:px-10 pt-6 pb-16 flex flex-col gap-2 max-w-[1080px]">
+      <div className="px-4 md:px-10 pt-6 pb-16 flex flex-col gap-2.5 max-w-[1080px]">
         {opportunities.length === 0 && <EmptyState icon={History} message="Nenhuma oportunidade encontrada ainda." action={{ label: "Buscar oportunidades", href: "/oportunidades" }} />}
 
         {opportunities.map((opp) => {
@@ -77,28 +78,18 @@ export default async function HistoricoPage() {
           // O nome da etapa vem do funil da organização (pode ser de um pacote de nicho).
           const badge = opp.stageName && opp.stageKind === "OPEN" ? { ...base, label: opp.stageName } : opp.stageName && (opp.stageKind === "WON" || opp.stageKind === "LOST") ? { ...base, label: opp.stageName } : base;
           return (
-            <Link
+            <ListCard
               key={opp.id}
               href={`/company/${opp.id}`}
-              className="flex items-center gap-4 rounded-[16px] border px-4 py-3 no-underline"
-              style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)", boxShadow: "var(--shadow-card)" }}
-            >
-              <SpinosScore value={opp.score} variant="compact" />
-
-              <div className="min-w-0 flex-1">
-                <div className="text-[13.5px] font-semibold">{opp.company.name}</div>
-                <div className="text-[11.5px]" style={{ color: "var(--fg-faint)" }}>
-                  {opp.company.city}, {opp.company.state} · encontrada em {formatDate(opp.computedAt)}
-                </div>
-              </div>
-
-              <div
-                className="text-[11px] font-semibold rounded-full px-2.5 py-1 whitespace-nowrap flex-shrink-0"
-                style={{ background: badge.bg, color: badge.color }}
-              >
-                {badge.label}
-              </div>
-            </Link>
+              leading={<SpinosScore value={opp.score} variant="compact" />}
+              title={opp.company.name}
+              subtitle={`${opp.company.city}, ${opp.company.state} · encontrada em ${formatDate(opp.computedAt)}`}
+              right={
+                <span className="text-[11.5px] font-semibold rounded-full px-2.5 py-1 whitespace-nowrap" style={{ background: badge.bg, color: badge.color }}>
+                  {badge.label}
+                </span>
+              }
+            />
           );
         })}
       </div>

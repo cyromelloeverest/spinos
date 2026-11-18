@@ -12,6 +12,7 @@ import { slaMinutesLeft, slaLabel } from "@/lib/crm/leads";
 import { logError } from "@/lib/log-error";
 import { PageHeader } from "@/components/PageHeader";
 import { Inbox } from "lucide-react";
+import { ListCard, Pill } from "@/components/ListCard";
 
 const TABS = [
   { key: "novos", label: "Sem atendimento" },
@@ -71,27 +72,27 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           <EmptyState icon={Inbox} message={tab === "novos" ? "Nenhum lead esperando atendimento." : "Nenhum lead por aqui."} />
         </div>
       ) : (
-        <div className="rounded-[12px] border overflow-hidden mb-8" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-          {data.leads.map((l, i) => {
+        <div className="flex flex-col gap-2.5 mb-8">
+          {data.leads.map((l) => {
             const contact = l.account.contacts[0];
             const left = slaMinutesLeft(l.createdAt, data.slaMinutes, now);
+            const personName = contact?.name ?? l.account.name;
             return (
-              <Link key={l.id} href={`/pipeline?abrir=${l.id}&owner=all`} className="block no-underline" style={{ color: "var(--fg)" }}>
-                <div className="flex items-center justify-between gap-4 px-4 py-3" style={{ borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
-                  <div className="min-w-0">
-                    <div className="text-[13.5px] font-medium truncate">{contact?.name ?? l.account.name}{contact && l.account.name !== contact.name ? ` · ${l.account.name}` : ""}</div>
-                    <div className="text-[12px]" style={{ color: "var(--fg-muted)" }}>
-                      {originLabel(l.account.origins[0]?.channel)} · {l.stage.name}
-                      {contact?.phone ? ` · ${contact.phone}` : ""}
-                    </div>
-                  </div>
-                  {l.firstResponseAt === null ? (
-                    <span className="text-[12px] font-semibold flex-shrink-0" style={{ color: left < 0 ? "var(--critical)" : "var(--warn)" }}>{slaLabel(left)}</span>
+              <ListCard
+                key={l.id}
+                href={`/pipeline?abrir=${l.id}&owner=all`}
+                avatar={personName}
+                tone={l.firstResponseAt === null && left < 0 ? "#EF4444" : "#175CFF"}
+                title={`${personName}${contact && l.account.name !== contact.name ? ` · ${l.account.name}` : ""}`}
+                subtitle={`${originLabel(l.account.origins[0]?.channel)} · ${l.stage.name}${contact?.phone ? ` · ${contact.phone}` : ""}`}
+                right={
+                  l.firstResponseAt === null ? (
+                    <Pill tone={left < 0 ? "critical" : "warn"}>{slaLabel(left)}</Pill>
                   ) : (
-                    <span className="text-[12px] flex-shrink-0" style={{ color: "var(--fg-faint)" }}>Atendido</span>
-                  )}
-                </div>
-              </Link>
+                    <Pill tone="good">Atendido</Pill>
+                  )
+                }
+              />
             );
           })}
         </div>

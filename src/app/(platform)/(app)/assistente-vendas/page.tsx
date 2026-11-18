@@ -63,7 +63,7 @@ export default async function ScriptsPage({
         Um roteiro pronto pra cada oportunidade — o que falar, pra quem, e como responder às objeções mais prováveis.
       </PageHeader>
 
-      <div className="px-4 md:px-10 pt-6 pb-16 flex flex-col gap-2.5 max-w-[720px]">
+      <div className="px-4 md:px-10 pt-6 pb-16 flex flex-col gap-2.5 max-w-[1080px]">
         {opportunities.length === 0 && <EmptyState icon={Bot} message="Nenhuma oportunidade ativa no momento." action={{ label: "Buscar oportunidades", href: "/oportunidades" }} />}
 
         {opportunities.map((opp) => {

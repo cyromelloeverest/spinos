@@ -10,6 +10,7 @@ import { logError } from "@/lib/log-error";
 import type { Prisma } from "@/generated/prisma/client";
 import { PageHeader } from "@/components/PageHeader";
 import { ListChecks } from "lucide-react";
+import { ListCard, Pill } from "@/components/ListCard";
 
 const TABS = [
   { key: "atrasadas", label: "Atrasadas" },
@@ -78,28 +79,27 @@ export default async function AtividadesPage({ searchParams }: { searchParams: P
       {rows.length === 0 ? (
         <EmptyState icon={ListChecks} message={tab === "concluidas" ? "Nenhuma atividade concluída ainda." : "Nada por aqui. Agende o próximo passo de uma negociação no CRM."} action={tab === "concluidas" ? undefined : { label: "Abrir o CRM", href: "/pipeline" }} />
       ) : (
-        <div className="rounded-[12px] border overflow-hidden" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-          {rows.map((a, i) => {
+        <div className="flex flex-col gap-2.5">
+          {rows.map((a) => {
             const scoreId = a.account?.scores[0]?.id ?? a.opportunityId;
             const late = a.status === "OPEN" && a.dueAt !== null && a.dueAt < now;
-            const inner = (
-              <div className="flex items-center justify-between gap-4 px-4 py-3" style={{ borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
-                <div className="min-w-0">
-                  <div className="text-[13.5px] font-medium truncate" style={{ color: "var(--fg)" }}>{a.title ?? ACTIVITY_TYPE_LABEL[a.type]}</div>
-                  <div className="text-[12px]" style={{ color: "var(--fg-muted)" }}>
-                    {a.account?.name ?? "Sem conta"} · {ACTIVITY_TYPE_LABEL[a.type]}
-                    {a.automation ? " · automática" : ""}
-                  </div>
-                </div>
-                <div className="text-[12px] flex-shrink-0" style={{ color: late ? "var(--critical)" : "var(--fg-muted)", fontWeight: late ? 600 : 400 }}>
-                  {formatBrasilia(a.status === "DONE" ? a.doneAt : a.dueAt)}
-                </div>
-              </div>
-            );
-            return scoreId ? (
-              <Link key={a.id} href={`/pipeline?abrir=${scoreId}&owner=${owner}`} className="block no-underline" style={{ color: "var(--fg)" }}>{inner}</Link>
-            ) : (
-              <div key={a.id}>{inner}</div>
+            return (
+              <ListCard
+                key={a.id}
+                href={scoreId ? `/pipeline?abrir=${scoreId}&owner=${owner}` : undefined}
+                avatar={a.account?.name ?? ACTIVITY_TYPE_LABEL[a.type]}
+                tone={late ? "#EF4444" : "#175CFF"}
+                title={a.title ?? ACTIVITY_TYPE_LABEL[a.type]}
+                subtitle={`${a.account?.name ?? "Sem conta"} · ${ACTIVITY_TYPE_LABEL[a.type]}${a.automation ? " · automática" : ""}`}
+                right={
+                  <>
+                    {late && <Pill tone="critical">Atrasada</Pill>}
+                    <span style={{ color: late ? "#B91C1C" : "var(--fg-muted)", fontWeight: late ? 600 : 400 }}>
+                      {formatBrasilia(a.status === "DONE" ? a.doneAt : a.dueAt)}
+                    </span>
+                  </>
+                }
+              />
             );
           })}
         </div>
