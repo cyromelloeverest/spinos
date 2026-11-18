@@ -54,7 +54,7 @@ export default async function AtividadesPage({ searchParams }: { searchParams: P
   const href = (aba: string, o = owner) => `/atividades?aba=${aba}&owner=${o}`;
 
   return (
-    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[880px]">
+    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[1080px]">
       <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>Atividades</h1>
       <p className="m-0 mb-5 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
         O que precisa ser feito nas suas negociações. Abra uma atividade para concluir e definir o próximo passo.

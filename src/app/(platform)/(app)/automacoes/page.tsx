@@ -53,7 +53,7 @@ export default async function AutomacoesPage({ searchParams }: { searchParams: P
   const on = data.rows.filter((r) => r.enabled).length;
 
   return (
-    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[880px]">
+    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[1080px]">
       <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>Automações</h1>
       <p className="m-0 mb-1 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
         Regras prontas que fazem o funil andar sozinho: criam tarefas e distribuem leads. Elas não enviam mensagens para os seus contatos. Ligue as que fazem sentido e ajuste os prazos.

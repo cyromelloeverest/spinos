@@ -51,7 +51,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
   const t = report.totals;
 
   return (
-    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[1000px]">
+    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[1080px]">
       <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>Relatórios</h1>
       <p className="m-0 mb-4 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
         De onde vêm os clientes e quanto custa conquistá-los: da origem do lead até o contrato fechado.

@@ -44,7 +44,7 @@ export default async function ConteudoPage({ searchParams }: { searchParams: Pro
   const needsSignature = Boolean(pack?.contentSignature) && !(data.org.responsibleName && data.org.professionalRegistration);
 
   return (
-    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[880px]">
+    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[1080px]">
       <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>Conteúdo</h1>
       <p className="m-0 mb-1 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
         Ideias de posts, posts, artigos e textos de e-mail escritos pela IA do Spinos como <strong>rascunho</strong>. Nada é publicado sozinho: você lê, ajusta e decide.

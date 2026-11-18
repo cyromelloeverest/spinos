@@ -65,7 +65,7 @@ export default async function EmpresaSettingsPage({
   const mfaFactor = mfaFactors[0] ?? null;
 
   return (
-    <div className="pt-10 px-4 md:px-10 pb-16 max-w-[560px]">
+    <div className="pt-10 px-4 md:px-10 pb-16 max-w-[880px]">
       <h1 className="text-[25px] font-medium m-0 mb-2" style={{ fontFamily: "var(--font-display)" }}>
         Perfil da empresa
       </h1>

@@ -327,7 +327,7 @@ export default async function OpportunitiesPage({
         </div>
       )}
 
-      <div className="px-4 md:px-10 pt-6 pb-16 flex flex-col gap-2.5 max-w-[880px]">
+      <div className="px-4 md:px-10 pt-6 pb-16 flex flex-col gap-2.5 max-w-[1080px]">
         {opportunities.length === 0 && (
           <div
             className="rounded-[16px] border flex flex-col items-center text-center px-6 py-12"

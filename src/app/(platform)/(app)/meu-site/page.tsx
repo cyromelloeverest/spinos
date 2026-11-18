@@ -139,7 +139,7 @@ export default async function MeuSitePage({ searchParams }: { searchParams: Prom
   };
 
   return (
-    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[880px]">
+    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[1080px]">
       <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>Meu site</h1>
       <p className="m-0 mb-6 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
         Site e páginas de captação. Quem preenche o formulário vira lead no CRM, com a página e o anúncio de origem.

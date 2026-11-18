@@ -121,6 +121,7 @@ export default async function PipelinePage({ searchParams }: { searchParams: Pro
       lastActionByName: ownerName,
       hasDeal: !!deal,
       valueLabel: deal?.expectedValueBRL != null ? formatBRL(deal.expectedValueBRL) : null,
+      valueBRL: deal?.expectedValueBRL ?? null,
       ownerInitials: ownerName ? initials(ownerName) : null,
       whatsappUrl: toWhatsAppUrl(sc.account?.contacts[0]?.phone),
       noNextStep: !!deal && deal.status === "OPEN" && deal.nextActivityAt === null,
@@ -145,6 +146,7 @@ export default async function PipelinePage({ searchParams }: { searchParams: Pro
       lastActionByName: ownerName,
       hasDeal: true,
       valueLabel: deal.expectedValueBRL != null ? formatBRL(deal.expectedValueBRL) : null,
+      valueBRL: deal.expectedValueBRL ?? null,
       ownerInitials: ownerName ? initials(ownerName) : null,
       whatsappUrl: toWhatsAppUrl(deal.account.contacts[0]?.phone),
       noNextStep: deal.status === "OPEN" && deal.nextActivityAt === null,
@@ -158,7 +160,7 @@ export default async function PipelinePage({ searchParams }: { searchParams: Pro
   }
 
   const columns = data.pipeline.stages.map((st) => ({ key: st.key, label: st.name, kind: st.kind }));
-  const summaryStages = data.pipeline.stages.map((st) => ({ key: st.key, name: st.name, count: stageCount.get(st.key) ?? 0 }));
+  const summaryStages = data.pipeline.stages.map((st) => ({ key: st.key, name: st.name, kind: st.kind, count: stageCount.get(st.key) ?? 0 }));
 
   return (
     <div>

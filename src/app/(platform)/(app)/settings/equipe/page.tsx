@@ -55,7 +55,7 @@ export default async function EquipeSettingsPage({
   const seatsUsed = members.length + pendingInvites.length;
 
   return (
-    <div className="pt-10 px-4 md:px-10 pb-16 max-w-[640px]">
+    <div className="pt-10 px-4 md:px-10 pb-16 max-w-[880px]">
       <h1 className="text-[25px] font-medium m-0 mb-2" style={{ fontFamily: "var(--font-display)" }}>
         Equipe
       </h1>

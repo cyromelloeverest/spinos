@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Users, Plug, X, ShieldCheck, ScanSearch, ListChecks, Inbox, Contact, Zap, Globe, BarChart3, PenLine, Mail } from "lucide-react";
+import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Users, X, ShieldCheck, ListChecks, Inbox, Contact, Zap, Globe, BarChart3, PenLine, Mail } from "lucide-react";
 
 export type OrgProfile = {
   name: string;
@@ -13,7 +13,7 @@ export type OrgProfile = {
 
 export type OrgMembership = { organizationId: string; name: string; role: string };
 
-type NavItem = { href: string; label: string; icon: typeof Target; comingSoon?: boolean; disabled?: boolean };
+type NavItem = { href: string; label: string; icon: typeof Target };
 type NavGroup = { label: string | null; items: NavItem[]; adminOnly?: boolean };
 
 // Ordem pensada no fluxo de trabalho: encontrar clientes → atendê-los → divulgar → medir → configurar.
@@ -30,7 +30,6 @@ const groups: NavGroup[] = [
       { href: "/assistente-vendas", label: "Assistente de Vendas", icon: Bot },
       { href: "/playbooks", label: "Playbooks", icon: BookOpen },
       { href: "/historico", label: "Histórico", icon: History },
-      { href: "/inteligencia-competitiva", label: "Concorrentes", icon: ScanSearch, comingSoon: true },
     ],
   },
   {
@@ -61,7 +60,6 @@ const groups: NavGroup[] = [
       { href: "/settings/empresa", label: "Perfil da empresa", icon: Building2 },
       { href: "/settings/icp", label: "Meu ICP", icon: Target },
       { href: "/settings/equipe", label: "Equipe", icon: Users },
-      { href: "#", label: "Integrações", icon: Plug, disabled: true },
     ],
   },
   {
@@ -124,24 +122,6 @@ export function Rail({
               <div className="flex flex-col gap-0.5">
                 {group.items.map((item) => {
                   const Icon = item.icon;
-                  if (item.disabled) {
-                    return (
-                      <div
-                        key={item.label}
-                        className="flex items-center gap-3 px-3 py-[9px] rounded-[10px] text-[13.5px]"
-                        style={{ color: "var(--dark-fg-muted)", opacity: 0.5, cursor: "default" }}
-                      >
-                        <Icon size={17} strokeWidth={1.75} className="flex-shrink-0" />
-                        <span className="truncate">{item.label}</span>
-                        <span
-                          className="text-[9px] font-semibold uppercase rounded-full px-1.5 py-[1px] flex-shrink-0 ml-auto"
-                          style={{ background: "rgba(255,255,255,0.1)", letterSpacing: "0.04em" }}
-                        >
-                          Em breve
-                        </span>
-                      </div>
-                    );
-                  }
                   const active = isActive(pathname, item.href);
                   return (
                     <Link
@@ -158,14 +138,6 @@ export function Rail({
                     >
                       <Icon size={17} strokeWidth={1.75} className="flex-shrink-0" />
                       <span className="truncate">{item.label}</span>
-                      {item.comingSoon && (
-                        <span
-                          className="text-[9px] font-semibold uppercase rounded-full px-1.5 py-[1px] flex-shrink-0 ml-auto"
-                          style={{ background: "rgba(255,255,255,0.1)", color: "var(--dark-fg-muted)", letterSpacing: "0.04em" }}
-                        >
-                          Em breve
-                        </span>
-                      )}
                     </Link>
                   );
                 })}

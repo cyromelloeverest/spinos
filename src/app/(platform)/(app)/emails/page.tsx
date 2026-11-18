@@ -58,7 +58,7 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
   const seed = editing ?? (data.fromDraft ? { id: null, name: data.fromDraft.title, subject: data.fromDraft.title, preheader: "", body: data.fromDraft.body, audience: "clientes" } : { id: null, name: "", subject: "", preheader: "", body: "", audience: "clientes" });
 
   return (
-    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[880px]">
+    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[1080px]">
       <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>E-mails</h1>
       <p className="m-0 mb-1 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
         Campanhas para quem já é seu cliente ou autorizou o contato. O Spinos só envia para contatos com <strong>consentimento ou contrato</strong> registrado no CRM, e todo e-mail leva o link para sair da lista. Quem preencheu o formulário do site entra como <em>interesse legítimo</em> (sem e-mail de campanha) até você registrar o consentimento em <Link href="/contatos" style={{ color: "var(--primary)" }}>Contatos</Link>.

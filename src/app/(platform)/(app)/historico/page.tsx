@@ -71,7 +71,7 @@ export default async function HistoricoPage() {
         </p>
       </div>
 
-      <div className="px-4 md:px-10 pt-6 pb-16 flex flex-col gap-2 max-w-[880px]">
+      <div className="px-4 md:px-10 pt-6 pb-16 flex flex-col gap-2 max-w-[1080px]">
         {opportunities.length === 0 && <EmptyState message="Nenhuma oportunidade encontrada ainda." />}
 
         {opportunities.map((opp) => {

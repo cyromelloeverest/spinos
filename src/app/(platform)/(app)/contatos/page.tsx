@@ -36,7 +36,7 @@ export default async function ContatosPage({ searchParams }: { searchParams: Pro
   }
 
   return (
-    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[980px]">
+    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[1080px]">
       <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>Contatos</h1>
       <p className="m-0 mb-5 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
         As pessoas das empresas que você acompanha, com a base legal do tratamento de cada uma (LGPD).
