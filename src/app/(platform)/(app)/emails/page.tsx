@@ -134,7 +134,7 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
 
       <h2 className="text-[11px] uppercase font-medium mb-2" style={{ color: "var(--fg-faint)", letterSpacing: "0.06em" }}>Campanhas</h2>
       {data.campaigns.length === 0 ? (
-        <EmptyState icon={Mail} message="Nenhuma campanha ainda. Crie a primeira para quem já é seu cliente ou autorizou o contato." action={{ label: "Nova campanha", href: "/emails?novo=1" }} />
+        <EmptyState icon={Mail} message="Nenhuma campanha ainda. Crie a primeira para quem já é seu cliente ou autorizou o contato." />
       ) : (
         <div className="rounded-[12px] border overflow-hidden" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
           {data.campaigns.map((c, i) => {

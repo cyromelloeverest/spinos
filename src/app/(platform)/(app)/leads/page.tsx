@@ -67,7 +67,9 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       </div>
 
       {data.leads.length === 0 ? (
-        <EmptyState icon={Inbox} message={tab === "novos" ? "Nenhum lead esperando atendimento." : "Nenhum lead por aqui."} />
+        <div className="mb-8">
+          <EmptyState icon={Inbox} message={tab === "novos" ? "Nenhum lead esperando atendimento." : "Nenhum lead por aqui."} />
+        </div>
       ) : (
         <div className="rounded-[12px] border overflow-hidden mb-8" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
           {data.leads.map((l, i) => {
