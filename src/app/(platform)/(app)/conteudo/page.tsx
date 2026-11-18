@@ -8,6 +8,9 @@ import { KIND_LABEL, type ContentKindKey } from "@/lib/content/schema";
 import { generateContentAction, saveDraft, setDraftStatus } from "@/lib/actions/content";
 import { formatBrasilia } from "@/lib/crm/dates";
 import { logError } from "@/lib/log-error";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
+import { PenLine } from "lucide-react";
 
 const inputCls = "rounded-[10px] border px-3 text-[13px] outline-none w-full";
 const inputStyle = { background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)", height: "40px" } as const;
@@ -45,13 +48,10 @@ export default async function ConteudoPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="pt-6 px-4 md:px-10 pb-16 max-w-[1080px]">
-      <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>Conteúdo</h1>
-      <p className="m-0 mb-1 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
+      <PageHeader title="Conteúdo"
+        meta={<>{data.isTrialing ? "No período de teste" : "Neste mês"}: {data.used} de {data.max} pedidos usados{remaining === 0 && data.org.creditBalance > 0 ? `; os próximos usam 1 crédito cada (saldo: ${data.org.creditBalance})` : ""}.</>}>
         Ideias de posts, posts, artigos e textos de e-mail escritos pela IA do Spinos como <strong>rascunho</strong>. Nada é publicado sozinho: você lê, ajusta e decide.
-      </p>
-      <p className="m-0 mb-5 text-[12.5px]" style={{ color: "var(--fg-faint)" }}>
-        {data.isTrialing ? "No período de teste" : "Neste mês"}: {data.used} de {data.max} pedidos usados{remaining === 0 && data.org.creditBalance > 0 ? `; os próximos usam 1 crédito cada (saldo: ${data.org.creditBalance})` : ""}.
-      </p>
+      </PageHeader>
 
       {params.erro && <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }} role="alert">{params.erro}</div>}
       {(params.gerado || params.salvo || params.aprovado) && <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }} role="status">{params.gerado ? "Rascunho pronto. Leia com atenção e confira os pontos marcados antes de usar." : params.aprovado ? "Marcado como aprovado." : "Salvo."}</div>}
@@ -86,7 +86,7 @@ export default async function ConteudoPage({ searchParams }: { searchParams: Pro
         <a href={params.ver === "descartados" ? "/conteudo" : "/conteudo?ver=descartados"} className="text-[12px]" style={{ color: "var(--primary)" }}>{params.ver === "descartados" ? "Ver rascunhos" : "Ver descartados"}</a>
       </div>
       {data.drafts.length === 0 ? (
-        <p className="text-[13px]" style={{ color: "var(--fg-muted)" }}>Nada por aqui ainda. Peça um rascunho acima.</p>
+        <EmptyState icon={PenLine} message="Nada por aqui ainda. Peça um rascunho no formulário acima." />
       ) : (
         <div className="grid gap-3">
           {data.drafts.map((d) => {

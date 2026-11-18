@@ -8,6 +8,7 @@ import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { logError } from "@/lib/log-error";
 import { SIGNAL_CATEGORY_LABEL, SIGNAL_CATEGORIES } from "@/lib/signal-categories";
 import type { SignalCategory } from "@/generated/prisma/enums";
+import { PageHeader } from "@/components/PageHeader";
 
 export default async function IcpSettingsPage({
   searchParams,
@@ -36,13 +37,10 @@ export default async function IcpSettingsPage({
   const updateWithId = updateICP.bind(null, icp.id);
 
   return (
-    <div className="pt-10 px-4 md:px-10 pb-16 max-w-[560px]">
-      <h1 className="text-[25px] font-medium m-0 mb-2" style={{ fontFamily: "var(--font-display)" }}>
-        Meu ICP
-      </h1>
-      <p className="m-0 mb-8 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
+    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[560px]">
+      <PageHeader title="Meu ICP">
         Ajuste o perfil de cliente ideal a qualquer momento — a próxima busca já usa os valores novos.
-      </p>
+      </PageHeader>
 
       {params.saved && (
         <div

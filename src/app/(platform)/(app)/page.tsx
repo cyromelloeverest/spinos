@@ -12,6 +12,7 @@ import { getDefaultPipeline } from "@/lib/crm/pipeline-config";
 import { untouchedScoresWhere } from "@/lib/crm/accounts";
 import { getActivationSteps } from "@/lib/onboarding/activation";
 import { ActivationCard } from "@/components/ActivationCard";
+import { PageHeader } from "@/components/PageHeader";
 
 function getGreeting(): string {
   const hour = Number(
@@ -152,18 +153,9 @@ export default async function DashboardPage({
 
   return (
     <div>
-      <div className="pt-6 px-4 md:px-10">
-        <div className="text-[11px] uppercase font-semibold mb-1" style={{ color: "var(--fg-faint)", letterSpacing: "0.08em" }}>
-          Dashboard
-        </div>
-        <h1 className="text-[25px] font-bold m-0 mb-1">
-          {getGreeting()}
-          {name ? `, ${name}` : ""}!
-        </h1>
-        <p className="m-0 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
-          Visão geral do seu funil comercial.
-        </p>
-      </div>
+      <PageHeader inset title={`${getGreeting()}${name ? `, ${name}` : ""}!`}>
+        Visão geral do seu funil comercial.
+      </PageHeader>
 
       {params.senhaAtualizada && (
         <div className="mx-4 md:mx-10 mt-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>
@@ -284,7 +276,7 @@ export default async function DashboardPage({
             )}
           </div>
           <div className="flex flex-col gap-2.5">
-            {data.best.length === 0 && <EmptyState message="Nenhuma oportunidade ativa ainda." />}
+            {data.best.length === 0 && <EmptyState icon={Target} message="Nenhuma oportunidade ativa ainda." action={{ label: "Buscar oportunidades", href: "/oportunidades" }} />}
             {data.best.map((opp) => (
               <Link
                 key={opp.id}

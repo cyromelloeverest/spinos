@@ -8,6 +8,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { ScriptCard } from "@/components/ScriptCard";
 import { buildSalesScript } from "@/lib/sales-script";
 import { logError } from "@/lib/log-error";
+import { PageHeader } from "@/components/PageHeader";
+import { Bot } from "lucide-react";
 
 function fetchActiveOpportunities(tx: Prisma.TransactionClient, organizationId: string) {
   return tx.opportunityScore.findMany({
@@ -57,17 +59,12 @@ export default async function ScriptsPage({
 
   return (
     <div>
-      <div className="pt-6 px-4 md:px-10">
-        <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>
-          Assistente de Vendas
-        </h1>
-        <p className="m-0 text-[13.5px] max-w-[60ch]" style={{ color: "var(--fg-muted)" }}>
-          Um roteiro pronto pra cada oportunidade — o que falar, pra quem, e como responder às objeções mais prováveis.
-        </p>
-      </div>
+      <PageHeader inset title="Assistente de Vendas">
+        Um roteiro pronto pra cada oportunidade — o que falar, pra quem, e como responder às objeções mais prováveis.
+      </PageHeader>
 
       <div className="px-4 md:px-10 pt-6 pb-16 flex flex-col gap-2.5 max-w-[720px]">
-        {opportunities.length === 0 && <EmptyState message="Nenhuma oportunidade ativa no momento." />}
+        {opportunities.length === 0 && <EmptyState icon={Bot} message="Nenhuma oportunidade ativa no momento." action={{ label: "Buscar oportunidades", href: "/oportunidades" }} />}
 
         {opportunities.map((opp) => {
           const script = buildSalesScript({

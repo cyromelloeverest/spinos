@@ -7,6 +7,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { setContactLegalBasis, anonymizeContact } from "@/lib/actions/crm";
 import { toWhatsAppUrl } from "@/lib/crm/whatsapp";
 import { logError } from "@/lib/log-error";
+import { PageHeader } from "@/components/PageHeader";
+import { Contact } from "lucide-react";
 
 const BASIS_LABEL = { LEGITIMATE_INTEREST: "Legítimo interesse", CONSENT: "Consentimento", CONTRACT: "Contrato" } as const;
 
@@ -37,10 +39,9 @@ export default async function ContatosPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="pt-6 px-4 md:px-10 pb-16 max-w-[1080px]">
-      <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>Contatos</h1>
-      <p className="m-0 mb-5 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
+      <PageHeader title="Contatos">
         As pessoas das empresas que você acompanha, com a base legal do tratamento de cada uma (LGPD).
-      </p>
+      </PageHeader>
       {params.erro && <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }} role="alert">{params.erro}</div>}
       {params.salvo && <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }} role="status">Salvo.</div>}
 
@@ -49,7 +50,7 @@ export default async function ContatosPage({ searchParams }: { searchParams: Pro
       </form>
 
       {contacts.length === 0 ? (
-        <EmptyState message={q ? "Nenhum contato encontrado para essa busca." : "Nenhum contato cadastrado ainda."} />
+        <EmptyState icon={Contact} message={q ? "Nenhum contato encontrado para essa busca." : "Nenhum contato cadastrado ainda."} />
       ) : (
         <div className="rounded-[12px] border overflow-hidden" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
           {contacts.map((c, i) => {

@@ -13,6 +13,7 @@ import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { MfaSettings } from "@/components/MfaSettings";
 import { logError } from "@/lib/log-error";
 import { Check, Download, ShieldAlert } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 
 function subscriptionStatusLabel(org: { subscriptionStatus: string | null; trialEndsAt: Date | null }): string {
   if (org.subscriptionStatus === "active") return "Assinatura ativa";
@@ -65,13 +66,10 @@ export default async function EmpresaSettingsPage({
   const mfaFactor = mfaFactors[0] ?? null;
 
   return (
-    <div className="pt-10 px-4 md:px-10 pb-16 max-w-[880px]">
-      <h1 className="text-[25px] font-medium m-0 mb-2" style={{ fontFamily: "var(--font-display)" }}>
-        Perfil da empresa
-      </h1>
-      <p className="m-0 mb-8 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
+    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[880px]">
+      <PageHeader title="Perfil da empresa">
         Dados da sua empresa e da sua conta dentro do Spinos.
-      </p>
+      </PageHeader>
 
       {params.saved && (
         <div

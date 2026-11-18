@@ -8,6 +8,7 @@ import { getDefaultPipeline } from "@/lib/crm/pipeline-config";
 import { ACTIVITY_TYPE_LABEL, type ActivityTypeKey } from "@/lib/crm/activities";
 import { formatBrasilia } from "@/lib/crm/dates";
 import { logError } from "@/lib/log-error";
+import { PageHeader } from "@/components/PageHeader";
 
 const inputCls = "rounded-[10px] border px-3 text-[13px] outline-none";
 const inputStyle = { background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)", height: "40px" } as const;
@@ -54,11 +55,10 @@ export default async function AutomacoesPage({ searchParams }: { searchParams: P
 
   return (
     <div className="pt-6 px-4 md:px-10 pb-16 max-w-[1080px]">
-      <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>Automações</h1>
-      <p className="m-0 mb-1 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
+      <PageHeader title="Automações"
+        meta={<>{on} de {RECIPES.length} ligadas</>}>
         Regras prontas que fazem o funil andar sozinho: criam tarefas e distribuem leads. Elas não enviam mensagens para os seus contatos. Ligue as que fazem sentido e ajuste os prazos.
-      </p>
-      <p className="m-0 mb-6 text-[12.5px]" style={{ color: "var(--fg-faint)" }}>{on} de {RECIPES.length} ligadas</p>
+      </PageHeader>
 
       {params.erro && <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }} role="alert">{params.erro}</div>}
       {params.salvo && <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }} role="status">Salvo.</div>}

@@ -7,6 +7,8 @@ import { SpinosScore } from "@/components/SpinosScore";
 import { EmptyState } from "@/components/EmptyState";
 import { PIPELINE_STAGE_LABEL } from "@/lib/pipeline-stages";
 import { logError } from "@/lib/log-error";
+import { PageHeader } from "@/components/PageHeader";
+import { History } from "lucide-react";
 
 const STATUS_LABEL: Record<string, { label: string; bg: string; color: string }> = {
   CONTATO_FEITO: { label: PIPELINE_STAGE_LABEL.CONTATO_FEITO, bg: "var(--primary-soft)", color: "var(--primary)" },
@@ -62,17 +64,12 @@ export default async function HistoricoPage() {
 
   return (
     <div>
-      <div className="pt-6 px-4 md:px-10">
-        <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>
-          Histórico de oportunidades
-        </h1>
-        <p className="m-0 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
-          Todas as oportunidades já encontradas para o seu ICP, em um único lugar — ativas, no pipeline, vendidas, perdidas ou descartadas.
-        </p>
-      </div>
+      <PageHeader inset title="Histórico de oportunidades">
+        Todas as oportunidades já encontradas para o seu ICP, em um único lugar — ativas, no pipeline, vendidas, perdidas ou descartadas.
+      </PageHeader>
 
       <div className="px-4 md:px-10 pt-6 pb-16 flex flex-col gap-2 max-w-[1080px]">
-        {opportunities.length === 0 && <EmptyState message="Nenhuma oportunidade encontrada ainda." />}
+        {opportunities.length === 0 && <EmptyState icon={History} message="Nenhuma oportunidade encontrada ainda." action={{ label: "Buscar oportunidades", href: "/oportunidades" }} />}
 
         {opportunities.map((opp) => {
           const key = statusKey(opp);

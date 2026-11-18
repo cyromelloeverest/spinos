@@ -9,6 +9,7 @@ import { addSpendEntry, importSpendEntries, removeSpendEntry } from "@/lib/actio
 import { formatBRL } from "@/lib/crm/money";
 import { formatBrasilia } from "@/lib/crm/dates";
 import { logError } from "@/lib/log-error";
+import { PageHeader } from "@/components/PageHeader";
 
 const inputCls = "rounded-[10px] border px-3 text-[13px] outline-none w-full";
 const inputStyle = { background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)", height: "40px" } as const;
@@ -52,10 +53,9 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
 
   return (
     <div className="pt-6 px-4 md:px-10 pb-16 max-w-[1080px]">
-      <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>Relatórios</h1>
-      <p className="m-0 mb-4 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
+      <PageHeader title="Relatórios">
         De onde vêm os clientes e quanto custa conquistá-los: da origem do lead até o contrato fechado.
-      </p>
+      </PageHeader>
 
       <div className="flex gap-2 flex-wrap mb-6" role="tablist" aria-label="Período">
         {(Object.keys(PERIOD_LABEL) as PeriodKey[]).map((k) => (

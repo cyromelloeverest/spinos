@@ -11,6 +11,8 @@ import { SIGNAL_CATEGORY_LABEL, SIGNAL_CATEGORY_ICON } from "@/lib/signal-catego
 import { ExternalLink, Flame } from "lucide-react";
 import { initials } from "@/lib/initials";
 import { logError } from "@/lib/log-error";
+import { PageHeader } from "@/components/PageHeader";
+import { Radar } from "lucide-react";
 
 const SOURCE_LABEL: Record<string, string> = {
   ai_web_search: "Busca sob demanda",
@@ -129,19 +131,14 @@ export default async function NewsPage() {
 
   return (
     <div>
-      <div className="pt-6 px-4 md:px-10">
-        <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>
-          Radar
-        </h1>
-        <p className="m-0 text-[13.5px] max-w-[60ch]" style={{ color: "var(--fg-muted)" }}>
-          Todos os sinais e novidades encontrados sobre as empresas que você está de olho, em ordem cronológica —
+      <PageHeader inset title="Radar">
+        Todos os sinais e novidades encontrados sobre as empresas que você está de olho, em ordem cronológica —
           inclusive o que nosso monitoramento automático (notícias e editais públicos) encontra sozinho todo dia.
-        </p>
-      </div>
+      </PageHeader>
 
       <div className="px-4 md:px-10 pt-6 pb-16 max-w-[640px] mx-auto flex flex-col gap-4">
         {feed.length === 0 && (
-          <EmptyState message="Nenhuma notícia ainda — rode uma busca de oportunidades pra começar a coletar sinais." />
+          <EmptyState icon={Radar} message="Nenhuma notícia ainda — rode uma busca de oportunidades pra começar a coletar sinais." action={{ label: "Buscar oportunidades", href: "/oportunidades" }} />
         )}
 
         {feed.map((story) => (story.kind === "linked" ? <FeedCard key={story.signal.id} story={story} /> : <RawFeedCard key={story.signal.id} story={story} />))}

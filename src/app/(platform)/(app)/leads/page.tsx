@@ -10,6 +10,8 @@ import { ORIGIN_OPTIONS, originLabel } from "@/lib/crm/origin-options";
 import { readConfig } from "@/lib/automations/recipes";
 import { slaMinutesLeft, slaLabel } from "@/lib/crm/leads";
 import { logError } from "@/lib/log-error";
+import { PageHeader } from "@/components/PageHeader";
+import { Inbox } from "lucide-react";
 
 const TABS = [
   { key: "novos", label: "Sem atendimento" },
@@ -50,10 +52,9 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="pt-6 px-4 md:px-10 pb-16 max-w-[1080px]">
-      <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>Leads</h1>
-      <p className="m-0 mb-5 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
+      <PageHeader title="Leads">
         Pessoas que chegaram até você (formulário, indicação, anúncio) ou que você cadastrou. O prazo de primeiro atendimento é de {data.slaMinutes} minutos.
-      </p>
+      </PageHeader>
 
       {params.erro && <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }} role="alert">{params.erro}</div>}
 
@@ -66,7 +67,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       </div>
 
       {data.leads.length === 0 ? (
-        <EmptyState message={tab === "novos" ? "Nenhum lead esperando atendimento." : "Nenhum lead por aqui."} />
+        <EmptyState icon={Inbox} message={tab === "novos" ? "Nenhum lead esperando atendimento." : "Nenhum lead por aqui."} />
       ) : (
         <div className="rounded-[12px] border overflow-hidden mb-8" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
           {data.leads.map((l, i) => {

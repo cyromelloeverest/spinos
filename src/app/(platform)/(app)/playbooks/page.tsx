@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentOrganizationId } from "@/lib/auth/current-org";
 import { PLAYBOOKS } from "@/lib/playbooks";
 import { Clock, ArrowRight } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 
 export default async function PlaybooksPage() {
   const organizationId = await getCurrentOrganizationId();
@@ -10,14 +11,9 @@ export default async function PlaybooksPage() {
 
   return (
     <div>
-      <div className="pt-6 px-4 md:px-10">
-        <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>
-          Playbooks
-        </h1>
-        <p className="m-0 text-[13.5px] max-w-[60ch]" style={{ color: "var(--fg-muted)" }}>
-          Guias curtos e diretos pra vender melhor — abordagem, descoberta, objeções e fechamento.
-        </p>
-      </div>
+      <PageHeader inset title="Playbooks">
+        Guias curtos e diretos pra vender melhor — abordagem, descoberta, objeções e fechamento.
+      </PageHeader>
 
       <div
         className="px-4 md:px-10 pt-6 pb-16 grid gap-4"

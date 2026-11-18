@@ -7,6 +7,7 @@ import { FormField } from "@/components/FormField";
 import { DbSetupNotice } from "@/components/DbSetupNotice";
 import { logError } from "@/lib/log-error";
 import { X } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -55,14 +56,11 @@ export default async function EquipeSettingsPage({
   const seatsUsed = members.length + pendingInvites.length;
 
   return (
-    <div className="pt-10 px-4 md:px-10 pb-16 max-w-[880px]">
-      <h1 className="text-[25px] font-medium m-0 mb-2" style={{ fontFamily: "var(--font-display)" }}>
-        Equipe
-      </h1>
-      <p className="m-0 mb-8 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
+    <div className="pt-6 px-4 md:px-10 pb-16 max-w-[880px]">
+      <PageHeader title="Equipe">
         Quem tem acesso à {organization.name} no Spinos.
         <span> {seatsUsed}/{plan.maxUsers} usuários do plano {plan.name}.</span>
-      </p>
+      </PageHeader>
 
       {params.invited && (
         <div className="mb-6 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>

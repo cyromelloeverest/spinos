@@ -9,6 +9,9 @@ import { getPlan } from "@/lib/plans";
 import { cancelCampaignAction, saveCampaignAction, sendTestAction, startCampaignAction } from "@/lib/actions/emails";
 import { formatBrasilia } from "@/lib/crm/dates";
 import { logError } from "@/lib/log-error";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
+import { Mail } from "lucide-react";
 
 const inputCls = "rounded-[10px] border px-3 text-[13px] outline-none w-full";
 const inputStyle = { background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)", height: "40px" } as const;
@@ -59,13 +62,10 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
 
   return (
     <div className="pt-6 px-4 md:px-10 pb-16 max-w-[1080px]">
-      <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>E-mails</h1>
-      <p className="m-0 mb-1 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
+      <PageHeader title="E-mails"
+        meta={<>{trialing ? "No período de teste você pode enviar e-mails de teste para você mesmo; campanhas para contatos reais começam com a assinatura." : `Neste mês: ${data.usedThisMonth} de ${cap} e-mails. Para proteger a reputação do seu envio, saem no máximo ${dailyCap} por dia (nos primeiros 30 dias de uso, no máximo ${EMAIL_WARMUP_DAILY}): campanhas maiores continuam saindo nos dias seguintes.`} {data.suppressed > 0 ? `${data.suppressed} endereço(s) não recebem mais (descadastro, erro de entrega ou reclamação).` : ""}</>}>
         Campanhas para quem já é seu cliente ou autorizou o contato. O Spinos só envia para contatos com <strong>consentimento ou contrato</strong> registrado no CRM, e todo e-mail leva o link para sair da lista. Quem preencheu o formulário do site entra como <em>interesse legítimo</em> (sem e-mail de campanha) até você registrar o consentimento em <Link href="/contatos" style={{ color: "var(--primary)" }}>Contatos</Link>.
-      </p>
-      <p className="m-0 mb-5 text-[12.5px]" style={{ color: "var(--fg-faint)" }}>
-        {trialing ? "No período de teste você pode enviar e-mails de teste para você mesmo; campanhas para contatos reais começam com a assinatura." : `Neste mês: ${data.usedThisMonth} de ${cap} e-mails. Para proteger a reputação do seu envio, saem no máximo ${dailyCap} por dia (nos primeiros 30 dias de uso, no máximo ${EMAIL_WARMUP_DAILY}): campanhas maiores continuam saindo nos dias seguintes.`} {data.suppressed > 0 ? `${data.suppressed} endereço(s) não recebem mais (descadastro, erro de entrega ou reclamação).` : ""}
-      </p>
+      </PageHeader>
 
       {data.health.paused && <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }} role="alert">O envio da sua conta está pausado por {data.health.reason}. Nenhum e-mail sai até a equipe do Spinos liberar: fale com o suporte.</div>}
       {p.erro && <div className="mb-4 rounded-[8px] border px-4 py-3 text-[12.5px]" style={{ borderColor: "var(--critical)", color: "var(--critical)" }} role="alert">{p.erro}</div>}
@@ -134,7 +134,7 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
 
       <h2 className="text-[11px] uppercase font-medium mb-2" style={{ color: "var(--fg-faint)", letterSpacing: "0.06em" }}>Campanhas</h2>
       {data.campaigns.length === 0 ? (
-        <p className="text-[13px]" style={{ color: "var(--fg-muted)" }}>Nenhuma campanha ainda.</p>
+        <EmptyState icon={Mail} message="Nenhuma campanha ainda. Crie a primeira para quem já é seu cliente ou autorizou o contato." action={{ label: "Nova campanha", href: "/emails?novo=1" }} />
       ) : (
         <div className="rounded-[12px] border overflow-hidden" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
           {data.campaigns.map((c, i) => {

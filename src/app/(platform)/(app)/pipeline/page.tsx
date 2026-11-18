@@ -16,6 +16,7 @@ import { renderMessage } from "@/packs/registry";
 import { formatBRL } from "@/lib/crm/money";
 import { initials } from "@/lib/initials";
 import { logError } from "@/lib/log-error";
+import { PageHeader } from "@/components/PageHeader";
 
 function daysInStage(since: Date | null): string {
   if (!since) return "";
@@ -164,14 +165,9 @@ export default async function PipelinePage({ searchParams }: { searchParams: Pro
 
   return (
     <div>
-      <div className="pt-6 px-4 md:px-10">
-        <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>
-          CRM comercial
-        </h1>
-        <p className="m-0 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
-          Da oportunidade nova até vendida ou perdida. Arraste os cards entre as colunas ou abra um card para ver e agendar o próximo passo.
-        </p>
-      </div>
+      <PageHeader inset title="CRM comercial">
+        Da oportunidade nova até vendida ou perdida. Arraste os cards entre as colunas ou abra um card para ver e agendar o próximo passo.
+      </PageHeader>
 
       <AttentionStrip attention={data.attention} ownerParam={owner} />
       <PipelineSummary attention={data.attention} stages={summaryStages} />

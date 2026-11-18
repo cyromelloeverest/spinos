@@ -15,7 +15,7 @@ export function FormField({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[12.5px] font-medium" style={{ color: "var(--fg)" }}>
+      <span className="text-[13px] font-medium" style={{ color: "var(--fg)" }}>
         {label}
         {required && <span style={{ color: "var(--primary)" }}> *</span>}
       </span>
@@ -28,7 +28,7 @@ export function FormField({
         style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)", height: "44px" }}
       />
       {hint && (
-        <span className="text-[11.5px]" style={{ color: "var(--fg-faint)" }}>
+        <span className="text-[12px] leading-[1.45]" style={{ color: "var(--fg-muted)" }}>
           {hint}
         </span>
       )}

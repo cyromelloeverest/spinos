@@ -8,6 +8,8 @@ import { ACTIVITY_TYPE_LABEL } from "@/lib/crm/activities";
 import { startOfDayBRT, endOfDayBRT, formatBrasilia } from "@/lib/crm/dates";
 import { logError } from "@/lib/log-error";
 import type { Prisma } from "@/generated/prisma/client";
+import { PageHeader } from "@/components/PageHeader";
+import { ListChecks } from "lucide-react";
 
 const TABS = [
   { key: "atrasadas", label: "Atrasadas" },
@@ -55,10 +57,9 @@ export default async function AtividadesPage({ searchParams }: { searchParams: P
 
   return (
     <div className="pt-6 px-4 md:px-10 pb-16 max-w-[1080px]">
-      <h1 className="text-[25px] font-medium m-0 mb-1" style={{ fontFamily: "var(--font-display)" }}>Atividades</h1>
-      <p className="m-0 mb-5 text-[13.5px]" style={{ color: "var(--fg-muted)" }}>
+      <PageHeader title="Atividades">
         O que precisa ser feito nas suas negociações. Abra uma atividade para concluir e definir o próximo passo.
-      </p>
+      </PageHeader>
 
       <div className="flex flex-wrap items-center gap-2 mb-5">
         {TABS.map((t) => (
@@ -75,7 +76,7 @@ export default async function AtividadesPage({ searchParams }: { searchParams: P
       </div>
 
       {rows.length === 0 ? (
-        <EmptyState message={tab === "concluidas" ? "Nenhuma atividade concluída ainda." : "Nada por aqui. Agende o próximo passo de uma negociação no CRM."} />
+        <EmptyState icon={ListChecks} message={tab === "concluidas" ? "Nenhuma atividade concluída ainda." : "Nada por aqui. Agende o próximo passo de uma negociação no CRM."} action={tab === "concluidas" ? undefined : { label: "Abrir o CRM", href: "/pipeline" }} />
       ) : (
         <div className="rounded-[12px] border overflow-hidden" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
           {rows.map((a, i) => {
