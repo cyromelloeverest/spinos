@@ -10,6 +10,7 @@ import { formatBRL } from "@/lib/crm/money";
 import { formatBrasilia } from "@/lib/crm/dates";
 import { logError } from "@/lib/log-error";
 import { PageHeader } from "@/components/PageHeader";
+import { SITES_ENABLED } from "@/lib/features";
 
 const inputCls = "rounded-[10px] border px-3 text-[13px] outline-none w-full";
 const inputStyle = { background: "var(--card)", borderColor: "var(--border)", color: "var(--fg)", height: "40px" } as const;
@@ -132,6 +133,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
         </div>
       </section>
 
+      {SITES_ENABLED && (
       <section className="mb-8">
         <H2>Site e páginas de captação</H2>
         {!site.hasSite ? (
@@ -158,6 +160,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
           </>
         )}
       </section>
+      )}
 
       <section id="investimento" className="mb-4">
         <H2>Investimento em marketing</H2>

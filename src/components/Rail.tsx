@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Target, Radar, Kanban, Bot, History, BookOpen, Building2, Users, X, ShieldCheck, ListChecks, Inbox, Contact, Zap, Globe, BarChart3, PenLine, Mail } from "lucide-react";
+import { SITES_ENABLED } from "@/lib/features";
 
 export type OrgProfile = {
   name: string;
@@ -13,7 +14,7 @@ export type OrgProfile = {
 
 export type OrgMembership = { organizationId: string; name: string; role: string };
 
-type NavItem = { href: string; label: string; icon: typeof Target };
+type NavItem = { href: string; label: string; icon: typeof Target; hidden?: boolean };
 type NavGroup = { label: string | null; items: NavItem[]; adminOnly?: boolean };
 
 // Ordem pensada no fluxo de trabalho: encontrar clientes → atendê-los → divulgar → medir → configurar.
@@ -45,7 +46,7 @@ const groups: NavGroup[] = [
   {
     label: "Marketing",
     items: [
-      { href: "/meu-site", label: "Meu site", icon: Globe },
+      { href: "/meu-site", label: "Meu site", icon: Globe, hidden: !SITES_ENABLED },
       { href: "/conteudo", label: "Conteúdo", icon: PenLine },
       { href: "/emails", label: "E-mails", icon: Mail },
     ],
@@ -120,7 +121,7 @@ export function Rail({
                 </div>
               )}
               <div className="flex flex-col gap-0.5">
-                {group.items.map((item) => {
+                {group.items.filter((item) => !item.hidden).map((item) => {
                   const Icon = item.icon;
                   const active = isActive(pathname, item.href);
                   return (

@@ -1,3 +1,5 @@
+import { SITES_ENABLED } from "@/lib/features";
+
 export type PlanId = "STARTER" | "PROFISSIONAL" | "ENTERPRISE";
 
 export type AlertsFrequency = "weekly" | "daily" | "realtime";
@@ -97,7 +99,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     mediaBudgetExtra: false,
     recommended: false,
     tagline: "Para começar",
-    highlights: ["100 contas-alvo por mês", "CRM com funil comercial do seu setor", "1 landing page", "Relatório mensal", "2 usuários"],
+    highlights: ["100 contas-alvo por mês", "CRM com funil comercial do seu setor", ...(SITES_ENABLED ? ["1 landing page"] : []), "Relatório mensal", "2 usuários"],
     stripePriceId: "price_1UcRTSEqWpT7TrUVOS7ba253",
     legacyStripePriceIds: ["price_1U3mz9EqWpT7TrUVKCOoNqE4"],
   },
@@ -126,7 +128,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     highlights: [
       "300 contas-alvo por mês",
       "Follow-up automático no CRM",
-      "Landing pages por serviço",
+      ...(SITES_ENABLED ? ["Landing pages por serviço"] : []),
       "Perfil da Empresa no Google",
       "E-mails prontos todo mês",
       "Reunião mensal e 5 usuários",
@@ -155,7 +157,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     tagline: "Tudo do Crescimento",
     highlights: [
       "1.000 contas-alvo por mês",
-      "Site institucional completo",
+      ...(SITES_ENABLED ? ["Site institucional completo"] : []),
       "Gestão de Google Ads e Meta Ads",
       "Conteúdo para redes sociais",
       "Assessoria de marketing mensal",

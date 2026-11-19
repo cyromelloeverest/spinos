@@ -1,5 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { DEFAULT_PACK_KEY, getPack } from "@/packs/registry";
+import { SITES_ENABLED } from "@/lib/features";
 
 type Tx = Prisma.TransactionClient;
 
@@ -34,7 +35,7 @@ export async function getActivationSteps(tx: Tx, organizationId: string): Promis
     { key: "icp", label: "Definir quem é o seu cliente ideal", hint: "A busca usa isso para achar empresas com cara de cliente.", href: "/settings/icp", done: icps > 0 },
     { key: "busca", label: "Encontrar as primeiras oportunidades", hint: "Rode a busca por IA e veja as empresas com sinais de compra.", href: "/oportunidades", done: searchRuns > 0 || scores > 0 },
     { key: "funil", label: "Colocar o primeiro lead no funil", hint: "Mova uma oportunidade para o CRM ou cadastre um lead.", href: "/leads", done: deals > 0 },
-    { key: "site", label: "Publicar o seu site", hint: "O Spinos monta o site e as páginas de captação a partir de poucas respostas.", href: "/meu-site", done: publishedSites > 0 },
+    ...(SITES_ENABLED ? [{ key: "site", label: "Publicar o seu site", hint: "O Spinos monta o site e as páginas de captação a partir de poucas respostas.", href: "/meu-site", done: publishedSites > 0 }] : []),
     { key: "conteudo", label: "Gerar o primeiro conteúdo", hint: "Uma ideia de post ou um artigo como rascunho para você revisar.", href: "/conteudo", done: drafts > 0 },
     { key: "equipe", label: "Convidar quem vai atender os leads", hint: "Opcional, mas cada lead precisa de um responsável.", href: "/settings/equipe", done: members > 1, optional: true },
   ];

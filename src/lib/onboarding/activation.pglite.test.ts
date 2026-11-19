@@ -9,6 +9,7 @@ import { createPrismaOnPglite } from "@/lib/db/pglite-harness";
 import type { PrismaClient } from "@/generated/prisma/client";
 import { createLead } from "@/lib/crm/leads";
 import { activationProgress, getActivationSteps } from "./activation";
+import { SITES_ENABLED } from "@/lib/features";
 
 let db: PGlite;
 let prisma: PrismaClient;
@@ -40,10 +41,10 @@ afterAll(async () => {
 describe("primeiros passos", () => {
   it("conta nova: nada feito, e o próximo passo é o perfil", async () => {
     const steps = await inOrg("N", (tx) => getActivationSteps(tx, "N"));
-    expect(steps.map((s) => s.key)).toEqual(["perfil", "icp", "busca", "funil", "site", "conteudo", "equipe"]);
+    expect(steps.map((s) => s.key)).toEqual(SITES_ENABLED ? ["perfil", "icp", "busca", "funil", "site", "conteudo", "equipe"] : ["perfil", "icp", "busca", "funil", "conteudo", "equipe"]);
     expect(steps.every((s) => !s.done)).toBe(true);
     const p = activationProgress(steps);
-    expect(p).toMatchObject({ done: 0, total: 6, complete: false });
+    expect(p).toMatchObject({ done: 0, total: SITES_ENABLED ? 6 : 5, complete: false });
     expect(p.next?.key).toBe("perfil");
   });
 
@@ -58,17 +59,18 @@ describe("primeiros passos", () => {
     expect((await done("N")).funil).toBe(true);
     // Site só conta quando está PUBLICADO; rascunho não.
     const site = await prisma.site.create({ data: { organizationId: "N", name: "S", draft: {} } });
-    expect((await done("N")).site).toBe(false);
+    if (SITES_ENABLED) expect((await done("N")).site).toBe(false);
     const v = await prisma.siteVersion.create({ data: { organizationId: "N", siteId: site.id, version: 1, content: {} } });
     await prisma.site.update({ where: { id: site.id }, data: { publishedVersionId: v.id } });
-    expect((await done("N")).site).toBe(true);
+    if (SITES_ENABLED) expect((await done("N")).site).toBe(true);
     // A reserva de uso (corpo vazio) não conta como conteúdo gerado.
     await prisma.contentDraft.create({ data: { organizationId: "N", generationId: "g", kind: "ARTICLE", status: "DISCARDED", topic: "t", title: "(gerando)", body: "" } });
     expect((await done("N")).conteudo).toBe(false);
     await prisma.contentDraft.create({ data: { organizationId: "N", generationId: "g2", kind: "ARTICLE", topic: "t", title: "Real", body: "texto" } });
     expect((await done("N")).conteudo).toBe(true);
     const steps = await inOrg("N", (tx) => getActivationSteps(tx, "N"));
-    expect(activationProgress(steps)).toMatchObject({ done: 6, total: 6, complete: true, next: null });
+    const required = SITES_ENABLED ? 6 : 5;
+    expect(activationProgress(steps)).toMatchObject({ done: required, total: required, complete: true, next: null });
     // Convidar alguém é opcional: não bloqueia a conclusão e acende quando há mais de um membro.
     expect(steps.find((s) => s.key === "equipe")?.done).toBe(false);
     await prisma.membership.createMany({ data: [{ userId: "u1", organizationId: "N", role: "OWNER" }, { userId: "u2", organizationId: "N", role: "MEMBER" }] });
